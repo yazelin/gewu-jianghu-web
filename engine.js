@@ -258,7 +258,7 @@ const hasSave = () => !!localStorage.getItem(SAVE_KEY);
 // ---------- 工具 ----------
 const el = (html) => { const d = document.createElement('div'); d.innerHTML = html.trim(); return d.firstElementChild; };
 const esc = (s) => String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
-const PERSIST = new Set(['chrome', 'rain', 'lamp']);   // 雨幕/燈火/UI 跨場景保留,不隨 clear 移除
+const PERSIST = new Set(['chrome', 'rain', 'lamp', 'fade']);   // 雨幕/燈火/黑幕/UI 跨場景保留,不隨 clear 移除
 const clear = () => {
   const l = document.getElementById('lamp'); if (l) l.classList.remove('on');   // 燈火呼吸只在題名
   [...stage.children].forEach(c => { if (!PERSIST.has(c.id)) c.remove(); });
@@ -297,7 +297,13 @@ function shareBtn(label, text, imageUrl) {
 
 // ---------- 場景路由 ----------
 // 題名為暫時畫面,不寫入存檔的 scene(否則「繼續」會停在題名);其餘場景照存
-function go(scene) { S.scene = scene; if (scene !== 'title') save(); render(); }
+function go(scene) {
+  S.scene = scene; if (scene !== 'title') save();
+  const f = document.getElementById('fade');
+  if (!f || isReduced()) return render();               // dip-to-black 場景轉場(電影感)
+  f.classList.add('on');
+  setTimeout(() => { render(); requestAnimationFrame(() => f.classList.remove('on')); }, 330);
+}
 function render() {
   clear();
   const menu = document.getElementById('gmenu');
@@ -384,23 +390,6 @@ function sTitle() {
   [...col.children].forEach((n, i) => { n.classList.add('slide-in'); n.style.animationDelay = (0.06 + i * 0.1) + 's'; });   // 選單進場動畫
 }
 
-// ================= 難度選擇 =================
-function difficultySelect() {
-  clear();
-  const lay = el(`<div class="layer fade"></div>`);
-  lay.appendChild(el(`<div class="bg" style="background-image:url('${G.title_keyart}');filter:brightness(.35)"></div>`));
-  lay.appendChild(el(`<div class="scrim"></div>`));
-  const box = el(`<div class="choicebox"><div class="prompt">選擇心法(提示詳略)</div></div>`);
-  [['說書', '最詳細的解題提示,適合初次格物'],
-   ['行俠', '標準提示,可隨時開格物卷查閱(建議)'],
-   ['宗師', '僅點出模型與方向,提示最少;「宗師問天」成就需此心法']].forEach(([d, desc]) => {
-    const b = el(`<button class="choice"><b>${esc(d)}</b><small>${esc(desc)}</small></button>`);
-    b.onclick = () => { S.difficulty = d; sfx('door'); go('intro'); };   // 開新局:門扉開啟聲(原版 _start_new_game）
-    box.appendChild(b);
-  });
-  lay.appendChild(box);
-  stage.appendChild(lay);
-}
 
 // ================= 電影式序引(4 幕) =================
 let introReplay = false;                          // 從題名「重看序引」進入 → 播完回題名,不開局
@@ -554,7 +543,7 @@ function prologueBattle() {
       panel.innerHTML = `<div style="color:var(--br);letter-spacing:.2em;margin-bottom:.6rem">${esc(s.title)}</div>
         <div class="body" style="font-size:1.05rem;line-height:1.9;margin-bottom:.8rem">${esc(s.body)}</div>
         <div class="q" style="font-size:1.15rem;margin-bottom:.6rem">${esc(s.prompt)}</div>`;
-      const val = el(`<div style="text-align:center;color:var(--pa);font-size:1.15rem;margin:.6rem 0">支點距離：${s.value.toFixed(1)} m｜反向力矩：${Math.round(s.factor * s.value)} N·m</div>`);
+      const val = el(`<div style="text-align:center;color:var(--steel);font-size:1.2rem;letter-spacing:.05em;margin:.6rem 0">支點距離：${s.value.toFixed(1)} m｜反向力矩：${Math.round(s.factor * s.value)} N·m</div>`);
       const range = el(`<input type="range" class="pslider" min="${s.min}" max="${s.max}" step="${s.step}" value="${s.value}">`);
       range.oninput = () => { const v = +range.value; val.textContent = `支點距離：${v.toFixed(1)} m｜反向力矩：${Math.round(s.factor * v)} N·m`; };
       const lock = el(`<button class="btn" style="margin-top:8px">鎖定石鎮並驗證</button>`);

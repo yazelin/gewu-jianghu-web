@@ -187,7 +187,7 @@ for ck, cat in ac['categories'].items():
 out.append('</section>')
 
 CSS = '''
-:root{--ink:#14110e;--pa:#e8dfcd;--pa2:#c9bda3;--cin:#a8322a;--br:#8a6b3a;--jade:#5fa383;--danger:#c0564c}
+:root{--ink:#14110e;--pa:#e8dfcd;--pa2:#c9bda3;--cin:#a8322a;--br:#8a6b3a;--jade:#5fa383;--danger:#c0564c;--steel:#7f9cc0;--gold:#c9a24b}
 *{box-sizing:border-box}body{margin:0;padding:2rem clamp(1rem,4vw,4rem);background:var(--ink);color:var(--pa);
 font:16px/1.75 "Noto Sans TC","PingFang TC",system-ui,sans-serif;max-width:1500px;margin-inline:auto}
 a{color:var(--br)}a:hover{color:var(--cin)}
@@ -209,7 +209,7 @@ article img{width:100%;border-radius:5px;margin-bottom:.5rem;display:block}
 .opts{margin:.2rem 0;padding-left:1.4rem;font-size:.9rem}
 .opts li.ok{color:#8fd6b0;font-weight:700}.opts li.ok::after{content:" ← 正解";font-size:.75rem;color:var(--jade)}
 .note,.concept,.ev,.reveal,.route,.loss{font-size:.82rem;margin:.3rem 0}
-.note{color:#b9ad93}.concept{color:var(--br)}.concept::before{content:"觀念｜"}.ev{color:var(--jade)}
+.note{color:#b9ad93}.concept{color:var(--steel)}.concept::before{content:"觀念｜"}.ev{color:var(--jade)}
 .reveal b,.route b,.dlg b{color:var(--cin);margin-right:.4em}.route{color:#a99c82}.loss{color:#a8756e}
 .dlg p{margin:.3rem 0;font-size:.9rem;color:#d6cbb4}
 .choice{list-style:none;padding:0}.choice li{background:#1d1913;border:1px solid #332c22;border-radius:6px;padding:.6rem .8rem;margin:.4rem 0;font-size:.9rem}
