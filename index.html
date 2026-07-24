@@ -3,6 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#14110e">
+<link rel="manifest" href="manifest.json">
 <title>格物江湖錄:天理殘卷</title>
 <style>
 :root{
@@ -131,6 +133,7 @@ html,body{height:100%;background:#000;overflow:hidden;
   <p>請將手機轉為橫向<br>以最佳比例遊玩</p>
 </div>
 <div id="wrap"><div id="stage"><div class="loading">載入中…</div></div></div>
+<script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});</script>
 <script src="engine.js"></script>
 </body>
 </html>

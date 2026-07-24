@@ -24,9 +24,20 @@ tools/         還原用腳本(PCK 解包 + GDScript bytecode 還原 + 切圖)
 digest.html    唯讀內容對照表(教師版解答,116 題全標正解)
 ```
 
-## 網頁版設計方向
+## 網頁版(已完成,可玩)
 
-- 純前端、單頁,固定 1280×720 舞台等比縮放適應各螢幕
-- 圖 WebP、按章非同步載入;音樂進章才抓,首頁只載題名曲
-- 存檔走 localStorage(純 JSON,不含資產)
-- 目標:1:1 復刻可玩 + 離線
+純前端單頁,無框架、無外部依賴。開 `index.html`(經 http 或部署)即玩。
+
+- **1:1 復刻**:固定 1280×720 舞台等比縮放(復現原作 Godot `canvas_items+keep`);全部題目/對白/結局逐字
+- **完整系統**:A/B 雙線分流、5 道具、9 人好感、氣勢戰鬥、4+4 結局(含真結局)、3 情緣、30 成就、三印、配樂
+- **離線**:Service Worker precache 核心(約 11 MB WebP);斷網可玩;PWA 可安裝
+- **存檔**:localStorage 純 JSON,不含資產
+- 手機直向提示轉橫屏
+
+進度與驗證紀錄見 [NOTES.md](NOTES.md);還原的邏輯規則見 [tools/LOGIC.md](tools/LOGIC.md)。
+
+### 本機試玩
+```bash
+cd gewu-jianghu-web && python3 -m http.server 8099
+# 開 http://localhost:8099
+```

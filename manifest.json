@@ -1,0 +1,12 @@
+{
+  "name": "格物江湖錄:天理殘卷",
+  "short_name": "格物江湖錄",
+  "start_url": "./",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#14110e",
+  "theme_color": "#14110e",
+  "icons": [
+    { "src": "assets/img/title_keyart_v14.webp", "sizes": "1672x941", "type": "image/webp" }
+  ]
+}
