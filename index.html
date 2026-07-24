@@ -29,9 +29,13 @@
 *{box-sizing:border-box;margin:0;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;background:#000;overflow:hidden;
   font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;color:var(--pa)}
-#wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}
+#wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:1}
 #stage{position:relative;width:1280px;height:720px;background:#000;overflow:hidden;
-  transform-origin:center center;flex:none}
+  transform-origin:center center;flex:none;box-shadow:0 0 60px 10px rgba(0,0,0,.7)}
+/* 環境背景:兩側黑邊變成當前場景背景的模糊延伸 */
+#ambient{position:fixed;inset:0;z-index:0;background-size:cover;background-position:center;
+  filter:blur(48px) brightness(.32) saturate(1.1);transform:scale(1.18);
+  transition:background-image .6s ease,opacity .6s ease}
 /* rotate hint on portrait phones */
 #rotate{position:fixed;inset:0;z-index:9999;background:var(--ink);display:none;
   flex-direction:column;align-items:center;justify-content:center;gap:1.2rem;text-align:center;padding:2rem}
@@ -181,6 +185,12 @@ html,body{height:100%;background:#000;overflow:hidden;
   font-family:inherit;letter-spacing:.05em;transition:.15s;backdrop-filter:blur(2px)}
 #ginstall:hover{filter:brightness(1.12)}
 #ginstall[hidden]{display:none}
+/* 遊戲中選單鈕:固定左上,非題名頁才顯示 */
+#gmenu{position:fixed;top:14px;left:14px;z-index:9998;height:42px;padding:0 18px;border-radius:21px;
+  background:rgba(20,17,14,.85);border:1px solid var(--br);color:var(--pa);cursor:pointer;
+  font-size:.9rem;font-family:inherit;letter-spacing:.1em;transition:.15s;backdrop-filter:blur(2px)}
+#gmenu:hover{background:var(--cin);border-color:var(--cin);color:#fff}
+#gmenu[hidden]{display:none}
 </style>
 </head>
 <body>
@@ -188,9 +198,11 @@ html,body{height:100%;background:#000;overflow:hidden;
   <div class="icon"></div>
   <p>請將手機轉為橫向<br>以最佳比例遊玩</p>
 </div>
+<div id="ambient"></div>
 <div id="wrap"><div id="stage"><div class="loading">載入中…</div></div></div>
 <button id="gmute" title="開關聲音" aria-label="開關聲音">♪</button>
 <button id="ginstall" hidden>安裝</button>
+<button id="gmenu" hidden title="選單">選單</button>
 <script>
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 addEventListener('beforeinstallprompt', e => { e.preventDefault(); window.__deferredInstall = e; });

@@ -66,6 +66,21 @@ function initGlobalMute() {
   sync();
 }
 
+// 環境背景:把當前場景的背景圖模糊延伸到兩側黑邊(手機橫玩更沉浸)
+function initAmbient() {
+  const amb = document.getElementById('ambient');
+  if (!amb) return;
+  let last = '';
+  const update = () => {
+    const bgs = stage.querySelectorAll('.bg');
+    const bg = bgs[bgs.length - 1];              // 取最上層 layer 的背景
+    const img = bg && bg.style.backgroundImage;
+    if (img && img !== last) { last = img; amb.style.backgroundImage = img; }
+  };
+  new MutationObserver(update).observe(stage, { childList: true, subtree: true });
+  update();
+}
+
 // PWA 安裝鈕(桌面/Android 觸發原生安裝;iOS 顯示加入主畫面教學;已安裝則隱藏)
 function initPWAInstall() {
   const b = document.getElementById('ginstall');
@@ -181,9 +196,28 @@ function shareBtn(label, text, imageUrl) {
 function go(scene) { S.scene = scene; save(); render(); }
 function render() {
   clear();
+  const menu = document.getElementById('gmenu');
+  if (menu) menu.hidden = (S.scene === 'title');    // 題名頁不顯示選單
   ({
     title: sTitle, intro: sIntro, prologue: sPrologue, chapter: sChapter,
   }[S.scene] || sTitle)();
+}
+
+// 遊戲中選單:回題名(進度保留)/ 重來本章
+function initMenu() {
+  const b = document.getElementById('gmenu');
+  if (!b) return;
+  b.onclick = () => {
+    const m = el(`<div class="modal"><div class="sheet" style="max-width:420px;text-align:center">
+      <h2 style="border:0">選單</h2></div></div>`);
+    const sheet = m.querySelector('.sheet');
+    const mk = (label, fn) => { const x = el(`<button class="btn" style="margin:.4rem">${label}</button>`); x.onclick = () => { m.remove(); fn(); }; sheet.appendChild(x); };
+    mk('繼續遊戲', () => { });
+    if (S.scene === 'chapter') mk('重來本章', () => { S.evidence[ckey()] = []; S.lost[ckey()] = []; delete S.rewarded['reward_ch' + S.chapter]; go('chapter'); });
+    mk('回題名', () => go('title'));      // 題名可「開新局」重玩或「繼續」
+    m.onclick = (e) => { if (e.target === m) m.remove(); };
+    stage.appendChild(m);
+  };
 }
 
 // ================= 題名頁 =================
@@ -521,10 +555,11 @@ function investigate({ key, background, title, clues, min, onDone, failable }) {
     content.appendChild(cont);
     scrollDown(content);          // 捲右欄到底,讓說明與收起可見
     save(); updateCount();
-    // 全部查完但證據不足 → 失敗
-    const remaining = clues.filter(x => !S.evidence[key].includes(x.id) && !S.lost[key].includes(x.id));
-    if (failable && remaining.length === 0 && S.evidence[key].length < min)
-      setTimeout(() => chapterFailure(chById(S.chapter), '有效證據不足,證據鏈斷裂。'), 900);
+    // 一旦剩餘證物已湊不滿最低門檻 → 立即失敗(不必等全部答完)
+    const maxReach = S.evidence[key].length + clues.filter(
+      x => !S.evidence[key].includes(x.id) && !S.lost[key].includes(x.id)).length;
+    if (failable && maxReach < min)
+      setTimeout(() => chapterFailure(chById(S.chapter), '有效證據不足四項,證據鏈斷裂,本章破局失敗。'), 1100);
   }
 }
 
@@ -974,6 +1009,8 @@ fetch('data/game.json').then(r => r.json()).then(data => {
   S.scene = 'title';                 // 一律回題名;存檔進度保留,按「繼續」才載入
   initGlobalMute();
   initPWAInstall();
+  initAmbient();
+  initMenu();
   fit();
   render();
 }).catch(e => { stage.innerHTML = `<div class="loading">載入失敗：${esc(e.message)}</div>`; });
