@@ -132,6 +132,27 @@ function toast(msg) {
   setTimeout(() => t.remove(), 2200);
 }
 
+// ---------- 社群分享 ----------
+const SHARE_URL = 'https://yazelin.github.io/gewu-jianghu-web/';
+async function shareContent(text, imageUrl) {
+  const data = { title: '格物江湖錄:天理殘卷', text: text + '\n' + SHARE_URL, url: SHARE_URL };
+  try {
+    if (imageUrl && navigator.canShare) {          // 優先連圖一起分享(手機原生分享單)
+      const blob = await (await fetch(imageUrl)).blob();
+      const file = new File([blob], 'gewu.webp', { type: blob.type });
+      if (navigator.canShare({ files: [file] })) { await navigator.share({ ...data, files: [file] }); return; }
+    }
+    if (navigator.share) { await navigator.share(data); return; }
+  } catch (e) { if (e && e.name === 'AbortError') return; }
+  try { await navigator.clipboard.writeText(text + '\n' + SHARE_URL); toast('已複製分享連結'); }
+  catch (e) { window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(SHARE_URL)}`, '_blank'); }
+}
+function shareBtn(label, text, imageUrl) {
+  const b = el(`<button class="btn sm ghost">${esc(label)}</button>`);
+  b.onclick = () => shareContent(text, imageUrl);
+  return b;
+}
+
 // ---------- 場景路由 ----------
 function go(scene) { S.scene = scene; save(); render(); }
 function render() {
@@ -163,8 +184,8 @@ function sTitle() {
   const bMusic = el(`<button class="btn sm ghost">配樂鑑賞</button>`);
   bMusic.disabled = !hasSave();
   bMusic.onclick = () => { const prev = S; S = loadSave() || newState(); musicGallery(); S = prev; };
-  const row2 = el(`<div style="display:flex;gap:12px"></div>`);
-  row2.append(bCodex, bMusic);
+  const row2 = el(`<div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center"></div>`);
+  row2.append(bCodex, bMusic, shareBtn('分享', '武俠懸疑包裝的物理解題 RPG——《格物江湖錄:天理殘卷》,可離線遊玩。', G.title_keyart));
   col.append(row2);
   bg.appendChild(col);
   stage.appendChild(bg);
@@ -890,9 +911,12 @@ function showEnding(e, next, badge, label) {
       <div class="intro-text" style="max-width:80%;font-size:1.15rem;max-height:280px;overflow:auto">${esc(e.text)}
         <div style="margin-top:1.2rem;color:#b9ad93">${esc(e.epilogue || '')}</div></div>
     </div>`));
-    const b = el(`<button class="btn" style="position:absolute;right:60px;bottom:48px">${label || (next ? '繼續 ▸' : '回題名')}</button>`);
+    const row = el(`<div style="position:absolute;right:60px;bottom:48px;display:flex;gap:12px;align-items:center"></div>`);
+    row.appendChild(shareBtn('分享此結局', `我在《格物江湖錄:天理殘卷》走到了「${e.title}」`, e.image));
+    const b = el(`<button class="btn">${label || (next ? '繼續 ▸' : '回題名')}</button>`);
     b.onclick = next || (() => go('title'));
-    lay.appendChild(b);
+    row.appendChild(b);
+    lay.appendChild(row);
     stage.appendChild(lay);
   });
 }

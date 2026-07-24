@@ -14,9 +14,14 @@ def qbox(q, opts, correct, note='', concept=''):
     if note: x += f'<p class="note">{e(note)}</p>'
     return x
 
+# 注:此頁由 tools/gen_design.py 生成;重新生成後需重跑 promo-footer apply.py 補三件套 footer。
 out = ['<h1>格物江湖錄:天理殘卷 — 設計與公式站</h1>',
-       '<p class="lede">完整劇情、答案、A/B 分支、結局條件與成就判定。此頁為設計/攻略參考;'
-       '遊戲本體請見 <a href="index.html">index.html</a>。內容著作權屬原作者,見 SOURCE.md。</p>']
+       '<p class="lede">完整劇情、答案、A/B 分支、結局條件與成就判定,等同一份攻略。'
+       '遊戲本體請見 <a href="index.html">index.html</a>。</p>',
+       '<p class="lede">原作由物理老師 <a href="https://github.com/changyi123456" target="_blank" rel="noopener">@changyi123456</a> 製作,'
+       '劇情/題目/美術著作權屬原作者,本網頁版經授權製作(見 SOURCE.md)。喜歡請支持原作者:'
+       '<a href="https://www.instagram.com/aiphysicsteacher" target="_blank" rel="noopener">Instagram</a> · '
+       '<a href="https://aiphysicsteacher123.bobaboba.me" target="_blank" rel="noopener">自由贊助</a>。</p>']
 
 # ---- 目錄 ----
 out.append('<nav class="toc"><b>目錄</b> ')
