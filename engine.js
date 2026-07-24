@@ -416,7 +416,7 @@ function investigate({ key, background, title, clues, min, onDone, failable, onF
   const bScroll = el(`<button class="util">格物卷</button>`);
   bScroll.onclick = () => evidenceModal(key, clues);
   bar.append(bAff, bInv, bScroll);
-  const proceed = el(`<button class="util" style="border-color:var(--jade);color:#bfe6d2">進入破局 ▸</button>`);
+  const proceed = el(`<button class="util go">進入破局 ▸</button>`);
   proceed.style.display = 'none';
   proceed.onclick = onDone;
   bar.appendChild(proceed);

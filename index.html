@@ -91,7 +91,10 @@ html,body{height:100%;background:#000;overflow:hidden;
 .topbar .spacer{flex:1}
 .util{height:40px;display:flex;align-items:center;background:rgba(20,17,14,.85);border:1px solid var(--br);
   border-radius:20px;color:var(--pa);padding:0 16px;font-size:.9rem;cursor:pointer;font-family:inherit;transition:.15s}
-.util:hover{border-color:var(--cin);background:var(--cin);color:#fff}
+.util:hover{border-color:var(--cin);color:#fff}
+/* 前進鈕(進入破局/第一章):綠色語意,hover 邊框仍綠不變紅 */
+.util.go{border-color:var(--jade);color:#bfe6d2}
+.util.go:hover{border-color:var(--jade);color:#fff}
 .hotspot{position:absolute;width:34px;height:34px;margin:-17px 0 0 -17px;border-radius:50%;
   border:2px solid var(--pa);background:rgba(168,50,42,.35);cursor:pointer;z-index:15;
   box-shadow:0 0 0 0 rgba(168,50,42,.6);animation:pulse 2s infinite}
@@ -181,7 +184,7 @@ html,body{height:100%;background:#000;overflow:hidden;
 #chrome button{pointer-events:auto;transition:.15s;backdrop-filter:blur(2px);font-family:inherit}
 #gmute{width:40px;height:40px;border-radius:50%;background:rgba(20,17,14,.85);border:1px solid var(--br);
   color:var(--pa);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0}
-#gmute:hover{background:var(--cin);border-color:var(--cin);color:#fff}
+#gmute:hover{border-color:var(--cin);color:#fff}
 #gmute.muted{color:var(--danger);border-color:var(--danger)}
 #ginstall{height:40px;display:flex;align-items:center;padding:0 16px;border-radius:20px;background:var(--cin);
   border:1px solid var(--cin);color:#fff;cursor:pointer;font-size:.9rem;letter-spacing:.05em}
@@ -190,7 +193,7 @@ html,body{height:100%;background:#000;overflow:hidden;
 #gmenu{position:absolute;top:14px;left:14px;height:40px;display:flex;align-items:center;padding:0 16px;
   border-radius:20px;background:rgba(20,17,14,.85);border:1px solid var(--br);color:var(--pa);cursor:pointer;
   font-size:.9rem;letter-spacing:.05em}
-#gmenu:hover{background:var(--cin);border-color:var(--cin);color:#fff}
+#gmenu:hover{border-color:var(--cin);color:#fff}
 #gmenu[hidden]{display:none}
 </style>
 </head>
