@@ -101,14 +101,25 @@ function initPWAInstall() {
   }
   if (window.__deferredInstall) b.hidden = false;      // 已符合安裝條件
   addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); window.__deferredInstall = e; b.hidden = false; });
-  addEventListener('appinstalled', () => { b.hidden = true; window.__deferredInstall = null; });
+  addEventListener('appinstalled', () => { b.hidden = true; window.__deferredInstall = null; installedHint(); });
   b.onclick = async () => {
     const d = window.__deferredInstall;
     if (!d) { toast('請用瀏覽器選單的「安裝／加到主畫面」'); return; }
     d.prompt();
-    await d.userChoice.catch(() => { });
+    const choice = await d.userChoice.catch(() => ({}));
     window.__deferredInstall = null; b.hidden = true;
+    if (choice && choice.outcome === 'accepted') installedHint();   // 瀏覽器無法自動喚起 App,明確引導改用主畫面圖示
   };
+}
+// 安裝完成後的常駐引導:網頁無法自動切到 App,提醒改從主畫面圖示開啟
+function installedHint() {
+  if (document.getElementById('installed-hint')) return;
+  const h = el(`<div id="installed-hint">
+    <b>安裝完成</b>
+    <span>接下來請回<b>主畫面點「格物江湖錄」圖示</b>開啟——那是全螢幕橫式的離線版,不必再用瀏覽器分頁。</span>
+    <button class="btn sm">知道了</button></div>`);
+  h.querySelector('button').onclick = () => h.remove();
+  document.body.appendChild(h);
 }
 // 鑑賞曲目 id → 音檔(部分曲目共用同一首 CC0 來源)
 const GALLERY_FILE = {
