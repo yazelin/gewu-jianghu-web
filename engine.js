@@ -30,13 +30,13 @@ const newState = () => ({
 const MUSIC = {
   ambient: 'oriental_calm', prologue: 'oriented_suspense',
   investigation: { 1: 'chapter1_workshop', 2: 'chapter2_river', 3: 'chapter3_ridge', 4: 'chapter4_forge',
-    5: 'chapter5_thunder_alliance', 6: 'chapter6_observatory', 7: 'chapter7_mirror_city',
+    5: 'chapter5_thunder_alliance', 6: 'chapter5_thunder_alliance', 7: 'chapter7_mirror_city',
     8: 'chapter8_crafts_prison', 9: 'chapter9_tianli_bureau', 10: 'chapter10_nameless_institute', 11: 'chapter11_heaven_earth' },
   battle: { 1: 'asianoriental_battle', 2: 'asianoriental_battle', 3: 'chapter3_battle', 4: 'chapter4_battle',
-    5: 'chapter5_battle', 6: 'chapter6_battle', 7: 'chapter7_battle', 8: 'chapter8_battle',
+    5: 'chapter5_battle', 6: 'chapter6_battle', 7: 'chapter4_battle', 8: 'chapter8_battle',
     9: 'asianoriental_battle', 10: 'chapter10_battle', 11: 'chapter11_battle' },
 };
-const MP3_TRACKS = new Set(['oriental_calm', 'chapter4_battle', 'chapter5_battle', 'chapter7_battle', 'chapter7_mirror_city', 'chapter10_battle']);
+const MP3_TRACKS = new Set();   // 全部重編為 ogg
 let _audio = null, _curTrack = '';
 const isMuted = () => localStorage.getItem('gewu_muted') === '1';
 function setMuted(v) { localStorage.setItem('gewu_muted', v ? '1' : '0'); if (_audio) _audio.muted = v; }
