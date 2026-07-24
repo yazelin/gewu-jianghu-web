@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>格物江湖錄:天理殘卷</title>
+<style>
+:root{
+  --ink:#14110e; --ink2:#1d1913; --line:#3a332a;
+  --pa:#e8dfcd; --pa2:#c9bda3; --cin:#a8322a; --br:#8a6b3a;
+  --jade:#5fa383; --danger:#c0564c;
+}
+*{box-sizing:border-box;margin:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:#000;overflow:hidden;
+  font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;color:var(--pa)}
+#wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}
+#stage{position:relative;width:1280px;height:720px;background:#000;overflow:hidden;
+  transform-origin:center center;flex:none}
+/* rotate hint on portrait phones */
+#rotate{position:fixed;inset:0;z-index:9999;background:var(--ink);display:none;
+  flex-direction:column;align-items:center;justify-content:center;gap:1.2rem;text-align:center;padding:2rem}
+#rotate.show{display:flex}
+#rotate .icon{font-size:0;width:64px;height:96px;border:3px solid var(--pa2);border-radius:10px;
+  position:relative;animation:tilt 1.6s ease-in-out infinite}
+@keyframes tilt{0%,100%{transform:rotate(0)}50%{transform:rotate(-90deg)}}
+#rotate p{color:var(--pa2);letter-spacing:.1em}
+@media (orientation:portrait) and (max-width:900px){#rotate{display:flex}}
+
+.layer{position:absolute;inset:0}
+.bg{position:absolute;inset:0;background-size:cover;background-position:center;filter:brightness(.9)}
+.scrim{position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,8,6,.15),rgba(10,8,6,.55))}
+
+/* dialogue */
+.dbox{position:absolute;left:60px;right:60px;bottom:48px;background:rgba(20,17,14,.92);
+  border:1px solid var(--line);border-left:5px solid var(--cin);border-radius:10px;
+  padding:22px 28px;min-height:150px;backdrop-filter:blur(2px)}
+.dbox .spk{color:var(--cin);font-weight:700;font-size:1.15rem;margin-bottom:.5rem;letter-spacing:.08em}
+.dbox .txt{font-size:1.3rem;line-height:2;color:#f0e6d2}
+.dbox .next{position:absolute;right:22px;bottom:14px;color:var(--br);font-size:.9rem;animation:blink 1.2s infinite}
+@keyframes blink{50%{opacity:.3}}
+
+/* title */
+.center-col{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.5rem}
+.gtitle{font-size:4.2rem;letter-spacing:.3em;color:#f3ead6;text-shadow:0 4px 30px #000,0 0 8px rgba(168,50,42,.4)}
+.gsub{font-size:1.4rem;letter-spacing:.5em;color:var(--pa2)}
+.btn{background:rgba(29,25,19,.9);border:1px solid var(--br);color:var(--pa);
+  padding:14px 40px;font-size:1.2rem;letter-spacing:.2em;border-radius:8px;cursor:pointer;
+  transition:.15s;font-family:inherit}
+.btn:hover{background:var(--cin);border-color:var(--cin);color:#fff}
+.btn.sm{padding:9px 20px;font-size:1rem;letter-spacing:.1em}
+.btn.ghost{background:transparent}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.linkrow{position:absolute;bottom:22px;display:flex;gap:1.5rem;font-size:.85rem}
+.linkrow a{color:var(--br);text-decoration:none}.linkrow a:hover{color:var(--cin)}
+
+/* cinematic intro */
+.intro-eyebrow{color:var(--br);letter-spacing:.25em;font-size:1rem;margin-bottom:1rem}
+.intro-title{font-size:2.6rem;color:#f3ead6;line-height:1.5;margin-bottom:1.5rem;max-width:70%}
+.intro-text{font-size:1.35rem;line-height:2.1;color:#d6cbb4;max-width:64%}
+
+/* investigation */
+.topbar{position:absolute;top:0;left:0;right:0;height:56px;background:linear-gradient(180deg,rgba(10,8,6,.85),transparent);
+  display:flex;align-items:center;padding:0 24px;gap:18px;z-index:20}
+.chip{background:rgba(20,17,14,.85);border:1px solid var(--line);border-radius:20px;padding:6px 16px;font-size:.95rem}
+.chip b{color:var(--jade)}
+.topbar .spacer{flex:1}
+.util{background:rgba(20,17,14,.85);border:1px solid var(--br);border-radius:8px;color:var(--pa);
+  padding:7px 14px;font-size:.9rem;cursor:pointer;font-family:inherit}
+.util:hover{border-color:var(--cin);color:#fff}
+.hotspot{position:absolute;width:34px;height:34px;margin:-17px 0 0 -17px;border-radius:50%;
+  border:2px solid var(--pa);background:rgba(168,50,42,.35);cursor:pointer;z-index:15;
+  box-shadow:0 0 0 0 rgba(168,50,42,.6);animation:pulse 2s infinite}
+.hotspot.done{border-color:var(--jade);background:rgba(95,163,131,.3);animation:none}
+.hotspot.lost{border-color:var(--danger);background:rgba(192,86,76,.25);animation:none;cursor:default}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(168,50,42,.55)}70%{box-shadow:0 0 0 16px rgba(168,50,42,0)}100%{box-shadow:0 0 0 0 rgba(168,50,42,0)}}
+
+/* right panel (clue / battle) */
+.panel{position:absolute;top:70px;right:24px;width:440px;max-height:600px;overflow:auto;
+  background:rgba(20,17,14,.95);border:1px solid var(--line);border-radius:12px;padding:20px;z-index:25}
+.panel h3{font-size:1.3rem;color:#f3ead6;margin-bottom:.5rem}
+.panel .cell{width:100%;border-radius:8px;margin:.4rem 0 .8rem;display:block}
+.panel .body{font-size:1.02rem;line-height:1.8;color:#d6cbb4;margin-bottom:.8rem}
+.panel .q{font-weight:700;color:#f3ead6;font-size:1.08rem;margin-bottom:.6rem}
+.opt{display:block;width:100%;text-align:left;background:rgba(40,34,26,.7);border:1px solid var(--line);
+  color:var(--pa);padding:12px 16px;margin:.4rem 0;border-radius:8px;cursor:pointer;font-size:1rem;
+  font-family:inherit;transition:.12s;line-height:1.5}
+.opt:hover:not(:disabled){border-color:var(--br);background:rgba(60,50,38,.8)}
+.opt.correct{border-color:var(--jade);background:rgba(95,163,131,.18);color:#bfe6d2}
+.opt.wrong{border-color:var(--danger);background:rgba(192,86,76,.18);color:#e6b3ad}
+.opt:disabled{cursor:default}
+.result{font-size:.98rem;line-height:1.75;margin-top:.6rem;padding-top:.6rem;border-top:1px dashed var(--line)}
+.result.ok{color:#bfe6d2}.result.bad{color:#e6b3ad}
+.concept{color:var(--br);font-size:.88rem;margin-top:.4rem}
+.reveal{color:#cfc4ab;font-size:.95rem;line-height:1.7;margin-top:.5rem}
+.reveal .spk{color:var(--cin);font-weight:700}
+
+/* choices (dialogue_choice / final_choice) */
+.choicebox{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:760px;max-width:88%;
+  background:rgba(20,17,14,.96);border:1px solid var(--br);border-radius:14px;padding:28px;z-index:40}
+.choicebox .prompt{font-size:1.35rem;color:#f3ead6;line-height:1.7;margin-bottom:1.2rem;text-align:center}
+.choice{display:block;width:100%;text-align:left;background:rgba(40,34,26,.7);border:1px solid var(--line);
+  color:var(--pa);padding:16px 20px;margin:.6rem 0;border-radius:10px;cursor:pointer;font-family:inherit;transition:.12s}
+.choice:hover{border-color:var(--cin);background:rgba(60,50,38,.85)}
+.choice b{color:#f3ead6;font-size:1.1rem;display:block;margin-bottom:.3rem}
+.choice small{color:var(--pa2);font-size:.92rem;line-height:1.6}
+.choice .tag{float:right;color:var(--br);font-size:.85rem}
+
+/* qishi bar */
+.qishi{display:flex;gap:6px;align-items:center}
+.qishi .pip{width:20px;height:20px;border-radius:50%;border:2px solid var(--cin);background:transparent}
+.qishi .pip.on{background:var(--cin);box-shadow:0 0 8px rgba(168,50,42,.6)}
+
+/* overlay panels (evidence scroll etc.) */
+.modal{position:absolute;inset:0;background:rgba(8,6,4,.8);z-index:60;display:flex;align-items:center;justify-content:center;padding:40px}
+.modal .sheet{background:var(--ink2);border:1px solid var(--br);border-radius:14px;padding:28px;max-width:720px;width:100%;max-height:80%;overflow:auto}
+.modal h2{color:#f3ead6;margin-bottom:1rem;letter-spacing:.08em}
+.modal .close{position:absolute;top:24px;right:32px}
+.evrow{padding:8px 0;border-bottom:1px solid var(--line);font-size:1rem}
+.evrow .en{color:var(--jade);font-weight:700}
+.toast{position:absolute;top:70px;left:50%;transform:translateX(-50%);background:rgba(20,17,14,.95);
+  border:1px solid var(--jade);color:#bfe6d2;padding:12px 24px;border-radius:24px;z-index:70;font-size:1rem;
+  animation:fadeup .4s}
+@keyframes fadeup{from{opacity:0;transform:translate(-50%,10px)}to{opacity:1;transform:translate(-50%,0)}}
+.fade{animation:fade .5s}@keyframes fade{from{opacity:0}to{opacity:1}}
+.loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--pa2);font-size:1.2rem;letter-spacing:.2em}
+</style>
+</head>
+<body>
+<div id="rotate">
+  <div class="icon"></div>
+  <p>請將手機轉為橫向<br>以最佳比例遊玩</p>
+</div>
+<div id="wrap"><div id="stage"><div class="loading">載入中…</div></div></div>
+<script src="engine.js"></script>
+</body>
+</html>
