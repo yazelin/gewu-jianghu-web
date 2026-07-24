@@ -161,6 +161,36 @@ body.reduced #rain{display:none}
 .intro-eyebrow{color:var(--br);letter-spacing:.25em;font-size:1rem;margin-bottom:1rem}
 .intro-title{font-size:2.6rem;color:#f3ead6;line-height:1.5;margin-bottom:1.5rem;max-width:70%}
 .intro-text{font-size:1.35rem;line-height:2.1;color:#d6cbb4;max-width:64%}
+/* ===== 電影式序引:letterbox + 景深運鏡 + 交叉溶接 + 字幕分層進場 ===== */
+.cine-scene{position:absolute;inset:0;opacity:0;transition:opacity .95s ease}
+.cine-scene.in{opacity:1}.cine-scene.out{opacity:0}
+.cine-scene .bg{will-change:transform;transform-origin:center}
+@keyframes kbA{from{transform:scale(1.06)}to{transform:scale(1.19) translate(-2.5%,-1.5%)}}
+@keyframes kbB{from{transform:scale(1.18) translate(3%,0)}to{transform:scale(1.06) translate(-2%,1.5%)}}
+@keyframes kbC{from{transform:scale(1.05) translate(0,1.5%)}to{transform:scale(1.2) translate(2.5%,-1.5%)}}
+@keyframes kbD{from{transform:scale(1.22) translate(-1.5%,-1%)}to{transform:scale(1.06)}}
+.cine-scene .kbA{animation:kbA 13s ease-out forwards}
+.cine-scene .kbB{animation:kbB 13s ease-out forwards}
+.cine-scene .kbC{animation:kbC 13s ease-out forwards}
+.cine-scene .kbD{animation:kbD 13s ease-out forwards}
+.cine-txt{position:absolute;left:9%;right:9%;top:34%}
+.cine-txt .intro-title{max-width:78%}.cine-txt .intro-text{max-width:72%}
+.ci-idx{color:var(--br);letter-spacing:.3em;font-size:.9rem;margin-top:1.4rem}
+.ci-a{opacity:0;animation:ciFade .9s ease .35s forwards}
+.ci-b{opacity:0;transform:translateY(18px);animation:ciRise 1.05s cubic-bezier(.2,.7,.2,1) .55s forwards}
+.ci-c{opacity:0;animation:ciFade 1.1s ease 1.15s forwards}
+@keyframes ciFade{to{opacity:1}}@keyframes ciRise{to{opacity:1;transform:none}}
+.cine{position:absolute;inset:0;z-index:30;pointer-events:none}
+.cine::before,.cine::after{content:"";position:absolute;left:0;right:0;height:8.5%;background:#000;animation:barsIn .9s cubic-bezier(.2,.7,.2,1) both}
+.cine::before{top:0}.cine::after{bottom:0}
+@keyframes barsIn{from{height:0}to{height:8.5%}}
+.cine .vig{position:absolute;inset:0;background:radial-gradient(125% 88% at 50% 44%,transparent 50%,rgba(0,0,0,.62))}
+.cine-nav{position:absolute;right:60px;bottom:52px;z-index:40;display:flex;gap:14px;opacity:0;transition:opacity .8s ease .4s}
+.cine-nav.in{opacity:1}
+body.reduced .cine-scene .bg{animation:none;transform:scale(1.08)}
+body.reduced .cine-scene{transition:none}
+body.reduced .ci-a,body.reduced .ci-b,body.reduced .ci-c{animation:none;opacity:1;transform:none}
+body.reduced .cine-nav{transition:none;opacity:1}
 
 /* investigation */
 .topbar{position:absolute;top:0;left:0;right:0;min-height:56px;background:linear-gradient(180deg,rgba(10,8,6,.85),transparent);

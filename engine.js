@@ -406,29 +406,36 @@ function replayIntro() { introReplay = true; sIntro(); }
 function sIntro() {
   let i = 0;
   const pages = G.story_intro;
+  const KB = ['kbA', 'kbB', 'kbC', 'kbD'];         // 每幕不同景深運鏡
   const finish = () => { if (introReplay) { introReplay = false; go('title'); } else { S.intro_seen = true; go('prologue'); } };
   const show = () => {
-    clear();
     const p = pages[i];
-    const lay = el(`<div class="layer fade"></div>`);
-    lay.appendChild(el(`<div class="bg" style="background-image:url('${p.image}');filter:brightness(.5)"></div>`));
-    lay.appendChild(el(`<div class="scrim"></div>`));
-    lay.appendChild(el(`<div style="position:absolute;left:80px;top:180px">
-      <div class="intro-eyebrow">${esc(p.eyebrow)}</div>
-      <div class="intro-title">${esc(p.title)}</div>
-      <div class="intro-text">${esc(p.text)}</div>
-    </div>`));
-    const nav = el(`<div style="position:absolute;right:60px;bottom:48px;display:flex;gap:14px"></div>`);
+    // 每幕:Ken Burns 背景 + 字幕分層進場;交叉溶接(不 clear,舊幕淡出移除)
+    const lay = el(`<div class="cine-scene">
+      <div class="bg ${KB[i % 4]}" style="background-image:url('${p.image}');filter:brightness(.62)"></div>
+      <div class="scrim"></div>
+      <div class="cine-txt">
+        <div class="intro-eyebrow ci-a">${esc(p.eyebrow)}</div>
+        <div class="intro-title ci-b">${esc(p.title)}</div>
+        <div class="intro-text ci-c">${esc(p.text)}</div>
+        <div class="ci-idx ci-c">${i + 1} ／ ${pages.length}</div>
+      </div></div>`);
+    const nav = el(`<div class="cine-nav"></div>`);
     const prev = el(`<button class="btn sm ghost">上一幕</button>`); prev.disabled = i === 0;
     prev.onclick = () => { i--; show(); };
-    const next = el(`<button class="btn sm">${i < pages.length - 1 ? '下一幕' : (introReplay ? '回題名' : '入局')}</button>`);
+    const next = el(`<button class="btn sm">${i < pages.length - 1 ? '下一幕 ▸' : (introReplay ? '回題名' : '入局 ▸')}</button>`);
     next.onclick = () => { i < pages.length - 1 ? (i++, show()) : finish(); };
     const skip = el(`<button class="btn sm ghost">略過</button>`);
     skip.onclick = finish;
     nav.append(prev, next, skip);
-    lay.appendChild(nav);
-    stage.appendChild(lay);
+    const olds = [...stage.querySelectorAll('.cine-scene,.cine-nav')];
+    stage.append(lay, nav);
+    requestAnimationFrame(() => { lay.classList.add('in'); nav.classList.add('in'); });
+    olds.forEach(o => { o.classList.add('out'); setTimeout(() => o.remove(), 950); });
   };
+  clear();
+  stage.appendChild(el(`<div class="cine"><div class="vig"></div></div>`));   // letterbox + 暈影(整段序引持久)
+  playMusic(MUSIC.prologue);
   preload(pages.map(p => p.image)).then(show);
 }
 
