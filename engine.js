@@ -337,31 +337,36 @@ function investigate({ key, background, title, clues, min, onDone, failable }) {
   };
 
   function openClue(cl) {
-    lay.querySelectorAll('.panel').forEach(n => n.remove());
-    const side = cl.pos.x > 640 ? 'left' : 'right';   // 熱點在右→面板出左,反之
-    const panel = el(`<div class="panel ${side}">
+    lay.querySelectorAll('.cluewrap').forEach(n => n.remove());
+    const wrap = el(`<div class="cluewrap"></div>`);
+    const panel = el(`<div class="cluepanel">
       <button class="pclose" title="收起">✕</button>
-      <h3>${esc(cl.name)}</h3>
-      <img class="cell" src="${cl.cell}">
-      <div class="body">${esc(cl.body)}</div>
-      <div class="q">${esc(cl.question)}</div>
+      <div class="cluepic"><img class="cell" src="${cl.cell}"></div>
+      <div class="cluebody"></div>
     </div>`);
-    panel.querySelector('.pclose').onclick = () => closePanel(panel);
-    lay.appendChild(panel);
+    const body = panel.querySelector('.cluebody');
+    body.append(
+      el(`<h3>${esc(cl.name)}</h3>`),
+      el(`<div class="body">${esc(cl.body)}</div>`),
+      el(`<div class="q">${esc(cl.question)}</div>`));
+    panel.querySelector('.pclose').onclick = () => closePanel(wrap);
+    wrap.addEventListener('click', (e) => { if (e.target === wrap) closePanel(wrap); });
+    wrap.appendChild(panel);
+    lay.appendChild(wrap);
 
     // 已作答 → 只讀回顧,不再重答
     if (secured(cl) || lostCl(cl)) {
-      panel.appendChild(el(resultHTML(cl, secured(cl))));
+      body.appendChild(el(resultHTML(cl, secured(cl))));
       const cont = el(`<button class="btn sm" style="margin-top:14px">收起</button>`);
-      cont.onclick = () => closePanel(panel);
-      panel.appendChild(cont);
+      cont.onclick = () => closePanel(wrap);
+      body.appendChild(cont);
       return;
     }
 
     const optsWrap = el(`<div></div>`);
     cl.options.forEach((o, idx) => {
       const b = el(`<button class="opt">${esc(o)}</button>`);
-      b.onclick = () => answer(cl, idx, panel, optsWrap);
+      b.onclick = () => answer(cl, idx, body, wrap, optsWrap);
       optsWrap.appendChild(b);
     });
     // 道具:格物籤(排除一錯項)/ 墨線尺(標出物理量)
@@ -380,14 +385,14 @@ function investigate({ key, background, title, clues, min, onDone, failable }) {
       const t = el(`<button class="btn sm ghost">墨線尺 ×${S.inventory.measuring_rule}</button>`);
       t.onclick = () => {
         if (!useItem('measuring_rule')) return;
-        panel.querySelector('.q').insertAdjacentHTML('afterend',
+        body.querySelector('.q').insertAdjacentHTML('afterend',
           `<div class="concept" style="margin:.3rem 0">應整理的物理量｜${esc(cl.concept)}</div>`);
         t.remove(); save();
       };
       tools.appendChild(t);
     }
-    if (tools.children.length) panel.appendChild(tools);
-    panel.appendChild(optsWrap);
+    if (tools.children.length) body.appendChild(tools);
+    body.appendChild(optsWrap);
   }
 
   function resultHTML(cl, ok) {
@@ -404,7 +409,7 @@ function investigate({ key, background, title, clues, min, onDone, failable }) {
       ${cl.note ? `<div class="concept">正解觀念｜${esc(cl.concept)}</div><div>${esc(cl.note)}</div>` : ''}</div>`;
   }
 
-  function answer(cl, idx, panel, optsWrap) {
+  function answer(cl, idx, content, wrap, optsWrap) {
     const buttons = [...optsWrap.querySelectorAll('.opt')];
     buttons.forEach(b => b.disabled = true);
     const ok = idx === cl.correct;
@@ -415,25 +420,25 @@ function investigate({ key, background, title, clues, min, onDone, failable }) {
       S.evidence[key].push(cl.id);
       S.secured_order[key] = (S.secured_order[key] || []).concat(cl.id);
       spot.classList.add('done');
-      panel.appendChild(el(resultHTML(cl, true)));
+      content.appendChild(el(resultHTML(cl, true)));
       toast('取得證據：' + cl.evidence);
       const c = chById(S.chapter);
       const ms = c && c.milestones && c.milestones[String(S.evidence[key].length)];
       if (ms) {
         const mrt = ms.route_text && ms.route_text[S.route];
-        panel.appendChild(el(`<div class="reveal" style="border-top:1px solid var(--br);margin-top:.6rem;padding-top:.6rem">
+        content.appendChild(el(`<div class="reveal" style="border-top:1px solid var(--br);margin-top:.6rem;padding-top:.6rem">
           <span class="spk">${esc(ms.speaker || '推進')}</span>　${esc(ms.text)}
           ${mrt ? `<div style="margin-top:.3rem"><span class="spk">${S.route} 線</span>　${esc(mrt)}</div>` : ''}</div>`));
       }
     } else {
       S.lost[key].push(cl.id);
       spot.classList.add('lost');
-      panel.appendChild(el(resultHTML(cl, false)));
+      content.appendChild(el(resultHTML(cl, false)));
     }
     const cont = el(`<button class="btn sm" style="margin-top:14px">收起</button>`);
-    cont.onclick = () => closePanel(panel);
-    panel.appendChild(cont);
-    scrollDown(panel);          // 捲到底,讓說明與收起可見
+    cont.onclick = () => closePanel(wrap);
+    content.appendChild(cont);
+    scrollDown(content);          // 捲右欄到底,讓說明與收起可見
     save(); updateCount();
     // 全部查完但證據不足 → 失敗
     const remaining = clues.filter(x => !S.evidence[key].includes(x.id) && !S.lost[key].includes(x.id));

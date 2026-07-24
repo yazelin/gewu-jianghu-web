@@ -79,35 +79,35 @@ html,body{height:100%;background:#000;overflow:hidden;
 .hotspot.lost{border-color:var(--danger);background:rgba(192,86,76,.25);animation:none;cursor:default}
 @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(168,50,42,.55)}70%{box-shadow:0 0 0 16px rgba(168,50,42,0)}100%{box-shadow:0 0 0 0 rgba(168,50,42,0)}}
 
-/* right panel (clue / battle) */
-.panel{position:absolute;top:70px;width:440px;max-width:44%;max-height:600px;overflow-y:auto;overflow-x:hidden;
-  background:rgba(20,17,14,.97);border:1px solid var(--br);border-radius:12px;padding:20px 22px;z-index:25;
-  box-shadow:0 10px 40px rgba(0,0,0,.5)}
-.panel.right{right:24px;animation:panelInR .28s cubic-bezier(.2,.8,.25,1)}
-.panel.left{left:24px;animation:panelInL .28s cubic-bezier(.2,.8,.25,1)}
-@keyframes panelInR{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:none}}
-@keyframes panelInL{from{opacity:0;transform:translateX(-30px)}to{opacity:1;transform:none}}
-.panel.closing{pointer-events:none}
-.panel.right.closing{animation:panelOutR .2s ease forwards}
-.panel.left.closing{animation:panelOutL .2s ease forwards}
-@keyframes panelOutR{to{opacity:0;transform:translateX(30px)}}
-@keyframes panelOutL{to{opacity:0;transform:translateX(-30px)}}
-.panel h3{font-size:1.3rem;color:#f3ead6;margin-bottom:.5rem;padding-right:28px}
-.panel .cell{width:100%;border-radius:8px;margin:.4rem 0 .8rem;display:block;background:var(--ink);
-  border:1px solid var(--line);box-shadow:0 2px 12px rgba(0,0,0,.4)}
-.pclose{position:absolute;top:14px;right:16px;width:28px;height:28px;border-radius:50%;
+/* clue panel — 置中兩欄:左圖(固定)右文(字長才捲) */
+.cluewrap{position:absolute;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;
+  padding:40px;background:rgba(8,6,4,.55);animation:fadeIn .2s ease}
+.cluewrap.closing{animation:fadeOut .2s ease forwards;pointer-events:none}
+@keyframes fadeOut{to{opacity:0}}
+.cluepanel{position:relative;display:flex;gap:26px;width:min(900px,88%);max-height:80%;
+  background:rgba(20,17,14,.98);border:1px solid var(--br);border-radius:16px;padding:26px;
+  box-shadow:0 16px 55px rgba(0,0,0,.6);animation:popPanel .28s cubic-bezier(.2,.8,.25,1)}
+.cluewrap.closing .cluepanel{animation:popPanelOut .2s ease forwards}
+@keyframes popPanel{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:none}}
+@keyframes popPanelOut{to{opacity:0;transform:scale(.97)}}
+.cluepic{flex:0 0 42%;display:flex;align-items:center;justify-content:center}
+.cluepic .cell{width:100%;max-height:100%;object-fit:contain;border-radius:10px;background:var(--ink);
+  border:1px solid var(--line);box-shadow:0 4px 18px rgba(0,0,0,.45)}
+.cluebody{flex:1;min-width:0;overflow-y:auto;padding-right:8px}
+.cluebody h3{font-size:1.4rem;color:#f3ead6;margin-bottom:.6rem;padding-right:24px}
+.cluebody .body{font-size:1.05rem;line-height:1.85;color:#d6cbb4;margin-bottom:1rem}
+.cluebody .q{font-weight:700;color:#f3ead6;font-size:1.14rem;margin-bottom:.7rem}
+.pclose{position:absolute;top:14px;right:16px;width:30px;height:30px;border-radius:50%;
   background:rgba(40,34,26,.9);border:1px solid var(--br);color:var(--pa2);cursor:pointer;
-  font-size:.9rem;line-height:1;z-index:2;transition:.12s;padding:0}
+  font-size:.95rem;line-height:1;z-index:2;transition:.12s;padding:0}
 .pclose:hover{background:var(--cin);border-color:var(--cin);color:#fff}
 /* themed scrollbars */
-.panel,.modal .sheet{scrollbar-width:thin;scrollbar-color:var(--br) transparent}
-.panel::-webkit-scrollbar,.modal .sheet::-webkit-scrollbar{width:8px}
-.panel::-webkit-scrollbar-track,.modal .sheet::-webkit-scrollbar-track{background:transparent}
-.panel::-webkit-scrollbar-thumb,.modal .sheet::-webkit-scrollbar-thumb{
-  background:var(--br);border-radius:4px;border:2px solid rgba(20,17,14,.97)}
-.panel::-webkit-scrollbar-thumb:hover,.modal .sheet::-webkit-scrollbar-thumb:hover{background:var(--cin)}
-.panel .body{font-size:1.02rem;line-height:1.8;color:#d6cbb4;margin-bottom:.8rem}
-.panel .q{font-weight:700;color:#f3ead6;font-size:1.08rem;margin-bottom:.6rem}
+.cluebody,.modal .sheet{scrollbar-width:thin;scrollbar-color:var(--br) transparent}
+.cluebody::-webkit-scrollbar,.modal .sheet::-webkit-scrollbar{width:8px}
+.cluebody::-webkit-scrollbar-track,.modal .sheet::-webkit-scrollbar-track{background:transparent}
+.cluebody::-webkit-scrollbar-thumb,.modal .sheet::-webkit-scrollbar-thumb{
+  background:var(--br);border-radius:4px;border:2px solid rgba(20,17,14,.98)}
+.cluebody::-webkit-scrollbar-thumb:hover,.modal .sheet::-webkit-scrollbar-thumb:hover{background:var(--cin)}
 .opt{display:block;width:100%;text-align:left;background:rgba(40,34,26,.7);border:1px solid var(--line);
   color:var(--pa);padding:12px 16px;margin:.4rem 0;border-radius:8px;cursor:pointer;font-size:1rem;
   font-family:inherit;transition:.12s;line-height:1.5}
