@@ -719,11 +719,33 @@ function afterChapter(c) {
   if (S.flags['failed_ch' + c.id]) S.flags.defeat_returned = true;   // 敗而復通
   reconcile();
   save();
-  toast(`第 ${c.id} 章完成`);
   if (c.id === 9) return setTimeout(() => romanceSelect('intent', () => chapter9Endings(c)), 700);
   if (c.id === 11) return setTimeout(() => romanceSelect('final', () => finaleEndings(c)), 700);
-  S.chapter = c.id + 1; save();
-  setTimeout(() => go('chapter'), 700);
+  chapterClearScreen(c);
+}
+
+// 每章通關小卡(通關感 + 分享環節)
+function chapterClearScreen(c) {
+  const secured = (S.evidence['ch' + c.id] || []).length;
+  const perfect = !!(S.perfect || {})[c.id];
+  clear();
+  const lay = el(`<div class="layer fade" style="display:flex;align-items:center;justify-content:center">
+    <div class="bg" style="background-image:url('${c.background}');filter:brightness(.4)"></div>
+    <div class="scrim"></div></div>`);
+  const box = el(`<div class="choicebox" style="text-align:center">
+    <div style="color:var(--jade);letter-spacing:.3em;margin-bottom:.6rem">通　關</div>
+    <div class="gtitle" style="font-size:2.2rem">${esc(c.title)}</div>
+    <div class="gsub" style="font-size:1rem;margin:1rem 0">${esc(c.subtitle)}</div>
+    <div style="color:var(--pa2);margin-bottom:1.5rem">證據 ${secured}/6　${S.route} 線${perfect ? '　・格物無漏' : ''}</div>
+  </div>`);
+  const row = el(`<div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap"></div>`);
+  row.appendChild(shareBtn('分享通關', `我通關了《格物江湖錄:天理殘卷》${c.title}${perfect ? '(格物無漏!)' : ''}`, c.background));
+  const cont = el(`<button class="btn">繼續 ▸</button>`);
+  cont.onclick = () => { S.chapter = c.id + 1; save(); go('chapter'); };
+  row.append(cont);
+  box.appendChild(row);
+  lay.querySelector('.scrim').after(box);
+  stage.appendChild(lay);
 }
 
 // ================= 三印(seal_snapshot,忠實還原) =================
