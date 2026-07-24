@@ -47,7 +47,23 @@ html,body{height:100%;background:#000;overflow:hidden;
 @media (orientation:portrait) and (max-width:900px){#rotate{display:flex}}
 
 .layer{position:absolute;inset:0}
-.bg{position:absolute;inset:0;background-size:cover;background-position:center;filter:brightness(.9)}
+.bg{position:absolute;inset:0;background-size:cover;background-position:center;filter:brightness(.9);
+  transform-origin:center;animation:kenburns 24s ease-in-out infinite}
+@keyframes kenburns{0%,100%{transform:scale(1.02)}50%{transform:scale(1.052)}}
+/* 雨幕(還原原作 rain_overlay)+ 浮塵層 */
+#rain{position:absolute;inset:0;width:1280px;height:720px;z-index:8;pointer-events:none}
+/* 選單進場:滑入+淡入(還原原作 _animate_title_node) */
+@keyframes slideIn{from{opacity:0;transform:translateX(-18px)}to{opacity:1;transform:none}}
+.slide-in{animation:slideIn .55s cubic-bezier(.2,.7,.2,1) both}
+/* 減少動態:停止推鏡與裝飾動畫,保留靜態構圖(還原原作 reduced_motion) */
+body.reduced .bg,body.reduced .slide-in,body.reduced #lamp{animation:none!important}
+body.reduced #rain{display:none}
+/* 燈火呼吸(暖光脈動,覆於題名雨夜構圖)*/
+#lamp{position:absolute;inset:0;z-index:7;pointer-events:none;opacity:0;transition:opacity .6s;
+  background:radial-gradient(60% 45% at 72% 42%,rgba(196,120,44,.16),transparent 70%);
+  animation:lampBreath 6s ease-in-out infinite}
+#lamp.on{opacity:1}
+@keyframes lampBreath{0%,100%{opacity:.55}50%{opacity:1}}
 .scrim{position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,8,6,.15),rgba(10,8,6,.55))}
 
 /* dialogue */
@@ -240,6 +256,8 @@ html,body{height:100%;background:#000;overflow:hidden;
 </div>
 <div id="ambient"></div>
 <div id="wrap"><div id="stage">
+  <div id="lamp"></div>
+  <canvas id="rain" width="1280" height="720"></canvas>
   <div id="chrome">
     <button id="gmenu" hidden title="選單">選單</button>
     <div id="chrome-r">

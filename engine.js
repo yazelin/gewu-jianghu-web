@@ -95,6 +95,38 @@ function initGlobalMute() {
   sync();
 }
 
+// ---------- 減少動態(還原原作 reduced_motion:停推鏡與裝飾動畫)----------
+const isReduced = () => localStorage.getItem('gewu_reduced') === '1' ||
+  (localStorage.getItem('gewu_reduced') === null && matchMedia('(prefers-reduced-motion: reduce)').matches);
+function syncReduced() { document.body.classList.toggle('reduced', isReduced()); }
+// ---------- 雨幕 + 浮塵(還原原作 rain_overlay:64 條斜向雨絲;另加緩慢浮塵)----------
+function initWeather() {
+  const cv = document.getElementById('rain');
+  if (!cv) return;
+  const ctx = cv.getContext('2d');
+  const drops = Array.from({ length: 64 }, (_, i) => ({ x: (i * 197) % 1320, y: (i * 83) % 760, i }));
+  const dust = Array.from({ length: 22 }, (_, i) => ({ x: (i * 331) % 1280, y: (i * 149) % 720, i }));
+  let last = 0;
+  const frame = (t) => {
+    requestAnimationFrame(frame);
+    ctx.clearRect(0, 0, 1280, 720);
+    if (isReduced()) { last = t; return; }
+    const dt = last ? Math.min((t - last) / 1000, 0.05) : 0; last = t;
+    for (const d of drops) {                                   // 雨絲:向左下墜落,出界回右上
+      d.x -= dt * (22 + (d.i % 5) * 3); d.y += dt * (145 + (d.i % 7) * 8);
+      if (d.y > 760 || d.x < -20) { d.x = 1280 + (d.i % 11) * 7; d.y = -(d.i % 9) * 18; }
+      ctx.strokeStyle = `rgba(158,199,224,${0.08 + (d.i % 4) * 0.025})`;
+      ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(d.x, d.y); ctx.lineTo(d.x - 5, d.y + 18); ctx.stroke();
+    }
+    for (const m of dust) {                                    // 浮塵:緩慢上飄微擺
+      m.y -= dt * (6 + (m.i % 4) * 2); m.x += Math.sin((t / 1000 + m.i) * 0.5) * dt * 8;
+      if (m.y < -6) { m.y = 726; m.x = (m.i * 331) % 1280; }
+      ctx.fillStyle = `rgba(214,198,150,${0.05 + (m.i % 3) * 0.02})`;
+      ctx.beginPath(); ctx.arc(m.x, m.y, 1.3 + (m.i % 3) * 0.5, 0, 6.283); ctx.fill();
+    }
+  };
+  requestAnimationFrame(frame);
+}
 // 環境背景:把當前場景的背景圖模糊延伸到兩側黑邊(手機橫玩更沉浸)
 function initAmbient() {
   const amb = document.getElementById('ambient');
@@ -223,7 +255,11 @@ const hasSave = () => !!localStorage.getItem(SAVE_KEY);
 // ---------- 工具 ----------
 const el = (html) => { const d = document.createElement('div'); d.innerHTML = html.trim(); return d.firstElementChild; };
 const esc = (s) => String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
-const clear = () => { [...stage.children].forEach(c => { if (c.id !== 'chrome') c.remove(); }); };
+const PERSIST = new Set(['chrome', 'rain', 'lamp']);   // 雨幕/燈火/UI 跨場景保留,不隨 clear 移除
+const clear = () => {
+  const l = document.getElementById('lamp'); if (l) l.classList.remove('on');   // 燈火呼吸只在題名
+  [...stage.children].forEach(c => { if (!PERSIST.has(c.id)) c.remove(); });
+};
 const preload = (list) => Promise.all([...new Set(list)].map(src => new Promise(r => {
   const i = new Image(); i.onload = i.onerror = r; i.src = src;
 })));
@@ -280,6 +316,9 @@ function initMenu() {
     mk('繼續遊戲', () => { });
     if (S.scene === 'chapter') mk('重來本章', () => { S.evidence[ckey()] = []; S.lost[ckey()] = []; delete S.rewarded['reward_ch' + S.chapter]; go('chapter'); });
     mk('回題名', () => go('title'));      // 題名可「開新局」重玩或「繼續」
+    mk(isReduced() ? '動態效果:關(點擊開啟)' : '動態效果:開(點擊關閉)', () => {
+      localStorage.setItem('gewu_reduced', isReduced() ? '0' : '1'); syncReduced();
+    });
     m.onclick = (e) => { if (e.target === m) m.remove(); };
     stage.appendChild(m);
   };
@@ -312,6 +351,8 @@ function sTitle() {
   col.append(row2);
   bg.appendChild(col);
   stage.appendChild(bg);
+  document.getElementById('lamp')?.classList.add('on');           // 雨夜鐘樓燈火呼吸
+  [...col.children].forEach((n, i) => { n.classList.add('slide-in'); n.style.animationDelay = (0.06 + i * 0.1) + 's'; });   // 選單進場動畫
 }
 
 // ================= 難度選擇 =================
@@ -1175,6 +1216,8 @@ fetch('data/game.json').then(r => r.json()).then(data => {
   G = data;
   S = loadSave() || newState();
   S.scene = 'title';                 // 一律回題名;存檔進度保留,按「繼續」才載入
+  syncReduced();
+  initWeather();
   initGlobalMute();
   initPWAInstall();
   initAmbient();
