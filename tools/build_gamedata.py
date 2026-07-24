@@ -148,7 +148,7 @@ G['logic'] = {
         '6': {'a': ['true_ephemeris_published', 'observatory_students_saved', 'ning_alliance'], 'b': ['secret_star_chart_recovered']},
         '7': {'a': ['mirror_testimony_published'], 'b': ['master_mirror_secured']},
         '8': {'a': ['artisan_league_freed'], 'b': ['zero_standard_secured']},
-        '9': {'a': ['public_measurement_network'], 'b': ['original_standard_chain']},
+        '9': {'a': ['reversible_shutdown'], 'b': ['destroy_tianli_axle']},
         '10': {'a': ['veto_clause_restored'], 'b': ['origin_table_secured']},
         '11': {'a': ['shared_standard_opened'], 'b': ['four_key_standard_sealed']},
     },

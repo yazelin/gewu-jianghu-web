@@ -73,7 +73,7 @@ function routeFor(n) {
   const cond = G.logic.route_table[String(n)];
   if (!cond) return 'A';
   const test = (f) => f.startsWith('ending:') ? S.normal_ending === f.slice(7)
-    : f.startsWith('seal:') ? !!(S.flags['seal_' + f.slice(5)]) : !!S.flags[f];
+    : f.startsWith('seal:') ? !!sealSnapshot()[f.slice(5)] : !!S.flags[f];
   if (cond.all) return cond.all.every(test) ? 'A' : 'B';
   if (cond.any) return cond.any.some(test) ? 'A' : 'B';
   return 'A';
@@ -768,25 +768,33 @@ function romanceSelect(phase, next) {
 }
 
 // ================= 第九章普通結局(4) =================
+// 第9章普通結局:依一路建立的關係/旗標「算出」結局(忠實還原 suggested_ending)
+function suggestedEnding() {
+  const rel = S.affinity || {}, f = S.flags || {};
+  if (!f.reversible_shutdown) return 'nameless_ashes';   // 選斷軸焚卷 → 無名灰燼
+  const people = (rel['柳照微'] || 0) + (rel['江濯月'] || 0) + (rel['霍離'] || 0);
+  const archive = (rel['顧玄策'] || 0) + (rel['寧觀瀾'] || 0) + (f.zero_standard_secured ? 3 : 0);
+  const mountain = (rel['裴無咎'] || 0) * 2 + (f.master_mirror_secured ? 2 : 0);
+  if (people >= archive && people >= mountain) return 'people_witness';
+  if (archive >= mountain) return 'archive_sealed';
+  return 'return_mountain';
+}
+// 第十章「隱藏門扉」:選了可逆止機 且 三印≥2 才解鎖(忠實還原 hidden_route_unlocked)
+function hiddenRouteUnlocked() {
+  return !!(S.flags || {}).reversible_shutdown && sealSnapshot().count >= 2;
+}
 function chapter9Endings(c) {
-  clear();
-  const lay = el(`<div class="layer fade"></div>`);
-  lay.appendChild(el(`<div class="bg" style="background-image:url('${c.background}');filter:brightness(.4)"></div>`));
-  lay.appendChild(el(`<div class="scrim"></div>`));
-  const box = el(`<div class="choicebox"><div class="prompt">天理衡停下後,你選擇讓真相去往何處?</div></div>`);
-  Object.entries(G.endings_ch9).forEach(([id, e]) => {
-    const b = el(`<button class="choice"><b>${esc(e.title)}</b><small>${esc(e.subtitle)}</small></button>`);
-    b.onclick = () => {
-      S.normal_ending = id;
-      S.seen_normal = [...new Set([...(S.seen_normal || []), id])];
-      if (id === 'people_witness') setFlags(['seal_people']);
-      save(); reconcile();
-      showEnding(e, () => { S.chapter = 10; save(); go('chapter'); }, '普通結局');
-    };
-    box.appendChild(b);
-  });
-  lay.appendChild(box);
-  stage.appendChild(lay);
+  const id = suggestedEnding();
+  S.normal_ending = id;
+  S.seen_normal = [...new Set([...(S.seen_normal || []), id])];
+  save(); reconcile();
+  const e = G.endings_ch9[id];
+  const unlocked = hiddenRouteUnlocked();
+  // 解鎖隱藏門扉 → 續進第十章;否則普通結局完結、回題名
+  showEnding(e, unlocked ? () => {
+    toast('無名度量院的門扉在你身後開啟');
+    S.chapter = 10; save(); go('chapter');
+  } : null, '普通結局', unlocked ? '穿過隱藏門扉 ▸' : '回題名');
 }
 
 // ================= 完整版結局(4,真結局有嚴格條件) =================
@@ -821,7 +829,7 @@ function finaleEndings(c) {
 }
 
 // ================= 結局播放 =================
-function showEnding(e, next, badge) {
+function showEnding(e, next, badge, label) {
   clear();
   preload([e.image]).then(() => {
     const lay = el(`<div class="layer fade"></div>`);
@@ -834,7 +842,7 @@ function showEnding(e, next, badge) {
       <div class="intro-text" style="max-width:80%;font-size:1.15rem;max-height:280px;overflow:auto">${esc(e.text)}
         <div style="margin-top:1.2rem;color:#b9ad93">${esc(e.epilogue || '')}</div></div>
     </div>`));
-    const b = el(`<button class="btn" style="position:absolute;right:60px;bottom:48px">${next === undefined ? '回題名' : '繼續 ▸'}</button>`);
+    const b = el(`<button class="btn" style="position:absolute;right:60px;bottom:48px">${label || (next ? '繼續 ▸' : '回題名')}</button>`);
     b.onclick = next || (() => go('title'));
     lay.appendChild(b);
     stage.appendChild(lay);
