@@ -20,8 +20,35 @@ const newState = () => ({
   schema: 1, scene: 'title', chapter: 1, route: 'A',
   qishi: 1, qishi_max: 1, affinity: {},
   evidence: {}, lost: {}, secured_order: {},
-  inventory: {}, choices: {}, cleared: [], intro_seen: false,
+  inventory: { ...(G.logic.start_inventory) }, choices: {}, cleared: [], intro_seen: false,
+  flags: {}, rewarded: {}, normal_ending: '', finale_ending: '', romance: '', achievements: {},
 });
+
+// ---------- world_flags / 路線 ----------
+function setFlags(list) { (list || []).forEach(f => { if (f) S.flags[f] = true; }); }
+function routeFor(n) {
+  const cond = G.logic.route_table[String(n)];
+  if (!cond) return 'A';
+  const test = (f) => f.startsWith('ending:') ? S.normal_ending === f.slice(7)
+    : f.startsWith('seal:') ? !!(S.flags['seal_' + f.slice(5)]) : !!S.flags[f];
+  if (cond.all) return cond.all.every(test) ? 'A' : 'B';
+  if (cond.any) return cond.any.some(test) ? 'A' : 'B';
+  return 'A';
+}
+// ---------- 道具 ----------
+function addItem(id, n = 1) { S.inventory[id] = (S.inventory[id] || 0) + n; }
+function useItem(id) { if (S.inventory[id] > 0) { S.inventory[id]--; return true; } return false; }
+function grantChapterRewards(secured) {
+  const key = 'reward_ch' + S.chapter;
+  if (S.rewarded[key]) return [];
+  S.rewarded[key] = true;
+  const r = G.logic.reward_rule, got = [];
+  const give = (id) => { addItem(id); got.push(G.items[id].name); };
+  give(r.always);
+  if (secured >= 5) give(r.ev5);
+  if (secured >= 6) { if (S.qishi_max < G.max_qishi) S.qishi_max++; give(r.ev6); }
+  return got;
+}
 const save = () => localStorage.setItem(SAVE_KEY, JSON.stringify(S));
 const loadSave = () => { try { return JSON.parse(localStorage.getItem(SAVE_KEY)); } catch { return null; } };
 const hasSave = () => !!localStorage.getItem(SAVE_KEY);
@@ -130,7 +157,7 @@ function playDialogue(bgUrl, lines, choice, done) {
     choice.options.forEach(o => {
       const b = el(`<button class="choice"><b>${esc(o.text)}</b>
         <span class="tag">${esc(o.relationship || '')} ${o.delta >= 0 ? '+' : ''}${o.delta || ''}</span></button>`);
-      b.onclick = () => { affinity(o.relationship, o.delta || 0); S.choices['dlg' + S.chapter] = o.id; cb.remove(); step(); };
+      b.onclick = () => { affinity(o.relationship, o.delta || 0); if (o.flag) setFlags([o.flag]); S.choices['dlg' + S.chapter] = o.id; cb.remove(); step(); };
       cb.appendChild(b);
     });
     stage.appendChild(cb);
@@ -144,8 +171,14 @@ function sPrologue() {
   preload([p.background, ...p.hotspots.map(h => h.cell)]).then(() => {
     playDialogue(p.background, p.narration, null, () => investigate({
       key: 'prologue', background: p.background, title: '序章・鐘樓墜案',
-      clues: p.hotspots, min: 3, onDone: () => { S.cleared.push(0); go('chapter'); },
-      failable: false,
+      clues: p.hotspots, min: 3, failable: false,
+      onDone: () => {
+        // 序章結果 → world_flags(第一章路線依此)
+        if (S.evidence.prologue && S.evidence.prologue.includes('keeper')) setFlags(['keeper_saved']);
+        if ((S.evidence.prologue || []).length >= 4) setFlags(['prologue_case_strong']);
+        if (!S.cleared.includes(0)) S.cleared.push(0);
+        go('chapter');
+      },
     }));
   });
 }
@@ -154,6 +187,7 @@ function sPrologue() {
 function sChapter() {
   const c = chById(S.chapter);
   if (!c) return endGameStub();
+  S.route = routeFor(S.chapter);       // 依 world_flags 決定本章 A/B 線
   const imgs = [c.background, ...c.clues.map(cl => cl.cell)];
   stage.appendChild(el(`<div class="loading">載入 ${esc(c.title)}…</div>`));
   preload(imgs).then(() => {
@@ -199,9 +233,13 @@ function investigate({ key, background, title, clues, min, onDone, failable }) {
   const bar = el(`<div class="topbar"></div>`);
   const evChip = el(`<div class="chip">證據 <b class="cnt">0</b> / ${min}</div>`);
   bar.append(el(`<div class="chip">${esc(title)}</div>`), evChip, el(`<div class="spacer"></div>`));
+  const bAff = el(`<button class="util">好感</button>`);
+  bAff.onclick = () => affinityBoard();
+  const bInv = el(`<button class="util">行囊</button>`);
+  bInv.onclick = () => inventoryModal();
   const bScroll = el(`<button class="util">格物卷</button>`);
   bScroll.onclick = () => evidenceModal(key, clues);
-  bar.appendChild(bScroll);
+  bar.append(bAff, bInv, bScroll);
   const proceed = el(`<button class="util" style="border-color:var(--jade);color:#bfe6d2">進入破局 ▸</button>`);
   proceed.style.display = 'none';
   proceed.onclick = onDone;
@@ -240,6 +278,29 @@ function investigate({ key, background, title, clues, min, onDone, failable }) {
       b.onclick = () => answer(cl, idx, panel, optsWrap);
       optsWrap.appendChild(b);
     });
+    // 道具:格物籤(排除一錯項)/ 墨線尺(標出物理量)
+    const tools = el(`<div style="display:flex;gap:8px;margin-bottom:6px"></div>`);
+    if (S.inventory.logic_token > 0) {
+      const t = el(`<button class="btn sm ghost">格物籤 ×${S.inventory.logic_token}</button>`);
+      t.onclick = () => {
+        if (!useItem('logic_token')) return;
+        const wrongs = [...optsWrap.querySelectorAll('.opt')].filter((_, i) => i !== cl.correct && !_.disabled);
+        if (wrongs.length) { wrongs[0].disabled = true; wrongs[0].style.opacity = .3; wrongs[0].textContent += '　(已排除)'; }
+        t.remove(); save();
+      };
+      tools.appendChild(t);
+    }
+    if (S.inventory.measuring_rule > 0) {
+      const t = el(`<button class="btn sm ghost">墨線尺 ×${S.inventory.measuring_rule}</button>`);
+      t.onclick = () => {
+        if (!useItem('measuring_rule')) return;
+        panel.querySelector('.q').insertAdjacentHTML('afterend',
+          `<div class="concept" style="margin:.3rem 0">應整理的物理量｜${esc(cl.concept)}</div>`);
+        t.remove(); save();
+      };
+      tools.appendChild(t);
+    }
+    if (tools.children.length) panel.appendChild(tools);
     panel.appendChild(optsWrap);
     lay.appendChild(panel);
   }
@@ -264,6 +325,15 @@ function investigate({ key, background, title, clues, min, onDone, failable }) {
         ${rt ? `<div class="reveal"><span class="spk">${S.route} 線</span>　${esc(rt)}</div>` : ''}
       </div>`));
       toast('取得證據：' + cl.evidence);
+      // 章末劇情推進里程碑(依累計有效證據數)
+      const c = chById(S.chapter);
+      const ms = c && c.milestones && c.milestones[String(S.evidence[key].length)];
+      if (ms) {
+        const mrt = ms.route_text && ms.route_text[S.route];
+        panel.appendChild(el(`<div class="reveal" style="border-top:1px solid var(--br);margin-top:.6rem;padding-top:.6rem">
+          <span class="spk">${esc(ms.speaker || '推進')}</span>　${esc(ms.text)}
+          ${mrt ? `<div style="margin-top:.3rem"><span class="spk">${S.route} 線</span>　${esc(mrt)}</div>` : ''}</div>`));
+      }
     } else {
       S.lost[key].push(cl.id);
       spot.classList.add('lost');
@@ -296,12 +366,78 @@ function evidenceModal(key, clues) {
   stage.appendChild(m);
 }
 
+// ---------- 好感面板(9 人立繪 ±5) ----------
+function relStage(name, value, appeared) {
+  if (!appeared) return { role: '定位：尚未相識', stage: '尚未相識' };
+  const isCand = G.logic.romance_order.includes(name);
+  const role = name === '裴無咎' ? '定位：師徒羈絆' : isCand ? '定位：情緣候選' : '定位：重要同伴';
+  let stage;
+  if (isCand) {
+    if (S.chapter >= 9 && value >= 2) stage = '情緣：可以確認心意';
+    else if (value >= 2) stage = '情緣：牽掛漸深';
+    else if (value >= 1) stage = '情緣：初有在意';
+    else stage = '情緣：仍是同行者';
+    if (S.romance === name) stage = '情緣：已許心意';
+  } else {
+    stage = (G.logic.rel_ladder.find(([t]) => value >= t) || [, '—'])[1];
+    stage = '關係：' + stage;
+  }
+  return { role, stage };
+}
+function affinityBoard() {
+  const cards = G.people.map(p => {
+    const appeared = S.chapter >= p.first || S.cleared.length > 0 && p.first <= S.chapter;
+    const v = S.affinity[p.name] || 0;
+    const { role, stage } = relStage(p.name, v, appeared);
+    const pips = Array.from({ length: 11 }, (_, i) => i - 5)
+      .map(n => `<span style="width:12px;height:12px;border-radius:50%;display:inline-block;margin:1px;
+        border:1px solid ${n === 0 ? 'var(--pa2)' : 'var(--line)'};
+        background:${appeared && (v >= 0 ? n > 0 && n <= v : n < 0 && n >= v) ? (v >= 0 ? 'var(--jade)' : 'var(--danger)') : 'transparent'}"></span>`).join('');
+    return `<div style="display:flex;gap:14px;padding:12px 0;border-bottom:1px solid var(--line);${appeared ? '' : 'opacity:.4'}">
+      <img src="${G.portraits[p.name]}" style="width:64px;height:96px;object-fit:cover;border-radius:6px;${appeared ? '' : 'filter:grayscale(1) brightness(.4)'}">
+      <div style="flex:1">
+        <div style="font-size:1.1rem;color:#f3ead6">${esc(p.name)} <span class="pin" style="color:var(--br)">${esc(role)}</span></div>
+        <div style="margin:.4rem 0">${pips} <span style="color:var(--pa2);margin-left:8px">${appeared ? (v >= 0 ? '+' : '') + v : ''}</span></div>
+        <div style="color:var(--jade);font-size:.9rem">${esc(stage)}</div>
+      </div></div>`;
+  }).join('');
+  const m = el(`<div class="modal"><div class="sheet">
+    <button class="btn sm close">關閉</button><h2>人物好感與情緣</h2>${cards}</div></div>`);
+  m.querySelector('.close').onclick = () => m.remove();
+  m.onclick = (e) => { if (e.target === m) m.remove(); };
+  stage.appendChild(m);
+}
+
+// ---------- 行囊 ----------
+function inventoryModal(onChange) {
+  const rows = Object.entries(G.items).map(([id, it]) => {
+    const n = S.inventory[id] || 0;
+    const usable = id === 'breath_manual' && n > 0 && S.qishi_max < G.max_qishi;
+    return `<div class="evrow" style="display:flex;align-items:center;gap:12px">
+      <div style="flex:1"><span class="en" style="color:var(--pa)">${esc(it.name)}</span> ×${n}
+        <div style="color:var(--pa2);font-size:.85rem">${esc(it.description)}</div></div>
+      ${usable ? `<button class="btn sm" data-use="${id}">參悟</button>` : ''}</div>`;
+  }).join('');
+  const m = el(`<div class="modal"><div class="sheet">
+    <button class="btn sm close">關閉</button><h2>行囊　氣勢上限 ${S.qishi_max}/${G.max_qishi}</h2>${rows}</div></div>`);
+  m.querySelectorAll('[data-use]').forEach(b => b.onclick = () => {
+    const id = b.dataset.use;
+    if (id === 'breath_manual' && useItem('breath_manual') && S.qishi_max < G.max_qishi) {
+      S.qishi_max++; S.qishi = Math.min(S.qishi + 1, S.qishi_max); toast('氣勢上限提升至 ' + S.qishi_max);
+    }
+    save(); m.remove(); onChange && onChange(); inventoryModal(onChange);
+  });
+  m.querySelector('.close').onclick = () => { m.remove(); onChange && onChange(); };
+  m.onclick = (e) => { if (e.target === m) { m.remove(); onChange && onChange(); } };
+  stage.appendChild(m);
+}
+
 // ================= 破局戰(氣勢答題) =================
 function battle(c) {
   S.qishi = S.qishi_max;
   let bi = 0;
   const run = () => {
-    if (bi >= c.battles.length) return finalChoice(c);
+    if (bi >= c.battles.length) return battleCleared(c);
     clear();
     const b = c.battles[bi];
     const lay = el(`<div class="layer fade"></div>`);
@@ -310,9 +446,11 @@ function battle(c) {
     const bar = el(`<div class="topbar"></div>`);
     bar.appendChild(el(`<div class="chip">破局戰 ${bi + 1}/${c.battles.length}</div>`));
     bar.appendChild(el(`<div class="spacer"></div>`));
+    const bInv = el(`<button class="util">行囊</button>`); bInv.onclick = () => inventoryModal(() => renderQishi());
     const q = el(`<div class="qishi"></div>`);
-    for (let k = 0; k < S.qishi_max; k++) q.appendChild(el(`<div class="pip ${k < S.qishi ? 'on' : ''}"></div>`));
-    bar.append(el(`<div class="chip">氣勢</div>`), q);
+    const renderQishi = () => { q.innerHTML = ''; for (let k = 0; k < S.qishi_max; k++) q.appendChild(el(`<div class="pip ${k < S.qishi ? 'on' : ''}"></div>`)); };
+    renderQishi();
+    bar.append(bInv, el(`<div class="chip">氣勢</div>`), q);
     lay.appendChild(bar);
     const panel = el(`<div class="choicebox">
       <div style="color:var(--br);letter-spacing:.2em;margin-bottom:.6rem">${esc(b.title)}</div>
@@ -328,13 +466,23 @@ function battle(c) {
         btn.classList.add(ok ? 'correct' : 'wrong');
         if (!ok) wrap.querySelectorAll('.opt')[b.correct].classList.add('correct');
         panel.appendChild(el(`<div class="result ${ok ? 'ok' : 'bad'}">${esc(b.explanation)}</div>`));
-        if (!ok) { S.qishi--; q.children[S.qishi] && q.children[S.qishi].classList.remove('on'); }
-        const nx = el(`<button class="btn sm" style="margin-top:16px">${ok || S.qishi > 0 ? '繼續 ▸' : '——'}</button>`);
+        let saved = false;
+        if (!ok) {
+          S.qishi--;
+          if (S.qishi <= 0 && S.inventory.steadfast_talisman > 0) {   // 定心符自動保命
+            useItem('steadfast_talisman'); S.qishi = 1; saved = true;
+            panel.appendChild(el(`<div class="result ok">定心符發動,氣勢保留 1 點。</div>`));
+          }
+          renderQishi();
+        }
+        const dead = S.qishi <= 0;
+        const nx = el(`<button class="btn sm" style="margin-top:16px">${dead ? '——' : '繼續 ▸'}</button>`);
         nx.onclick = () => {
-          if (S.qishi <= 0) return chapterFailure(c, '氣勢耗盡,破局失敗。');
+          if (dead) return chapterFailure(c, '氣勢耗盡,破局失敗。');
           bi++; save(); run();
         };
         panel.appendChild(nx);
+        if (saved) S.flags.talisman_used = true;
         save();
       };
       wrap.appendChild(btn);
@@ -344,6 +492,19 @@ function battle(c) {
     stage.appendChild(lay);
   };
   run();
+}
+
+// 破局全勝 → 章節獎勵 + 戰後劇情 → 章末抉擇
+function battleCleared(c) {
+  const secured = (S.evidence[ckey()] || []).length;
+  const got = grantChapterRewards(secured);
+  const beats = c.battle_beats || [];
+  const lines = beats.map(b => ({ speaker: b.speaker || '', text: b.response || b.action || '' }))
+    .filter(l => l.text);
+  if (got.length) lines.push({ speaker: '本章獎勵', text: got.join('、') + '　已收入行囊。' });
+  save();
+  if (lines.length) playDialogue(c.background, lines, null, () => finalChoice(c));
+  else finalChoice(c);
 }
 
 function chapterFailure(c, reason) {
@@ -373,10 +534,11 @@ function finalChoice(c) {
   lay.appendChild(el(`<div class="bg" style="background-image:url('${c.background}');filter:brightness(.5)"></div>`));
   lay.appendChild(el(`<div class="scrim"></div>`));
   const box = el(`<div class="choicebox"><div class="prompt">${esc(fc.prompt)}</div></div>`);
+  const ff = G.logic.final_flags[String(c.id)] || {};
   [['a', 'A'], ['b', 'B']].forEach(([k, route]) => {
     if (!fc[k]) return;
     const b = el(`<button class="choice"><b>${esc(fc[k].title)}</b><small>${esc(fc[k].detail)}</small></button>`);
-    b.onclick = () => { S.choices['final' + c.id] = fc[k].id; S.route = route; save(); advance(c); };
+    b.onclick = () => { S.choices['final' + c.id] = fc[k].id; setFlags(ff[k]); save(); advance(c); };
     box.appendChild(b);
   });
   lay.appendChild(box);
