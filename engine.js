@@ -355,21 +355,23 @@ function sTitle() {
   bCont.disabled = !hasSave();
   bCont.onclick = () => { S = loadSave() || newState(); render(); };
   col.append(diffWrap, bNew, bCont);
-  // 載入存檔跑面板(題名時 S 為暫態,查看用存檔進度),看完還原
-  const withSave = (fn) => { const prev = S; S = loadSave() || newState(); fn(); S = prev; };
-  const tbtn = (label, fn, needSave) => { const x = el(`<button class="btn sm ghost">${label}</button>`); if (needSave) x.disabled = !hasSave(); x.onclick = fn; return x; };
-  const row2 = el(`<div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;max-width:760px"></div>`);
-  row2.append(
-    tbtn('江湖成就譜', () => withSave(achievementCodex), true),
-    tbtn('結局圖鑑', () => withSave(endingGallery), true),
-    tbtn('配樂鑑賞', () => withSave(musicGallery), true),
-    tbtn('格物先賢譜', () => scientistAtlas()),
-    tbtn('重看劇情序引', () => replayIntro()),
-    shareBtn('分享', '武俠懸疑包裝的物理解題 RPG——《格物江湖錄:天理殘卷》,可離線遊玩。', G.title_keyart));
-  col.append(row2);
   col.append(el(`<div class="ttag">看懂世界如何運作，才有資格改變命運。</div>`));
   col.append(el(`<div class="troute">十一章懸案｜雙走向承接｜多重結局｜三線情緣</div>`));
   bg.appendChild(col);
+  // 次要選項:退為畫面底部一列低調文字連結,保留電影感(不佔主畫面按鈕堆)
+  const withSave = (fn) => { const prev = S; S = loadSave() || newState(); fn(); S = prev; };
+  const menu = el(`<div class="tmenu"></div>`);
+  const mlink = (label, fn, needSave) => { const x = el(`<button>${label}</button>`); if (needSave) x.disabled = !hasSave(); x.onclick = fn; return x; };
+  const items = [
+    mlink('江湖成就譜', () => withSave(achievementCodex), true),
+    mlink('結局圖鑑', () => withSave(endingGallery), true),
+    mlink('配樂鑑賞', () => withSave(musicGallery), true),
+    mlink('格物先賢譜', () => scientistAtlas()),
+    mlink('重看序引', () => replayIntro()),
+    mlink('分享', () => shareContent('武俠懸疑包裝的物理解題 RPG——《格物江湖錄:天理殘卷》,可離線遊玩。', G.title_keyart)),
+  ];
+  items.forEach((it, i) => { if (i) menu.appendChild(el(`<span class="sep">·</span>`)); menu.appendChild(it); });
+  bg.appendChild(menu);
   const credLink = el(`<button class="tcredits">素材與製作名錄</button>`);   // 移到右下角小連結,不佔按鈕堆
   credLink.onclick = () => creditsPanel();
   bg.appendChild(credLink);

@@ -126,7 +126,7 @@ ok('達成完整版真結局 heaven_earth_shared', hs.finale_ending === 'heaven_
 
 // ---- 4) 題名功能:分享 / 配樂鑑賞可播 / 成就譜 / 公式站 ----
 await page.evaluate(() => go('title')); await page.waitForTimeout(400);
-ok('題名分享鈕', await page.evaluate(() => [...document.querySelectorAll('.btn')].some(x => x.textContent.includes('分享'))));
+ok('題名分享鈕', await page.evaluate(() => [...document.querySelectorAll('button')].some(x => x.textContent.trim() === '分享')));
 await page.evaluate(() => { S = loadSave() || newState(); musicGallery(); }); await page.waitForTimeout(300);
 const rows = await page.evaluate(() => document.querySelectorAll('[data-mid]').length);
 const playable = await page.evaluate(() => { const r = document.querySelector('[data-mid="calm"]'); if (!r) return false; r.click(); return !!(_audio && _audio.src.includes('oriental_calm')); });

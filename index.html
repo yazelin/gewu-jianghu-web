@@ -110,13 +110,27 @@ body.reduced #rain{display:none}
 .tomen{font-size:1.05rem;letter-spacing:.08em;color:#c9bda3;margin-top:-.3rem}
 .ttag{font-size:1.02rem;letter-spacing:.1em;color:#e8dcc0;margin-top:.4rem}
 .troute{font-size:.85rem;letter-spacing:.12em;color:var(--pa2);margin-top:.15rem}
-.tdiff{height:38px;padding:0 14px;border-radius:19px;background:rgba(20,17,14,.85);border:1px solid var(--br);
-  color:var(--pa);font-size:.95rem;letter-spacing:.05em;cursor:pointer;font-family:inherit}
-.tdiff:hover{border-color:var(--cin)}
+.tdiff{appearance:none;-webkit-appearance:none;-moz-appearance:none;height:40px;line-height:38px;
+  padding:0 40px 0 16px;border-radius:20px;border:1px solid var(--br);color:var(--pa);
+  font-family:inherit;font-size:.95rem;letter-spacing:.05em;cursor:pointer;
+  background:rgba(20,17,14,.9) url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="8"><path d="M1 1l5 5 5-5" fill="none" stroke="%238a6b3a" stroke-width="1.6"/></svg>') no-repeat right 15px center}
+.tdiff:hover,.tdiff:focus{border-color:var(--cin);outline:none}
 .tdiff option{background:#14110e;color:var(--pa)}
+/* 暗色主題捲軸(面板/名錄/彈窗內可捲區)*/
+.plbl,.sheet,.pboard{scrollbar-width:thin;scrollbar-color:rgba(138,107,58,.55) transparent}
+.plbl::-webkit-scrollbar,.sheet::-webkit-scrollbar,.pboard::-webkit-scrollbar{width:9px;height:9px}
+.plbl::-webkit-scrollbar-track,.sheet::-webkit-scrollbar-track,.pboard::-webkit-scrollbar-track{background:transparent}
+.plbl::-webkit-scrollbar-thumb,.sheet::-webkit-scrollbar-thumb,.pboard::-webkit-scrollbar-thumb{background:rgba(138,107,58,.5);border-radius:5px;border:2px solid transparent;background-clip:padding-box}
+.plbl::-webkit-scrollbar-thumb:hover,.sheet::-webkit-scrollbar-thumb:hover,.pboard::-webkit-scrollbar-thumb:hover{background:var(--br);background-clip:padding-box}
 .tcredits{position:absolute;right:18px;bottom:12px;z-index:20;background:none;border:0;color:var(--pa2);
-  font-size:.8rem;letter-spacing:.06em;cursor:pointer;opacity:.6;padding:6px 8px;font-family:inherit}
+  font-size:.8rem;letter-spacing:.06em;cursor:pointer;opacity:.55;padding:6px 8px;font-family:inherit}
 .tcredits:hover{opacity:1;color:var(--br);text-decoration:underline}
+/* 次要選項:底部低調文字連結列(電影感:主畫面聚焦標題與主要動作)*/
+.tmenu{position:absolute;left:0;right:0;bottom:52px;z-index:20;display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:1px;padding:0 24px}
+.tmenu button{background:none;border:0;color:var(--pa2);font-family:inherit;font-size:.82rem;letter-spacing:.08em;cursor:pointer;padding:5px 13px;opacity:.66;transition:opacity .2s,color .2s}
+.tmenu button:hover:not(:disabled){opacity:1;color:var(--br)}
+.tmenu button:disabled{opacity:.26;cursor:default}
+.tmenu .sep{color:var(--pa2);opacity:.3;font-size:.7rem}
 .btn{background:rgba(29,25,19,.9);border:1px solid var(--br);color:var(--pa);
   padding:14px 40px;font-size:1.2rem;letter-spacing:.2em;border-radius:8px;cursor:pointer;
   transition:.15s;font-family:inherit}
