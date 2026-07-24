@@ -68,6 +68,14 @@ function musicGallery() {
   stage.appendChild(m);
 }
 
+// ---------- 難度提示(逐字還原三檔) ----------
+const DIFF_HINT = {
+  '說書': '說書提示｜先找題目給定的量與單位,再從格物卷比對同類現象。',
+  '行俠': '行俠提示｜可按格物卷,比對本章已收錄的證據。',
+  '宗師': '宗師規則｜先判斷模型與單位,再計算;答錯仍會留下劇情後果。',
+};
+const diffHintHTML = () => `<div class="concept" style="margin:.3rem 0 .6rem;color:var(--pa2)">${esc(DIFF_HINT[S.difficulty] || DIFF_HINT['行俠'])}</div>`;
+
 // ---------- world_flags / 路線 ----------
 function setFlags(list) { (list || []).forEach(f => { if (f) S.flags[f] = true; }); }
 function routeFor(n) {
@@ -368,6 +376,7 @@ function investigate({ key, background, title, clues, min, onDone, failable }) {
       el(`<h3>${esc(cl.name)}</h3>`),
       el(`<div class="body">${esc(cl.body)}</div>`),
       el(`<div class="q">${esc(cl.question)}</div>`));
+    if (!secured(cl) && !lostCl(cl)) body.appendChild(el(diffHintHTML()));
     panel.querySelector('.pclose').onclick = () => closePanel(wrap);
     wrap.addEventListener('click', (e) => { if (e.target === wrap) closePanel(wrap); });
     wrap.appendChild(panel);
@@ -569,7 +578,8 @@ function battle(c) {
     const panel = el(`<div class="choicebox">
       <div style="color:var(--br);letter-spacing:.2em;margin-bottom:.6rem">${esc(b.title)}</div>
       <div class="body" style="font-size:1.1rem;line-height:1.9;margin-bottom:1rem">${esc(b.body)}</div>
-      <div class="q" style="font-size:1.2rem;margin-bottom:1rem">${esc(b.prompt)}</div>
+      <div class="q" style="font-size:1.2rem;margin-bottom:.5rem">${esc(b.prompt)}</div>
+      ${diffHintHTML()}
     </div>`);
     const wrap = el(`<div></div>`);
     b.options.forEach((o, idx) => {
