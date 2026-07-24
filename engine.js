@@ -206,6 +206,7 @@ function playDialogue(bgUrl, lines, choice, done) {
     lay.appendChild(box);
   };
   const askChoice = () => {
+    lay.querySelectorAll('.dbox').forEach(n => n.remove());   // 移除背後可點的對話框,避免點到就跳過抉擇
     const cb = el(`<div class="choicebox"><div class="prompt">${esc(choice.prompt)}</div></div>`);
     choice.options.forEach(o => {
       const b = el(`<button class="choice"><b>${esc(o.text)}</b>
