@@ -20,6 +20,7 @@ const CACHE = /CACHE\s*=\s*["']([^"']+)/.exec(readFileSync(HERE + '../sw.js', 'u
 const clueCorrect = {}, battleCorrect = {};
 for (const h of G.prologue.hotspots) clueCorrect[h.name] = h.correct;
 for (const c of G.chapters) { for (const cl of c.clues) clueCorrect[cl.name] = cl.correct; for (const b of c.battles) battleCorrect[b.prompt] = b.correct; }
+for (const b of (G.prologue.battle || [])) battleCorrect[b.prompt] = b.correct;   // 序章破局選擇題正解
 
 // 三印齊全、真結局解鎖的合法狀態(由 sealSnapshot/trueEndingUnlocked 的實際條件反推)
 const TRUE_STATE = {
@@ -49,7 +50,7 @@ const AUTOPLAY = async (page, maxSteps = 2600) => page.evaluate(async ({ clueCor
     const S2 = JSON.parse(localStorage.getItem('gewu_save_v1') || '{}');
     if (S2.scene + '#' + S2.chapter !== last) { trace.push(S2.scene + '#' + S2.chapter); last = S2.scene + '#' + S2.chapter; }
     const eb = document.querySelector('.intro-eyebrow');
-    if (eb && /結局/.test(T(eb.textContent))) {                       // 到達結局畫面 = 通關
+    if (eb && /結局/.test(T(eb.textContent)) && !/序章/.test(T(eb.textContent))) {   // 到達(非序章)結局畫面 = 通關
       return { done: true, trace, ending: T(document.querySelector('.intro-title')?.textContent), badge: T(eb.textContent), save: S2 };
     }
     if (byText('.btn', '新案入局')) { click(byText('.btn', '新案入局')); continue; }
@@ -64,8 +65,11 @@ const AUTOPLAY = async (page, maxSteps = 2600) => page.evaluate(async ({ clueCor
     if (byText('.util', '進入')) { click(byText('.util', '進入')); continue; }
     const hs = [...document.querySelectorAll('.hotspot')].filter(e => vis(e) && !e.classList.contains('done') && !e.classList.contains('lost'));
     if (hs.length && !document.querySelector('.cluewrap')) { click(hs[0]); continue; }
+    const sl = document.querySelector('.pslider');                                  // 序章滑桿估算題:拖到門檻上再鎖定
+    if (sl && !sl.disabled) { sl.value = 1.8; sl.dispatchEvent(new Event('input')); const lk = byText('.btn', '鎖定'); if (lk) { click(lk); continue; } }
     const bo = [...document.querySelectorAll('.choicebox .opt')].filter(vis);
     if (bo.length && !bo[0].disabled) { click(bo[battleCorrect[T(document.querySelector('.choicebox .q')?.textContent)] ?? 0]); continue; }
+    if (byText('.btn', '進入下一式 ▸') || byText('.btn', '決定此案後果 ▸')) { click(byText('.btn', '進入下一式 ▸') || byText('.btn', '決定此案後果 ▸')); continue; }
     if (byText('.btn', '繼續 ▸')) { click(byText('.btn', '繼續 ▸')); continue; }
     if (document.querySelector('.dbox')) { click(document.querySelector('.dbox')); continue; }
     if (byText('.util', '進入第一章') || byText('.btn', '進入第一章')) { click(byText('.util', '進入第一章') || byText('.btn', '進入第一章')); continue; }

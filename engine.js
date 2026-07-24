@@ -486,15 +486,129 @@ function sPrologue() {
     playDialogue(p.background, p.narration, p.choice, () => investigate({
       key: 'prologue', background: p.background, title: '序章・鐘樓墜案',
       clues: p.hotspots, min: 3, failable: true, onFail: prologueFailure,
-      onDone: () => {
-        // 序章結果 → world_flags(第一章路線依此)
-        if (S.evidence.prologue && S.evidence.prologue.includes('keeper')) setFlags(['keeper_saved']);
-        if ((S.evidence.prologue || []).length >= 4) setFlags(['prologue_case_strong']);
-        if (!S.cleared.includes(0)) S.cleared.push(0);
-        go('chapter');
-      },
+      onDone: prologueBattle,        // 調查後 → 序章破局(3 選 + 滑桿)→ 章末抉擇 → 序章結局
     }));
   });
+}
+
+// ========== 序章破局(3 選 + 滑桿估算)+ 章末抉擇(救人/追兇)+ 序章結局 ==========
+function prologueBattle() {
+  const p = G.prologue, total = p.battle.length + 1;   // 3 選擇 + 1 滑桿(還原原作 4 phase)
+  S.qishi = S.qishi_max; S._battleCorrect = 0; S.wrong_answers = 0;
+  playMusic('asianoriental_battle'); sfx('gong', 0.7, 0.8);
+  const run = (phase) => {
+    if (phase >= total) return prologueFinalChoice();
+    clear();
+    const lay = el(`<div class="layer fade"></div>`);
+    lay.append(el(`<div class="bg" style="background-image:url('${p.background}');filter:brightness(.45)"></div>`), el(`<div class="scrim"></div>`));
+    const q = el(`<div class="qishi"></div>`);
+    const renderQishi = () => { q.innerHTML = ''; for (let k = 0; k < S.qishi_max; k++) q.appendChild(el(`<div class="pip ${k < S.qishi ? 'on' : ''}"></div>`)); };
+    renderQishi();
+    const bInv = el(`<button class="util">行囊</button>`); bInv.onclick = () => inventoryModal(() => renderQishi());
+    const bar = el(`<div class="topbar"></div>`);
+    bar.append(el(`<div class="chip">破局 ${phase + 1}／${total}</div>`), el(`<div class="spacer"></div>`), bInv, el(`<div class="chip">氣勢</div>`), q);
+    lay.appendChild(bar);
+    const panel = el(`<div class="choicebox"></div>`);
+    // 對/錯結算:氣勢扣減 → 定心符自動保命 → 潰散則失敗(還原 _apply_qishi_damage/_resolve_battle)
+    const resolve = (ok, explanation) => {
+      if (ok) { S._battleCorrect++; sfx('correct', 0.92 + phase * 0.04, 0.9); }
+      else {
+        S.wrong_answers++; sfx('gong', 0.72, 0.8); S.qishi--;
+        if (S.qishi <= 0 && (S.inventory.steadfast_talisman || 0) > 0) { useItem('steadfast_talisman'); S.qishi = 1; S.flags.talisman_used = true; explanation += '\n定心符在氣勢潰散前自行燃起，替你守住最後 1 點氣勢。'; }
+        renderQishi();
+      }
+      panel.appendChild(el(`<div class="result ${ok ? 'ok' : 'bad'}" style="margin-top:12px">${esc(explanation)}</div>`));
+      const dead = S.qishi <= 0;
+      const nx = el(`<button class="btn sm" style="margin-top:14px">${dead ? '——' : (phase + 1 >= total ? '決定此案後果 ▸' : '進入下一式 ▸')}</button>`);
+      nx.onclick = () => { if (dead) return prologueFailure(); save(); run(phase + 1); };
+      panel.appendChild(nx); save();
+    };
+    if (phase < p.battle.length) {         // 選擇題
+      const b = p.battle[phase];
+      panel.innerHTML = `<div style="color:var(--br);letter-spacing:.2em;margin-bottom:.6rem">${esc(b.title)}</div>
+        <div class="body" style="font-size:1.05rem;line-height:1.9;margin-bottom:.8rem">${esc(b.body)}</div>
+        <div class="q" style="font-size:1.2rem;margin-bottom:.5rem">${esc(b.prompt)}</div>${diffHintHTML()}`;
+      const wrap = el(`<div></div>`);
+      b.options.forEach((o, idx) => {
+        const btn = el(`<button class="opt">${esc(o)}</button>`);
+        btn.onclick = () => {
+          [...wrap.querySelectorAll('.opt')].forEach(x => x.disabled = true);
+          const ok = idx === b.correct; btn.classList.add(ok ? 'correct' : 'wrong');
+          if (!ok) wrap.querySelectorAll('.opt')[b.correct].classList.add('correct');
+          resolve(ok, b.explanation);
+        };
+        wrap.appendChild(btn);
+      });
+      panel.appendChild(wrap);
+    } else {                                // 滑桿估算題(拖石鎮布置反向力矩)
+      const s = p.slider;
+      panel.innerHTML = `<div style="color:var(--br);letter-spacing:.2em;margin-bottom:.6rem">${esc(s.title)}</div>
+        <div class="body" style="font-size:1.05rem;line-height:1.9;margin-bottom:.8rem">${esc(s.body)}</div>
+        <div class="q" style="font-size:1.15rem;margin-bottom:.6rem">${esc(s.prompt)}</div>`;
+      const val = el(`<div style="text-align:center;color:var(--pa);font-size:1.15rem;margin:.6rem 0">支點距離：${s.value.toFixed(1)} m｜反向力矩：${Math.round(s.factor * s.value)} N·m</div>`);
+      const range = el(`<input type="range" class="pslider" min="${s.min}" max="${s.max}" step="${s.step}" value="${s.value}">`);
+      range.oninput = () => { const v = +range.value; val.textContent = `支點距離：${v.toFixed(1)} m｜反向力矩：${Math.round(s.factor * v)} N·m`; };
+      const lock = el(`<button class="btn" style="margin-top:8px">鎖定石鎮並驗證</button>`);
+      lock.onclick = () => {
+        const v = +range.value; range.disabled = true; lock.disabled = true;
+        resolve(v >= s.threshold, `石鎮力矩＝300×10×${v.toFixed(1)}＝${Math.round(s.factor * v)} N·m；至少 ${s.threshold} m 才能達到 ${s.target} N·m。`);
+      };
+      panel.append(val, range, lock);
+    }
+    lay.appendChild(panel); stage.appendChild(lay);
+  };
+  run(0);
+}
+// 章末抉擇:救人 / 追兇(還原 show_final_choice / _choose_final)
+function prologueFinalChoice() {
+  const fc = G.prologue.final_choice;
+  clear(); playMusic(MUSIC.prologue);
+  const lay = el(`<div class="layer fade"></div>`);
+  lay.append(el(`<div class="bg" style="background-image:url('${G.prologue.background}');filter:brightness(.5)"></div>`), el(`<div class="scrim"></div>`));
+  const box = el(`<div class="choicebox">
+    <div style="color:var(--br);letter-spacing:.2em;font-size:1.3rem">${esc(fc.banner[0])}</div>
+    <div style="color:var(--pa2);margin:.3rem 0 1rem">${esc(fc.banner[1])}</div>
+    <div class="body" style="font-size:1.1rem;line-height:1.9;margin-bottom:1.1rem;white-space:pre-line">${esc(fc.body)}</div></div>`);
+  fc.options.forEach(o => {
+    const b = el(`<button class="choice"><b>${esc(o.text)}</b></button>`);
+    b.onclick = () => { sfx('paper', 1.0, 0.5); affinity(o.rel, o.delta); prologueResolve(o.id); };
+    box.appendChild(b);
+  });
+  box.appendChild(el(`<div style="color:var(--pa2);font-size:.85rem;margin-top:.9rem">${esc(fc.note)}</div>`));
+  lay.appendChild(box); stage.appendChild(lay);
+}
+// 依抉擇 + 案情強度算 world_flags/結局(還原 _choose_final:第一章路線由此定)
+function prologueResolve(choice) {
+  const insight = (S.evidence.prologue || []).length, lizheng = S._battleCorrect || 0;
+  S.insight = insight;
+  const strong = lizheng >= 3 && insight >= 3;
+  const ending = !strong ? 'doubt' : (choice === 'rescue' ? 'saved' : 'trail');
+  if (ending === 'saved') setFlags(['keeper_saved']);      // 救人且案情強 → 章1 A 線
+  if (ending === 'trail') setFlags(['copper_seal']);       // 追兇且案情強 → 章1 B 線(半枚銅印)
+  if (strong) setFlags(['prologue_case_strong']);
+  S.prologue_ending = ending; S.choices.prologue = choice;
+  if (!S.cleared.includes(0)) S.cleared.push(0);
+  reconcile(); save();
+  prologueEnding(ending, lizheng, insight);
+}
+// 序章結局畫面(鐘止人存/雨痕追兇/殘鐘疑雲,還原 show_ending)
+function prologueEnding(ending, lizheng, insight) {
+  const e = G.prologue.endings[ending];
+  clear(); playMusic(MUSIC.ambient);
+  const lay = el(`<div class="layer fade"></div>`);
+  lay.append(el(`<div class="bg" style="background-image:url('${G.prologue.background}');filter:brightness(.5)"></div>`), el(`<div class="scrim"></div>`));
+  lay.appendChild(el(`<div style="position:absolute;left:80px;right:80px;top:56px">
+    <div class="intro-eyebrow">序章結局</div>
+    <div class="intro-title" style="max-width:92%">${esc(e.title)}</div>
+    <div class="intro-text" style="max-width:86%;font-size:1.08rem;max-height:150px;overflow:auto">${esc(e.text)}</div>
+    <div class="reveal" style="margin-top:1rem;max-width:82%"><span class="spk">章末後續</span>　${esc(e.followup)}</div>
+    <div style="margin-top:1rem;color:var(--pa2);letter-spacing:.05em">理證 ${lizheng}／4　洞察 ${insight}／6　失手 ${S.wrong_answers || 0}</div>
+  </div>`));
+  const row = el(`<div style="position:absolute;right:60px;bottom:48px;display:flex;gap:12px;align-items:center"></div>`);
+  row.appendChild(shareBtn('分享', `我在《格物江湖錄:天理殘卷》序章走到了「${e.title}」`, G.prologue.background));
+  const cont = el(`<button class="btn">進入第一章・殘軸工坊 ▸</button>`);
+  cont.onclick = () => { sfx('door'); go('chapter'); };
+  row.appendChild(cont); lay.appendChild(row); stage.appendChild(lay);
 }
 
 // ================= 章節 =================
