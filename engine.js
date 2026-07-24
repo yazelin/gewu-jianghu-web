@@ -44,10 +44,16 @@ function playMusic(basename) {
   if (!basename) return;
   if (!_audio) { _audio = new Audio(); _audio.loop = true; _audio.volume = 0.5; }
   _audio.muted = isMuted();
-  if (_curTrack === basename) return;
-  _curTrack = basename;
-  _audio.src = `assets/audio/${basename}.${MP3_TRACKS.has(basename) ? 'mp3' : 'ogg'}`;
-  _audio.play().catch(() => { });                               // 自動播放受限/缺檔 → 靜默
+  if (_curTrack !== basename) {                                 // 換曲才重設來源
+    _curTrack = basename;
+    _audio.src = `assets/audio/${basename}.${MP3_TRACKS.has(basename) ? 'mp3' : 'ogg'}`;
+  }
+  if (!isMuted()) _audio.play().catch(() => { });               // 每次都嘗試播(同曲也 resume);自動播放受限→靜默,等首次互動解鎖
+}
+// 首次使用者互動解鎖音訊(瀏覽器自動播放政策)
+function initAudioUnlock() {
+  const unlock = () => { if (_audio && !isMuted()) _audio.play().catch(() => { }); };
+  ['pointerdown', 'keydown', 'touchstart'].forEach(ev => addEventListener(ev, unlock, { passive: true }));
 }
 function sceneMusic(kind) {                                      // 依場景挑曲
   if (kind === 'battle') return playMusic(MUSIC.battle[S.chapter] || MUSIC.ambient);
@@ -104,16 +110,40 @@ function initPWAInstall() {
     window.__deferredInstall = null; b.hidden = true;
   };
 }
+// 鑑賞曲目 id → 音檔(部分曲目共用同一首 CC0 來源)
+const GALLERY_FILE = {
+  calm: 'oriental_calm', suspense: 'oriented_suspense',
+  chapter1: 'chapter1_workshop', chapter2: 'chapter2_river', chapter3: 'chapter3_ridge',
+  chapter4: 'chapter4_forge', chapter5: 'chapter5_thunder_alliance', chapter6: 'chapter5_thunder_alliance',
+  chapter7: 'chapter7_mirror_city', chapter8: 'chapter8_crafts_prison', chapter9: 'chapter9_tianli_bureau',
+  chapter10: 'chapter10_nameless_institute', chapter11: 'chapter11_heaven_earth',
+  chapter9_ending: 'chapter9_ending', chapter11_ending: 'chapter9_ending',
+};
 function musicGallery() {
-  const rows = G.achievements.music_gallery.map(m => {
-    const unlocked = !m.unlock || S.achievements[m.unlock];
-    return `<div class="evrow" style="${unlocked ? '' : 'opacity:.5'}">
-      <span class="en" style="color:${unlocked ? 'var(--jade)' : 'var(--pa2)'}">${unlocked ? esc(m.title) : '未解鎖曲目'}</span>
-      <span style="color:var(--pa2);font-size:.85rem">　${esc(m.source_title)}</span></div>`;
-  }).join('');
   const m = el(`<div class="modal"><div class="sheet">
     <button class="pclose close" title="關閉">✕</button><h2>配樂鑑賞</h2>
-    <p style="color:var(--pa2);font-size:.85rem;margin-bottom:.8rem">環境樂逐章 lazy 載入,可於任意頂欄以 ♪ 靜音。</p>${rows}</div></div>`);
+    <p style="color:var(--pa2);font-size:.85rem;margin-bottom:.8rem">點曲目即可試聽(需先以右上 ♪ 開啟聲音)。</p></div></div>`);
+  const sheet = m.querySelector('.sheet');
+  const setPlaying = (id) => sheet.querySelectorAll('[data-mid]').forEach(r =>
+    r.querySelector('.mplay').textContent = (r.dataset.mid === id ? '❚❚' : '▶'));
+  G.achievements.music_gallery.forEach(mm => {
+    const unlocked = !mm.unlock || S.achievements[mm.unlock];
+    const row = el(`<div class="evrow" data-mid="${mm.id}" style="display:flex;align-items:center;gap:12px;${unlocked ? 'cursor:pointer' : 'opacity:.5'}">
+      <span class="mplay" style="width:22px;color:var(--jade)">${unlocked ? '▶' : '·'}</span>
+      <span style="flex:1"><span class="en" style="color:${unlocked ? 'var(--jade)' : 'var(--pa2)'}">${unlocked ? esc(mm.title) : '未解鎖曲目'}</span>
+        <span style="color:var(--pa2);font-size:.85rem">　${esc(mm.source_title)}</span></span></div>`);
+    if (unlocked) row.onclick = () => {
+      const file = GALLERY_FILE[mm.id];
+      if (_curTrack === file && _audio && !_audio.paused) { _audio.pause(); setPlaying(''); return; }  // 再點=暫停
+      if (isMuted()) setMuted(false), initGlobalMute();     // 試聽自動開聲
+      playMusic(file); setPlaying(mm.id);
+    };
+    sheet.appendChild(row);
+  });
+  if (_audio && !_audio.paused) {                               // 標示目前正在播的曲目
+    const curId = Object.keys(GALLERY_FILE).find(k => GALLERY_FILE[k] === _curTrack);
+    if (curId) setPlaying(curId);
+  }
   m.querySelector('.close').onclick = () => m.remove();
   m.onclick = (e) => { if (e.target === m) m.remove(); };
   stage.appendChild(m);
@@ -1032,6 +1062,7 @@ fetch('data/game.json').then(r => r.json()).then(data => {
   initPWAInstall();
   initAmbient();
   initMenu();
+  initAudioUnlock();
   fit();
   render();
 }).catch(e => { stage.innerHTML = `<div class="loading">載入失敗：${esc(e.message)}</div>`; });
