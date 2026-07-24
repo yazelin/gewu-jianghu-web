@@ -3,7 +3,13 @@
 原作《格物江湖錄:天理殘卷》是物理老師 [@changyi123456](https://github.com/changyi123456)
 為學生做的物理解題 RPG(Godot 4.7)。本 repo 將其還原並改寫為**純網頁、可離線遊玩**的版本。
 
-> 來源、著作權、授權詳見 [SOURCE.md](SOURCE.md)。**私有 repo,勿公開散布。**
+## 兩個入口
+
+- **[遊戲本體 index.html](index.html)** — 純遊玩,無廣告干擾;可安裝、可離線
+- **[設計與公式站 design.html](design.html)** — 完整劇情、答案、A/B 分支、結局條件與 30 成就判定(攻略/設計參考)
+
+> 來源、著作權、授權詳見 [SOURCE.md](SOURCE.md) 與 [LICENSE](LICENSE)。
+> 程式碼 MIT(林亞澤);遊戲內容與美術著作權屬原作者,經授權製作網頁版。
 
 ## 內容規模
 
