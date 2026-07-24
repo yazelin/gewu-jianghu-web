@@ -65,6 +65,30 @@ function initGlobalMute() {
   b.onclick = () => { setMuted(!isMuted()); sync(); if (!isMuted() && _audio) _audio.play().catch(() => { }); };
   sync();
 }
+
+// PWA 安裝鈕(桌面/Android 觸發原生安裝;iOS 顯示加入主畫面教學;已安裝則隱藏)
+function initPWAInstall() {
+  const b = document.getElementById('ginstall');
+  if (!b) return;
+  const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+  if (standalone) { b.hidden = true; return; }        // 已安裝
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
+  if (isIOS) {
+    b.hidden = false;
+    b.onclick = () => toast('在瀏覽器分享選單選「加入主畫面」即可安裝');
+    return;
+  }
+  if (window.__deferredInstall) b.hidden = false;      // 已符合安裝條件
+  addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); window.__deferredInstall = e; b.hidden = false; });
+  addEventListener('appinstalled', () => { b.hidden = true; window.__deferredInstall = null; });
+  b.onclick = async () => {
+    const d = window.__deferredInstall;
+    if (!d) { toast('請用瀏覽器選單的「安裝／加到主畫面」'); return; }
+    d.prompt();
+    await d.userChoice.catch(() => { });
+    window.__deferredInstall = null; b.hidden = true;
+  };
+}
 function musicGallery() {
   const rows = G.achievements.music_gallery.map(m => {
     const unlocked = !m.unlock || S.achievements[m.unlock];
@@ -949,6 +973,7 @@ fetch('data/game.json').then(r => r.json()).then(data => {
   S = loadSave() || newState();
   S.scene = 'title';                 // 一律回題名;存檔進度保留,按「繼續」才載入
   initGlobalMute();
+  initPWAInstall();
   fit();
   render();
 }).catch(e => { stage.innerHTML = `<div class="loading">載入失敗：${esc(e.message)}</div>`; });

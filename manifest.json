@@ -4,7 +4,7 @@
   "description": "武俠懸疑包裝的物理解題 RPG,可離線遊玩。",
   "start_url": "./",
   "scope": "./",
-  "display": "fullscreen",
+  "display": "standalone",
   "orientation": "landscape",
   "background_color": "#14110e",
   "theme_color": "#14110e",

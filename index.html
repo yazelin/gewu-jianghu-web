@@ -175,6 +175,12 @@ html,body{height:100%;background:#000;overflow:hidden;
   display:flex;align-items:center;justify-content:center;padding:0;transition:.15s;backdrop-filter:blur(2px)}
 #gmute:hover{background:var(--cin);border-color:var(--cin);color:#fff}
 #gmute.muted{color:var(--danger);border-color:var(--danger)}
+/* 安裝鈕:固定右上、靜音鈕左邊,僅可安裝時顯示 */
+#ginstall{position:fixed;top:14px;right:66px;z-index:9998;height:42px;padding:0 16px;border-radius:21px;
+  background:var(--cin);border:1px solid var(--cin);color:#fff;cursor:pointer;font-size:.9rem;
+  font-family:inherit;letter-spacing:.05em;transition:.15s;backdrop-filter:blur(2px)}
+#ginstall:hover{filter:brightness(1.12)}
+#ginstall[hidden]{display:none}
 </style>
 </head>
 <body>
@@ -184,7 +190,11 @@ html,body{height:100%;background:#000;overflow:hidden;
 </div>
 <div id="wrap"><div id="stage"><div class="loading">載入中…</div></div></div>
 <button id="gmute" title="開關聲音" aria-label="開關聲音">♪</button>
-<script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});</script>
+<button id="ginstall" hidden>安裝</button>
+<script>
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+addEventListener('beforeinstallprompt', e => { e.preventDefault(); window.__deferredInstall = e; });
+</script>
 <script src="engine.js"></script>
 </body>
 </html>
