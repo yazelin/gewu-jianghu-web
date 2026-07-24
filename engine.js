@@ -283,6 +283,11 @@ function investigate({ key, background, title, clues, min, onDone, failable }) {
   lay.appendChild(el(`<div class="bg" style="background-image:url('${background}')"></div>`));
   lay.appendChild(el(`<div class="scrim" style="background:rgba(10,8,6,.25)"></div>`));
   stage.appendChild(lay);
+  // 點背景空白處 → 收起面板
+  lay.addEventListener('click', (e) => {
+    if (e.target.classList.contains('bg') || e.target.classList.contains('scrim'))
+      lay.querySelectorAll('.panel').forEach(p => p.remove());
+  });
 
   const bar = el(`<div class="topbar"></div>`);
   const evChip = el(`<div class="chip">證據 <b class="cnt">0</b> / ${min}</div>`);
@@ -308,24 +313,42 @@ function investigate({ key, background, title, clues, min, onDone, failable }) {
       proceed.textContent = '進入第一章 ▸';
   };
 
+  const secured = (cl) => S.evidence[key].includes(cl.id);
+  const lostCl = (cl) => S.lost[key].includes(cl.id);
   const spots = clues.map(cl => {
-    const done = S.evidence[key].includes(cl.id), lost = S.lost[key].includes(cl.id);
-    const s = el(`<div class="hotspot ${done ? 'done' : ''} ${lost ? 'lost' : ''}"
+    const s = el(`<div class="hotspot ${secured(cl) ? 'done' : ''} ${lostCl(cl) ? 'lost' : ''}"
       style="left:${cl.pos.x}px;top:${cl.pos.y}px"></div>`);
-    s.onclick = () => { if (!done && !lost) openClue(cl); };
+    s.onclick = () => openClue(cl);        // 已答→只讀回顧;未答→作答
     lay.appendChild(s);
     return { cl, s };
   });
   updateCount();
 
+  const scrollDown = (panel) => requestAnimationFrame(() =>
+    panel.scrollTo({ top: panel.scrollHeight, behavior: 'smooth' }));
+
   function openClue(cl) {
     lay.querySelectorAll('.panel').forEach(n => n.remove());
-    const panel = el(`<div class="panel">
+    const side = cl.pos.x > 640 ? 'left' : 'right';   // 熱點在右→面板出左,反之
+    const panel = el(`<div class="panel ${side}">
+      <button class="pclose" title="收起">✕</button>
       <h3>${esc(cl.name)}</h3>
       <img class="cell" src="${cl.cell}">
       <div class="body">${esc(cl.body)}</div>
       <div class="q">${esc(cl.question)}</div>
     </div>`);
+    panel.querySelector('.pclose').onclick = () => panel.remove();
+    lay.appendChild(panel);
+
+    // 已作答 → 只讀回顧,不再重答
+    if (secured(cl) || lostCl(cl)) {
+      panel.appendChild(el(resultHTML(cl, secured(cl))));
+      const cont = el(`<button class="btn sm" style="margin-top:14px">收起</button>`);
+      cont.onclick = () => panel.remove();
+      panel.appendChild(cont);
+      return;
+    }
+
     const optsWrap = el(`<div></div>`);
     cl.options.forEach((o, idx) => {
       const b = el(`<button class="opt">${esc(o)}</button>`);
@@ -356,7 +379,20 @@ function investigate({ key, background, title, clues, min, onDone, failable }) {
     }
     if (tools.children.length) panel.appendChild(tools);
     panel.appendChild(optsWrap);
-    lay.appendChild(panel);
+  }
+
+  function resultHTML(cl, ok) {
+    if (ok) {
+      const rt = cl.route_text && cl.route_text[S.route];
+      return `<div class="result ok">取得證據｜${esc(cl.evidence)}
+        ${cl.note ? `<div class="concept">${esc(cl.concept)}</div><div>${esc(cl.note)}</div>` : ''}
+        ${cl.reveal ? `<div class="reveal"><span class="spk">${esc(cl.reveal_speaker)}</span>　${esc(cl.reveal)}</div>` : ''}
+        ${cl.response ? `<div class="reveal">${esc(cl.response)}</div>` : ''}
+        ${rt ? `<div class="reveal"><span class="spk">${S.route} 線</span>　${esc(rt)}</div>` : ''}</div>`;
+    }
+    const lossText = cl.loss || (G.failure_texts[cl.id]) || '此證物已滅失,無法在本章重驗。';
+    return `<div class="result bad">證物滅失｜${esc(lossText)}
+      ${cl.note ? `<div class="concept">正解觀念｜${esc(cl.concept)}</div><div>${esc(cl.note)}</div>` : ''}</div>`;
   }
 
   function answer(cl, idx, panel, optsWrap) {
@@ -370,16 +406,8 @@ function investigate({ key, background, title, clues, min, onDone, failable }) {
       S.evidence[key].push(cl.id);
       S.secured_order[key] = (S.secured_order[key] || []).concat(cl.id);
       spot.classList.add('done');
-      const rt = cl.route_text && cl.route_text[S.route];
-      panel.appendChild(el(`<div class="result ok">
-        取得證據｜${esc(cl.evidence)}
-        ${cl.note ? `<div class="concept">${esc(cl.concept)}</div><div>${esc(cl.note)}</div>` : ''}
-        ${cl.reveal ? `<div class="reveal"><span class="spk">${esc(cl.reveal_speaker)}</span>　${esc(cl.reveal)}</div>` : ''}
-        ${cl.response ? `<div class="reveal">${esc(cl.response)}</div>` : ''}
-        ${rt ? `<div class="reveal"><span class="spk">${S.route} 線</span>　${esc(rt)}</div>` : ''}
-      </div>`));
+      panel.appendChild(el(resultHTML(cl, true)));
       toast('取得證據：' + cl.evidence);
-      // 章末劇情推進里程碑(依累計有效證據數)
       const c = chById(S.chapter);
       const ms = c && c.milestones && c.milestones[String(S.evidence[key].length)];
       if (ms) {
@@ -391,15 +419,12 @@ function investigate({ key, background, title, clues, min, onDone, failable }) {
     } else {
       S.lost[key].push(cl.id);
       spot.classList.add('lost');
-      const lossText = cl.loss || (G.failure_texts[cl.id]) || '此證物已滅失,無法在本章重驗。';
-      panel.appendChild(el(`<div class="result bad">
-        證物滅失｜${esc(lossText)}
-        ${cl.note ? `<div class="concept">正解觀念｜${esc(cl.concept)}</div><div>${esc(cl.note)}</div>` : ''}
-      </div>`));
+      panel.appendChild(el(resultHTML(cl, false)));
     }
     const cont = el(`<button class="btn sm" style="margin-top:14px">收起</button>`);
     cont.onclick = () => panel.remove();
     panel.appendChild(cont);
+    scrollDown(panel);          // 捲到底,讓說明與收起可見
     save(); updateCount();
     // 全部查完但證據不足 → 失敗
     const remaining = clues.filter(x => !S.evidence[key].includes(x.id) && !S.lost[key].includes(x.id));
