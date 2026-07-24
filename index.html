@@ -87,6 +87,11 @@ html,body{height:100%;background:#000;overflow:hidden;
 .panel.left{left:24px;animation:panelInL .28s cubic-bezier(.2,.8,.25,1)}
 @keyframes panelInR{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:none}}
 @keyframes panelInL{from{opacity:0;transform:translateX(-30px)}to{opacity:1;transform:none}}
+.panel.closing{pointer-events:none}
+.panel.right.closing{animation:panelOutR .2s ease forwards}
+.panel.left.closing{animation:panelOutL .2s ease forwards}
+@keyframes panelOutR{to{opacity:0;transform:translateX(30px)}}
+@keyframes panelOutL{to{opacity:0;transform:translateX(-30px)}}
 .panel h3{font-size:1.3rem;color:#f3ead6;margin-bottom:.5rem;padding-right:28px}
 .panel .cell{width:100%;border-radius:8px;margin:.4rem 0 .8rem;display:block;background:var(--ink);
   border:1px solid var(--line);box-shadow:0 2px 12px rgba(0,0,0,.4)}

@@ -287,7 +287,7 @@ function investigate({ key, background, title, clues, min, onDone, failable }) {
   // 點背景空白處 → 收起面板
   lay.addEventListener('click', (e) => {
     if (e.target.classList.contains('bg') || e.target.classList.contains('scrim'))
-      lay.querySelectorAll('.panel').forEach(p => p.remove());
+      lay.querySelectorAll('.panel').forEach(closePanel);
   });
 
   const bar = el(`<div class="topbar"></div>`);
@@ -327,6 +327,14 @@ function investigate({ key, background, title, clues, min, onDone, failable }) {
 
   const scrollDown = (panel) => requestAnimationFrame(() =>
     panel.scrollTo({ top: panel.scrollHeight, behavior: 'smooth' }));
+  const closePanel = (p) => {                 // 退場動畫後移除
+    if (!p || p.classList.contains('closing')) return;
+    p.classList.add('closing');
+    let done = false;
+    const fin = () => { if (!done) { done = true; p.remove(); } };
+    p.addEventListener('animationend', fin, { once: true });
+    setTimeout(fin, 260);
+  };
 
   function openClue(cl) {
     lay.querySelectorAll('.panel').forEach(n => n.remove());
@@ -338,14 +346,14 @@ function investigate({ key, background, title, clues, min, onDone, failable }) {
       <div class="body">${esc(cl.body)}</div>
       <div class="q">${esc(cl.question)}</div>
     </div>`);
-    panel.querySelector('.pclose').onclick = () => panel.remove();
+    panel.querySelector('.pclose').onclick = () => closePanel(panel);
     lay.appendChild(panel);
 
     // 已作答 → 只讀回顧,不再重答
     if (secured(cl) || lostCl(cl)) {
       panel.appendChild(el(resultHTML(cl, secured(cl))));
       const cont = el(`<button class="btn sm" style="margin-top:14px">收起</button>`);
-      cont.onclick = () => panel.remove();
+      cont.onclick = () => closePanel(panel);
       panel.appendChild(cont);
       return;
     }
@@ -423,7 +431,7 @@ function investigate({ key, background, title, clues, min, onDone, failable }) {
       panel.appendChild(el(resultHTML(cl, false)));
     }
     const cont = el(`<button class="btn sm" style="margin-top:14px">收起</button>`);
-    cont.onclick = () => panel.remove();
+    cont.onclick = () => closePanel(panel);
     panel.appendChild(cont);
     scrollDown(panel);          // 捲到底,讓說明與收起可見
     save(); updateCount();
