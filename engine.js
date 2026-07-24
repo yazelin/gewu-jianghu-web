@@ -407,7 +407,8 @@ function investigate({ key, background, title, clues, min, onDone, failable }) {
 
   const bar = el(`<div class="topbar"></div>`);
   const evChip = el(`<div class="chip">證據 <b class="cnt">0</b> / ${min}</div>`);
-  bar.append(el(`<div class="chip">${esc(title)}</div>`), evChip, el(`<div class="spacer"></div>`));
+  const hintChip = el(`<div class="chip" style="color:var(--br)"></div>`);
+  bar.append(el(`<div class="chip">${esc(title)}</div>`), evChip, hintChip, el(`<div class="spacer"></div>`));
   const bAff = el(`<button class="util">好感</button>`);
   bAff.onclick = () => affinityBoard();
   const bInv = el(`<button class="util">行囊</button>`);
@@ -423,10 +424,16 @@ function investigate({ key, background, title, clues, min, onDone, failable }) {
 
   const updateCount = () => {
     const n = S.evidence[key].length;
+    const answered = clues.filter(cl => S.evidence[key].includes(cl.id) || S.lost[key].includes(cl.id)).length;
+    const remaining = clues.length - answered;
+    const maxReach = n + remaining;
     evChip.querySelector('.cnt').textContent = n;
     proceed.style.display = n >= min ? '' : 'none';
-    if (n >= min && !failable && clues.every(cl => S.evidence[key].includes(cl.id) || S.lost[key].includes(cl.id)))
-      proceed.textContent = '進入第一章 ▸';
+    if (n >= min) hintChip.textContent = '證據已足,可進入破局';
+    else if (maxReach < min) hintChip.textContent = '證據鏈已斷,無法湊足…';   // 即將破局失敗
+    else if (remaining > 0) hintChip.textContent = `還有 ${remaining} 件證物待查(需 ${min} 件有效證據)`;
+    else hintChip.textContent = '';
+    if (n >= min && !failable && remaining === 0) proceed.textContent = '進入第一章 ▸';
   };
 
   const secured = (cl) => S.evidence[key].includes(cl.id);
