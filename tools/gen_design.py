@@ -188,8 +188,22 @@ table.ach{width:100%;border-collapse:collapse;font-size:.88rem;margin:.4rem 0}
 table.ach th,table.ach td{border:1px solid #332c22;padding:.5rem .7rem;text-align:left}
 table.ach th{color:var(--br);background:#1d1913}table.ach td:first-child{color:#f3ead6;white-space:nowrap}
 '''
-doc = ('<!doctype html><html lang="zh-Hant"><meta charset="utf-8">'
-       '<meta name="viewport" content="width=device-width,initial-scale=1">'
-       '<title>格物江湖錄 設計與公式站</title><style>' + CSS + '</style>' + '\n'.join(out) + '</html>')
+OG = 'https://yazelin.github.io/gewu-jianghu-web'
+HEAD = (
+    '<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8">'
+    '<meta name="viewport" content="width=device-width,initial-scale=1">'
+    '<title>格物江湖錄:天理殘卷 — 設計與公式站(攻略)</title>'
+    '<meta name="description" content="《格物江湖錄:天理殘卷》完整攻略:全題答案、A/B 分支、結局判定與 30 成就條件。">'
+    '<link rel="canonical" href="' + OG + '/design.html">'
+    '<meta property="og:type" content="article">'
+    '<meta property="og:title" content="格物江湖錄:天理殘卷 — 設計與公式站">'
+    '<meta property="og:description" content="完整劇情、答案、A/B 分支、結局判定與 30 成就條件。">'
+    '<meta property="og:image" content="' + OG + '/assets/og.jpg">'
+    '<meta property="og:url" content="' + OG + '/design.html">'
+    '<meta name="twitter:card" content="summary_large_image">'
+    '<meta name="twitter:title" content="格物江湖錄:天理殘卷 — 設計與公式站">'
+    '<meta name="twitter:image" content="' + OG + '/assets/og.jpg">'
+    '<style>' + CSS + '</style></head><body>')
+doc = HEAD + '\n'.join(out) + '</body></html>'
 open(os.path.join(R, 'design.html'), 'w', encoding='utf-8').write(doc)
 print('wrote design.html', len(doc) // 1024, 'KB')
