@@ -112,7 +112,7 @@ function musicGallery() {
       <span style="color:var(--pa2);font-size:.85rem">　${esc(m.source_title)}</span></div>`;
   }).join('');
   const m = el(`<div class="modal"><div class="sheet">
-    <button class="btn sm close">關閉</button><h2>配樂鑑賞</h2>
+    <button class="pclose close" title="關閉">✕</button><h2>配樂鑑賞</h2>
     <p style="color:var(--pa2);font-size:.85rem;margin-bottom:.8rem">環境樂逐章 lazy 載入,可於任意頂欄以 ♪ 靜音。</p>${rows}</div></div>`);
   m.querySelector('.close').onclick = () => m.remove();
   m.onclick = (e) => { if (e.target === m) m.remove(); };
@@ -577,7 +577,7 @@ function evidenceModal(key, clues) {
     .map(c => `<div class="evrow"><span class="en">${esc(c.evidence)}</span>　<span style="color:var(--pa2)">${esc(c.concept)}</span></div>`)
     .join('') || '<div class="evrow" style="color:var(--pa2)">尚無證據</div>';
   const m = el(`<div class="modal"><div class="sheet">
-    <button class="btn sm close">關閉</button><h2>格物卷</h2>${rows}</div></div>`);
+    <button class="pclose close" title="關閉">✕</button><h2>格物卷</h2>${rows}</div></div>`);
   m.querySelector('.close').onclick = () => m.remove();
   m.onclick = (e) => { if (e.target === m) m.remove(); };
   stage.appendChild(m);
@@ -619,7 +619,7 @@ function affinityBoard() {
       </div></div>`;
   }).join('');
   const m = el(`<div class="modal"><div class="sheet">
-    <button class="btn sm close">關閉</button><h2>人物好感與情緣</h2>${cards}</div></div>`);
+    <button class="pclose close" title="關閉">✕</button><h2>人物好感與情緣</h2>${cards}</div></div>`);
   m.querySelector('.close').onclick = () => m.remove();
   m.onclick = (e) => { if (e.target === m) m.remove(); };
   stage.appendChild(m);
@@ -636,7 +636,7 @@ function inventoryModal(onChange) {
       ${usable ? `<button class="btn sm" data-use="${id}">參悟</button>` : ''}</div>`;
   }).join('');
   const m = el(`<div class="modal"><div class="sheet">
-    <button class="btn sm close">關閉</button><h2>行囊　氣勢上限 ${S.qishi_max}/${G.max_qishi}</h2>${rows}</div></div>`);
+    <button class="pclose close" title="關閉">✕</button><h2>行囊　氣勢上限 ${S.qishi_max}/${G.max_qishi}</h2>${rows}</div></div>`);
   m.querySelectorAll('[data-use]').forEach(b => b.onclick = () => {
     const id = b.dataset.use;
     if (id === 'breath_manual' && useItem('breath_manual') && S.qishi_max < G.max_qishi) {
@@ -909,7 +909,7 @@ function achievementCodex() {
   }
   const total = Object.keys(S.achievements).filter(k => S.achievements[k]).length;
   const m = el(`<div class="modal"><div class="sheet">
-    <button class="btn sm close">關閉</button><h2>江湖成就譜　${total}/${G.achievements.ordered.length}</h2>${html}</div></div>`);
+    <button class="pclose close" title="關閉">✕</button><h2>江湖成就譜　${total}/${G.achievements.ordered.length}</h2>${html}</div></div>`);
   m.querySelector('.close').onclick = () => m.remove();
   m.onclick = (e) => { if (e.target === m) m.remove(); };
   stage.appendChild(m);
