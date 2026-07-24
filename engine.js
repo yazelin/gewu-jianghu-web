@@ -22,6 +22,7 @@ const newState = () => ({
   evidence: {}, lost: {}, secured_order: {},
   inventory: { ...(G.logic.start_inventory) }, choices: {}, cleared: [], intro_seen: false,
   flags: {}, rewarded: {}, normal_ending: '', finale_ending: '', romance: '', achievements: {},
+  difficulty: '行俠', perfect: {}, grandmaster: {}, seen_normal: [], seen_finale: [],
 });
 
 // ---------- 音樂(按需 lazy 載入,缺檔靜音) ----------
@@ -131,7 +132,7 @@ function sTitle() {
     <div class="gsub">天 理 殘 卷</div>
   </div>`);
   const bNew = el(`<button class="btn">開新局</button>`);
-  bNew.onclick = () => { S = newState(); go('intro'); };
+  bNew.onclick = () => { S = newState(); difficultySelect(); };
   const bCont = el(`<button class="btn ghost">繼續</button>`);
   bCont.disabled = !hasSave();
   bCont.onclick = () => { S = loadSave() || newState(); render(); };
@@ -151,6 +152,24 @@ function sTitle() {
     <a href="${G.donation_url}" target="_blank" rel="noopener">自由贊助｜支持創作</a>
   </div>`));
   stage.appendChild(bg);
+}
+
+// ================= 難度選擇 =================
+function difficultySelect() {
+  clear();
+  const lay = el(`<div class="layer fade"></div>`);
+  lay.appendChild(el(`<div class="bg" style="background-image:url('${G.title_keyart}');filter:brightness(.35)"></div>`));
+  lay.appendChild(el(`<div class="scrim"></div>`));
+  const box = el(`<div class="choicebox"><div class="prompt">選擇心法(提示詳略)</div></div>`);
+  [['說書', '最詳細的解題提示,適合初次格物'],
+   ['行俠', '標準提示,可隨時開格物卷查閱(建議)'],
+   ['宗師', '僅點出模型與方向,提示最少;「宗師問天」成就需此心法']].forEach(([d, desc]) => {
+    const b = el(`<button class="choice"><b>${esc(d)}</b><small>${esc(desc)}</small></button>`);
+    b.onclick = () => { S.difficulty = d; go('intro'); };
+    box.appendChild(b);
+  });
+  lay.appendChild(box);
+  stage.appendChild(lay);
 }
 
 // ================= 電影式序引(4 幕) =================
@@ -529,6 +548,7 @@ function inventoryModal(onChange) {
 function battle(c) {
   S.qishi = S.qishi_max;
   let bi = 0;
+  S._battleCorrect = 0;      // 本章答對的破局戰數(lizheng)
   sceneMusic('battle');
   const run = () => {
     if (bi >= c.battles.length) return battleCleared(c);
@@ -557,6 +577,7 @@ function battle(c) {
       btn.onclick = () => {
         [...wrap.querySelectorAll('.opt')].forEach(x => x.disabled = true);
         const ok = idx === b.correct;
+        if (ok) S._battleCorrect++;
         btn.classList.add(ok ? 'correct' : 'wrong');
         if (!ok) wrap.querySelectorAll('.opt')[b.correct].classList.add('correct');
         panel.appendChild(el(`<div class="result ${ok ? 'ok' : 'bad'}">${esc(b.explanation)}</div>`));
@@ -642,8 +663,14 @@ function finalChoice(c) {
 
 function afterChapter(c) {
   S.history = S.history || [];
-  if (!S.history.find(h => h.chapter === c.id)) S.history.push({ chapter: c.id, ending: 'clear' });
+  const insight = (S.evidence['ch' + c.id] || []).length;   // 格物:取得證據數
+  const lizheng = S._battleCorrect || 0;                      // 理證:答對的破局戰數
+  if (!S.history.find(h => h.chapter === c.id))
+    S.history.push({ chapter: c.id, ending: 'clear', insight, lizheng });
   if (!S.cleared.includes(c.id)) S.cleared.push(c.id);
+  S.perfect = S.perfect || {}; S.grandmaster = S.grandmaster || {};
+  if (insight >= 6 && lizheng >= 4) S.perfect[c.id] = true;   // 六證且四戰全對=無漏
+  if (S.difficulty === '宗師') S.grandmaster[c.id] = true;     // 宗師難度完成
   if (S.flags['failed_ch' + c.id]) S.flags.defeat_returned = true;   // 敗而復通
   reconcile();
   save();
@@ -682,32 +709,35 @@ function sealSnapshot() {
 
 // ================= 成就(reconcile + toast + 成就譜) =================
 function reconcile() {
+  // 條件逐條對照 achievement_service._condition_met(bytecode 還原)
   const rel = S.affinity || {}, seals = sealSnapshot();
-  const evAll = S.evidence || {};
-  const six = (k) => (evAll[k] || []).length >= 6;
+  const hist = S.history || [], perfect = S.perfect || {}, gm = S.grandmaster || {};
+  const secured = new Set(Object.values(S.evidence || {}).flat());   // 答對的證物(special_evidence)
   const deep = Object.values(rel).filter(v => v >= 3).length;
+  const relCount = (thr) => Object.values(rel).filter(v => v >= thr).length;
+  const storyDone = (ch) => ch === 9 ? (S.cleared.includes(9) && (S.seen_normal || []).length > 0)
+    : S.cleared.includes(ch);
   const cond = {
-    story_00_bell: () => S.cleared.includes(0), story_01_workshop: () => S.cleared.includes(1),
-    story_02_river: () => S.cleared.includes(2), story_03_ridge: () => S.cleared.includes(3),
-    story_04_forge: () => S.cleared.includes(4), story_05_thunder: () => S.cleared.includes(5),
-    story_06_stars: () => S.cleared.includes(6), story_07_mirror: () => S.cleared.includes(7),
-    story_08_prison: () => S.cleared.includes(8), story_09_tianli: () => S.cleared.includes(9),
-    story_10_tenth_line: () => S.cleared.includes(10), story_11_shared_calibration: () => S.cleared.includes(11),
-    mastery_six_evidence: () => Object.keys(evAll).some(six),
-    mastery_four_forms: () => S.cleared.some(n => n >= 1),
-    mastery_perfect_chapter: () => G.chapters.some(c => six('ch' + c.id) && S.cleared.includes(c.id)),
-    mastery_all_eleven_perfect: () => G.chapters.every(c => six('ch' + c.id)),
-    mastery_grandmaster_finale: () => S.finale_ending === 'heaven_earth_shared',
-    mastery_error_signed: () => Object.values(evAll).flat().length > 0 &&
-      G.chapters.some(c => c.clues.some(cl => (evAll['ch' + c.id] || []).includes(cl.id) && /誤差|有效數字|可追溯|署名/.test(cl.concept))),
+    story_00_bell: () => storyDone(0), story_01_workshop: () => storyDone(1),
+    story_02_river: () => storyDone(2), story_03_ridge: () => storyDone(3),
+    story_04_forge: () => storyDone(4), story_05_thunder: () => storyDone(5),
+    story_06_stars: () => storyDone(6), story_07_mirror: () => storyDone(7),
+    story_08_prison: () => storyDone(8), story_09_tianli: () => storyDone(9),
+    story_10_tenth_line: () => storyDone(10), story_11_shared_calibration: () => storyDone(11),
+    mastery_six_evidence: () => hist.some(h => (h.insight || 0) >= 6),        // 任一章六證
+    mastery_four_forms: () => hist.some(h => (h.lizheng || 0) >= 4),          // 任一章四戰全對
+    mastery_perfect_chapter: () => Object.keys(perfect).length > 0,           // 任一章 六證+四戰全對
+    mastery_all_eleven_perfect: () => [1,2,3,4,5,6,7,8,9,10,11].every(n => perfect[n]),
+    mastery_grandmaster_finale: () => !!gm[11],                                // 宗師難度完成第11章
+    mastery_error_signed: () => secured.has('calibration_wall') && secured.has('uncertainty_map'),
     relationship_lifebond: () => Object.values(rel).some(v => v >= 5),
-    relationship_three_deep: () => deep >= 3,
-    relationship_pei_reconciled: () => (rel['裴無咎'] || 0) >= 1,
-    relationship_nine_paths: () => G.people.every(p => (rel[p.name] || 0) >= 1),
+    relationship_three_deep: () => relCount(3) >= 3,
+    relationship_pei_reconciled: () => (rel['裴無咎'] || 0) >= 4,              // 原版 ≥4(非 ≥1)
+    relationship_nine_paths: () => Object.keys(rel).length >= 9 && relCount(1) >= 9,
     seal_people: () => seals.people, seal_evidence: () => seals.evidence, seal_fragment: () => seals.fragment,
     ending_all_normal: () => (S.seen_normal || []).length >= 4,
     ending_all_complete: () => (S.seen_finale || []).length >= 4,
-    ending_true_shared: () => S.finale_ending === 'heaven_earth_shared',
+    ending_true_shared: () => (S.seen_finale || []).includes('heaven_earth_shared'),
     system_defeat_return: () => !!S.flags.defeat_returned,
     system_talisman_survivor: () => !!S.flags.talisman_used,
   };
