@@ -346,8 +346,10 @@ function sTitle() {
   const bMusic = el(`<button class="btn sm ghost">配樂鑑賞</button>`);
   bMusic.disabled = !hasSave();
   bMusic.onclick = () => { const prev = S; S = loadSave() || newState(); musicGallery(); S = prev; };
+  const bAtlas = el(`<button class="btn sm ghost">格物先賢譜</button>`);
+  bAtlas.onclick = () => scientistAtlas();
   const row2 = el(`<div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center"></div>`);
-  row2.append(bCodex, bMusic, shareBtn('分享', '武俠懸疑包裝的物理解題 RPG——《格物江湖錄:天理殘卷》,可離線遊玩。', G.title_keyart));
+  row2.append(bCodex, bMusic, bAtlas, shareBtn('分享', '武俠懸疑包裝的物理解題 RPG——《格物江湖錄:天理殘卷》,可離線遊玩。', G.title_keyart));
   col.append(row2);
   bg.appendChild(col);
   stage.appendChild(bg);
@@ -530,7 +532,9 @@ function investigate({ key, background, title, clues, min, onDone, failable, onF
   bInv.onclick = () => inventoryModal();
   const bScroll = el(`<button class="util">格物卷</button>`);
   bScroll.onclick = () => evidenceModal(key, clues);
-  bar.append(bAff, bInv, bScroll);
+  const bAtlas = el(`<button class="util">先賢譜</button>`);
+  bAtlas.onclick = () => scientistAtlas();
+  bar.append(bAff, bInv, bScroll, bAtlas);
   const proceed = el(`<button class="util go">進入破局 ▸</button>`);
   proceed.style.display = 'none';
   proceed.onclick = onDone;
@@ -832,6 +836,29 @@ function inventoryModal(onChange) {
   board.append(
     pLbl('關鍵物｜' + esc(keyItemSummary()), 45, 528, 710, 13, 'var(--pa2)', { wrap: true }),
     pBtn('收起行囊', 795, 530, 220, 40, true, done));
+}
+
+// ---------- 格物先賢譜(還原原作 _show_scientist_atlas:科學家關係圖)----------
+function scientistAtlas() {
+  sfx('paper', 1.0, 0.6);
+  const { board, close } = boardOverlay(75, 45, 1130, 635, 115);
+  const sc = G.scientists;
+  board.append(
+    pLbl('格物先賢譜｜物理科學家關係圖', 35, 20, 1060, 29, 'var(--br)', { align: 'center', bold: true }),
+    pLbl('青線＝概念承接　朱線＝同期爭論／競逐　點擊人物查看章回用途', 40, 64, 1050, 14, 'var(--pa2)', { align: 'center' }));
+  const graph = el(`<div style="position:absolute;left:45px;top:100px;width:1040px;height:330px"></div>`);
+  const svg = ['<svg width="1040" height="330" style="position:absolute;inset:0;pointer-events:none">'];
+  for (const e of sc.edges) svg.push(`<line x1="${e.from[0]}" y1="${e.from[1]}" x2="${e.to[0]}" y2="${e.to[1]}" stroke="${e.color === 'cinnabar' ? 'var(--cin)' : 'var(--jade)'}" stroke-width="2"/>`);
+  svg.push('</svg>'); graph.innerHTML = svg.join('');
+  const detail = pLbl('先賢譜不是背人名:每條線都要回到可觀察的現象與可驗證的模型。', 65, 452, 1000, 18, 'var(--pa)', { align: 'center', wrap: true });
+  const active = (sc.active_by_chapter[String(S.chapter)]) || sc.active_default;
+  for (const id of sc.order) {
+    const n = sc.nodes[id], on = active.includes(id);
+    const btn = el(`<button class="pbtn${on ? ' go' : ''}" style="left:${n.pos[0]}px;top:${n.pos[1]}px;width:150px;height:58px;flex-direction:column;line-height:1.3;font-size:14px;padding:0 4px">${esc(n.name)}<span style="font-size:11px;opacity:.82">${esc(n.chapter)}</span></button>`);
+    btn.onclick = () => { detail.innerHTML = `<b>${esc(n.name)}</b>｜${esc(n.years)}<br>${esc(n.detail)}`; sfx('paper', 1.08, 0.32); };
+    graph.appendChild(btn);
+  }
+  board.append(graph, detail, pBtn('收起先賢譜', 455, 565, 220, 44, true, close));
 }
 
 // ================= 破局戰(氣勢答題) =================
