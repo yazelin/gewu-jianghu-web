@@ -178,11 +178,11 @@ COND = {
 }
 out.append(f'<section id="ach"><h2>成就(30)</h2>')
 for ck, cat in ac['categories'].items():
-    out.append(f'<h3>{e(cat["name"])}</h3><table class="ach"><tr><th>名稱</th><th>解鎖條件</th></tr>')
+    out.append(f'<h3>{e(cat["name"])}</h3><table class="ach"><tr><th>名稱</th><th>解鎖條件</th><th>稱號</th></tr>')
     for aid in ac['ordered']:
         a = ac['items'][aid]
         if a['category'] != ck: continue
-        out.append(f'<tr><td>{e(a["title"])}</td><td>{e(COND.get(aid, a["hint"]))}</td></tr>')
+        out.append(f'<tr><td>{e(a["title"])}</td><td>{e(COND.get(aid, a["hint"]))}</td><td>{e(a.get("title_reward", "—"))}</td></tr>')
     out.append('</table>')
 out.append('</section>')
 

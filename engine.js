@@ -359,6 +359,8 @@ function sTitle() {
   col.append(diffWrap, bNew, bCont);
   col.append(el(`<div class="ttag">看懂世界如何運作，才有資格改變命運。</div>`));
   col.append(el(`<div class="troute">十一章懸案｜雙走向承接｜多重結局｜三線情緣</div>`));
+  const savedTitle = (loadSave() || {}).equipped_title;      // 佩印稱號(讀存檔)
+  if (savedTitle && savedTitle !== DEFAULT_TITLE) col.append(el(`<div class="ttitle">佩印稱號｜${esc(savedTitle)}</div>`));
   bg.appendChild(col);
   // 次要選項:退為畫面底部一列低調文字連結,保留電影感(不佔主畫面按鈕堆)
   const withSave = (fn) => { const prev = S; S = loadSave() || newState(); fn(); S = prev; };
@@ -1306,17 +1308,41 @@ function reconcile() {
   newly.forEach((id, i) => setTimeout(() => toast('成就解鎖：' + G.achievements.items[id].title), 400 + i * 1400));
   return newly;
 }
+// ---------- 稱號系統(佩印;由成就解鎖,還原原作 achievement titles）----------
+const DEFAULT_TITLE = '無名格物者';
+const equippedTitle = () => S.equipped_title || DEFAULT_TITLE;
+function earnedTitles() {          // 預設 + 已解鎖成就所贈之稱號(依成就順序)
+  const t = [DEFAULT_TITLE];
+  for (const id of G.achievements.ordered) {
+    const it = G.achievements.items[id];
+    if (it.title_reward && S.achievements[id] && !t.includes(it.title_reward)) t.push(it.title_reward);
+  }
+  return t;
+}
+function equipTitle(name) { S.equipped_title = name; save(); }
+
 function achievementCodex() {
   sfx('paper', 0.98, 0.5);
   const total = Object.keys(S.achievements).filter(k => S.achievements[k]).length;
-  const { content } = boardScroll(920, 622, `江湖成就譜　${total}／${G.achievements.ordered.length}`, '已解成就顯名;未解僅示模糊線索');
+  const { content } = boardScroll(920, 624, `江湖成就譜　${total}／${G.achievements.ordered.length}`, '已解成就顯名;未解僅示模糊線索');
+  // 稱號佩印
+  const titles = earnedTitles();
+  content.appendChild(el(`<div class="pcat">佩印稱號（點擊佩用）</div>`));
+  const trow = el(`<div class="tchip-row"></div>`);
+  titles.forEach(t => {
+    const chip = el(`<button class="tchip${t === equippedTitle() ? ' on' : ''}">${esc(t)}</button>`);
+    chip.onclick = () => { equipTitle(t); trow.querySelectorAll('.tchip').forEach(c => c.classList.remove('on')); chip.classList.add('on'); sfx('paper', 1.1, 0.3); };
+    trow.appendChild(chip);
+  });
+  content.appendChild(trow);
   for (const [ck, cat] of Object.entries(G.achievements.categories)) {
     content.appendChild(el(`<div class="pcat">${esc(cat.name)}</div>`));
     G.achievements.ordered.filter(id => G.achievements.items[id].category === ck).forEach(id => {
       const a = G.achievements.items[id], got = S.achievements[id];
+      const tr = got && a.title_reward ? `<span class="prow-tr">稱號「${esc(a.title_reward)}」</span>` : '';
       content.appendChild(el(`<div class="prow${got ? '' : ' locked'}">
         <span class="prow-t">${got ? '✦ ' + esc(a.title) : '未解秘印'}</span>
-        <span class="prow-d">${esc(got ? a.description : a.hint)}</span></div>`));
+        <span class="prow-d">${esc(got ? a.description : a.hint)}${tr}</span></div>`));
     });
   }
 }
