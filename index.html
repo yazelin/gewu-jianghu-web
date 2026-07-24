@@ -60,6 +60,12 @@ html,body{height:100%;background:#000;overflow:hidden;
 .dbox .spk{color:var(--cin);font-weight:700;font-size:1.15rem;margin-bottom:.5rem;letter-spacing:.08em}
 .dbox .txt{font-size:1.3rem;line-height:2;color:#f0e6d2}
 .dbox .next{position:absolute;right:22px;bottom:14px;color:var(--br);font-size:.9rem;animation:blink 1.2s infinite}
+/* 對話立繪卡(忠實還原原版 _portrait_card):發話者為角色時左側顯示大立繪,對話框右移讓位 */
+.portrait{position:absolute;left:64px;bottom:40px;width:300px;height:440px;object-fit:cover;object-position:top center;
+  border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,.6);border:1px solid rgba(138,107,58,.45);
+  opacity:0;transform:translateY(16px) scale(.985);transition:opacity .45s ease,transform .45s ease;z-index:14;pointer-events:none}
+.portrait.show{opacity:1;transform:none}
+.dbox.has-portrait{left:392px}
 @keyframes blink{50%{opacity:.3}}
 
 /* title */
@@ -95,12 +101,18 @@ html,body{height:100%;background:#000;overflow:hidden;
 /* 前進鈕(進入破局/第一章):綠色語意,hover 邊框仍綠不變紅 */
 .util.go{border-color:var(--jade);color:#bfe6d2}
 .util.go:hover{border-color:var(--jade);color:#fff}
-.hotspot{position:absolute;width:34px;height:34px;margin:-17px 0 0 -17px;border-radius:50%;
-  border:2px solid var(--pa);background:rgba(168,50,42,.35);cursor:pointer;z-index:15;
-  box-shadow:0 0 0 0 rgba(168,50,42,.6);animation:pulse 2s infinite}
-.hotspot.done{border-color:var(--jade);background:rgba(95,163,131,.3);animation:none}
-.hotspot.lost{border-color:var(--danger);background:rgba(192,86,76,.25);animation:none;cursor:default}
-@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(168,50,42,.55)}70%{box-shadow:0 0 0 16px rgba(168,50,42,0)}100%{box-shadow:0 0 0 0 rgba(168,50,42,0)}}
+/* 證據點:狀態符號 + 證據名稱按鈕(忠實還原原版,非純圓點),左上角對齊 data 座標 */
+.hotspot{position:absolute;min-width:150px;height:38px;padding:0 15px;display:inline-flex;align-items:center;gap:8px;
+  border:1px solid var(--pa);border-radius:19px;background:rgba(20,17,14,.72);color:var(--pa);
+  font:600 15px/1 "Noto Sans TC",system-ui,sans-serif;cursor:pointer;z-index:15;white-space:nowrap;
+  box-shadow:0 2px 10px rgba(0,0,0,.4);animation:hspin 2.4s ease-in-out infinite;transition:border-color .15s,background .15s}
+.hotspot .hs-mark{font-size:16px;color:var(--pa2)}
+.hotspot:hover{border-color:var(--cin);background:rgba(20,17,14,.92);animation:none}
+.hotspot.done{border-color:var(--jade);color:var(--jade);animation:none}
+.hotspot.done .hs-mark{color:var(--jade)}
+.hotspot.lost{border-color:var(--danger);color:var(--danger);cursor:default;animation:none;opacity:.8}
+.hotspot.lost .hs-mark{color:var(--danger)}
+@keyframes hspin{0%,100%{box-shadow:0 2px 10px rgba(0,0,0,.4)}50%{box-shadow:0 2px 10px rgba(0,0,0,.4),0 0 0 3px rgba(168,50,42,.18)}}
 
 /* clue panel — 置中兩欄:左圖(固定)右文(字長才捲) */
 .cluewrap{position:absolute;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;

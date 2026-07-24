@@ -61,6 +61,29 @@ function sceneMusic(kind) {                                      // 依場景挑
   if (kind === 'prologue') return playMusic(MUSIC.prologue);
   return playMusic(MUSIC.ambient);
 }
+// ---------- 音效 SFX(短音、可重疊;檔案為原版 audio_service 同源 CC0,見 provenance)----------
+// 一次性播放,受全域靜音控制;playbackRate=音高、volume=音量(對齊原版 play_sfx 參數)
+function sfx(key, pitch = 1.0, volume = 0.6) {
+  if (!key || isMuted()) return;
+  const a = new Audio(`assets/audio/sfx/${key}.mp3`);
+  a.volume = Math.max(0, Math.min(1, volume));
+  a.playbackRate = pitch;
+  a.play().catch(() => { });
+}
+// 各章 clue 專屬音效:1:1 還原原版 main.gd 的 _campaign_clue_sfx(依證物性質配木頭/紙張/鑼等)
+function clueSfx(id) {
+  const has = (...xs) => xs.includes(id);
+  if (has('pulley', 'spring', 'ramp', 'brake', 'crate')) return has('pulley', 'brake') ? 'creak' : 'wood';
+  if (has('register', 'false_bottom')) return 'paper';
+  if (has('pennant', 'arrow_holes', 'range_rope', 'cart_arrow', 'arrowhead', 'crossbow_mount')) return has('cart_arrow', 'crossbow_mount') ? 'creak' : 'step_b';
+  if (has('expansion_rods', 'bimetal', 'pressure_vessel', 'firebrick', 'cracked_blades')) return has('firebrick', 'cracked_blades') ? 'wood' : 'creak';
+  if (id === 'ice_quench') return 'gong';
+  if (has('series_lamps', 'parallel_branches', 'compass_coil', 'resistance_board', 'grounding_rod')) return has('compass_coil', 'grounding_rod') ? 'creak' : 'wood';
+  if (id === 'amber_static') return 'paper';
+  if (has('star_clock', 'orbit_stone', 'gravity_spheres', 'pendulum_frame')) return id === 'star_clock' ? 'gong' : 'creak';
+  if (has('wave_basin', 'resonance_tubes')) return 'gong';
+  return 'step_b';
+}
 // 全域靜音鈕(固定於畫面右上,任何場景都在)—— 內嵌 SVG 喇叭圖示
 const SVG_SOUND_ON = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor" stroke="none"/><path d="M16.5 8.5a4 4 0 010 7"/><path d="M19 6a7 7 0 010 12"/></svg>`;
 const SVG_SOUND_OFF = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor" stroke="none"/><path d="M16.5 9.5l5 5M21.5 9.5l-5 5"/></svg>`;
@@ -302,7 +325,7 @@ function difficultySelect() {
    ['行俠', '標準提示,可隨時開格物卷查閱(建議)'],
    ['宗師', '僅點出模型與方向,提示最少;「宗師問天」成就需此心法']].forEach(([d, desc]) => {
     const b = el(`<button class="choice"><b>${esc(d)}</b><small>${esc(desc)}</small></button>`);
-    b.onclick = () => { S.difficulty = d; go('intro'); };
+    b.onclick = () => { S.difficulty = d; sfx('door'); go('intro'); };   // 開新局:門扉開啟聲(原版 _start_new_game）
     box.appendChild(b);
   });
   lay.appendChild(box);
@@ -348,13 +371,23 @@ function playDialogue(bgUrl, lines, choice, done) {
   const lay = el(`<div class="layer fade"></div>`);
   lay.appendChild(el(`<div class="bg" style="background-image:url('${bgUrl}')"></div>`));
   lay.appendChild(el(`<div class="scrim"></div>`));
+  const port = el(`<img class="portrait" alt="">`);      // 忠實還原原版:對話時依發話者顯示大立繪卡
+  lay.appendChild(port);
   stage.appendChild(lay);
+  let curSpeaker = '';
+  const showPortrait = (name) => {
+    const src = name && G.portraits[name];
+    if (src) { if (name !== curSpeaker) port.src = src; port.classList.add('show'); }
+    else port.classList.remove('show');
+    curSpeaker = name || '';
+  };
   const step = () => {
     if (choice && !choiceShown && i === choiceAt) { choiceShown = true; return askChoice(); }
     if (i >= lines.length) return done();
     const l = lines[i++];
     lay.querySelectorAll('.dbox').forEach(n => n.remove());
-    const box = el(`<div class="dbox">
+    showPortrait(l.speaker);
+    const box = el(`<div class="dbox${G.portraits[l.speaker] ? ' has-portrait' : ''}">
       ${l.speaker ? `<div class="spk">${esc(l.speaker)}</div>` : ''}
       <div class="txt">${esc(l.text)}</div>
       <div class="next">點擊繼續 ▾</div></div>`);
@@ -479,9 +512,14 @@ function investigate({ key, background, title, clues, min, onDone, failable, onF
 
   const secured = (cl) => S.evidence[key].includes(cl.id);
   const lostCl = (cl) => S.lost[key].includes(cl.id);
+  const hotspotTip = (cl) => lostCl(cl) ? '證物已滅失｜查看紀錄'
+    : secured(cl) ? '證物已取證｜查看札記' : '點擊調查｜' + (cl.concept || '');
+  const hotspotMark = (cl) => secured(cl) ? '✓' : lostCl(cl) ? '✕' : '◇';
   const spots = clues.map(cl => {
-    const s = el(`<div class="hotspot ${secured(cl) ? 'done' : ''} ${lostCl(cl) ? 'lost' : ''}"
-      style="left:${cl.pos.x}px;top:${cl.pos.y}px"></div>`);
+    // 忠實還原原版:證據點為「狀態符號 + 證據名稱」按鈕(非純圓點),附物理概念 tooltip
+    const s = el(`<button class="hotspot ${secured(cl) ? 'done' : ''} ${lostCl(cl) ? 'lost' : ''}"
+      style="left:${cl.pos.x}px;top:${cl.pos.y}px" title="${esc(hotspotTip(cl))}">
+      <span class="hs-mark">${hotspotMark(cl)}</span><span class="hs-name">${esc(cl.name)}</span></button>`);
     s.onclick = () => openClue(cl);        // 已答→只讀回顧;未答→作答
     lay.appendChild(s);
     return { cl, s };
@@ -517,6 +555,7 @@ function investigate({ key, background, title, clues, min, onDone, failable, onF
     wrap.addEventListener('click', (e) => { if (e.target === wrap) closePanel(wrap); });
     wrap.appendChild(panel);
     lay.appendChild(wrap);
+    sfx(key === 'prologue' ? 'paper' : clueSfx(cl.id), 1.0, 0.55);   // 開啟證物:序章翻卷聲/各章證物專屬音效(原版 _campaign_clue_sfx）
 
     // 已作答 → 只讀回顧,不再重答
     if (secured(cl) || lostCl(cl)) {
@@ -581,9 +620,10 @@ function investigate({ key, background, title, clues, min, onDone, failable, onF
     if (!ok) buttons[cl.correct].classList.add('correct');
     const spot = spots.find(x => x.cl.id === cl.id).s;
     if (ok) {
+      sfx('correct', 1.0, 0.72);        // 答對:格物鐘聲(原版 play_sfx 'correct'）
       S.evidence[key].push(cl.id);
       S.secured_order[key] = (S.secured_order[key] || []).concat(cl.id);
-      spot.classList.add('done');
+      spot.classList.add('done'); spot.querySelector('.hs-mark').textContent = '✓'; spot.title = hotspotTip(cl);
       content.appendChild(el(resultHTML(cl, true)));
       toast('取得證據：' + cl.evidence);
       const c = chById(S.chapter);
@@ -596,7 +636,7 @@ function investigate({ key, background, title, clues, min, onDone, failable, onF
       }
     } else {
       S.lost[key].push(cl.id);
-      spot.classList.add('lost');
+      spot.classList.add('lost'); spot.querySelector('.hs-mark').textContent = '✕'; spot.title = hotspotTip(cl);
       content.appendChild(el(resultHTML(cl, false)));
     }
     const cont = el(`<button class="btn sm" style="margin-top:14px">收起</button>`);
@@ -613,6 +653,7 @@ function investigate({ key, background, title, clues, min, onDone, failable, onF
 }
 
 function evidenceModal(key, clues) {
+  sfx('paper', 1.05, 0.5);          // 展開格物卷:翻卷聲
   const got = S.evidence[key] || [];
   const rows = clues.filter(c => got.includes(c.id))
     .map(c => `<div class="evrow"><span class="en">${esc(c.evidence)}</span>　<span style="color:var(--pa2)">${esc(c.concept)}</span></div>`)
@@ -643,6 +684,7 @@ function relStage(name, value, appeared) {
   return { role, stage };
 }
 function affinityBoard() {
+  sfx('paper', 0.98, 0.5);          // 展開人物卷:翻卷聲
   const cards = G.people.map(p => {
     const appeared = S.chapter >= p.first || S.cleared.length > 0 && p.first <= S.chapter;
     const v = S.affinity[p.name] || 0;
@@ -668,6 +710,7 @@ function affinityBoard() {
 
 // ---------- 行囊 ----------
 function inventoryModal(onChange) {
+  sfx('paper', 1.02, 0.5);          // 打開行囊:翻卷聲
   const rows = Object.entries(G.items).map(([id, it]) => {
     const n = S.inventory[id] || 0;
     const usable = id === 'breath_manual' && n > 0 && S.qishi_max < G.max_qishi;
@@ -696,6 +739,7 @@ function battle(c) {
   let bi = 0;
   S._battleCorrect = 0;      // 本章答對的破局戰數(lizheng)
   sceneMusic('battle');
+  sfx('gong', 0.82, 0.6);    // 破局戰開場:鑼聲(原版 play_sfx 'gong'）
   const run = () => {
     if (bi >= c.battles.length) return battleCleared(c);
     clear();
@@ -724,7 +768,7 @@ function battle(c) {
       btn.onclick = () => {
         [...wrap.querySelectorAll('.opt')].forEach(x => x.disabled = true);
         const ok = idx === b.correct;
-        if (ok) S._battleCorrect++;
+        if (ok) { S._battleCorrect++; sfx('correct', 0.94, 0.72); }   // 破局答對:鐘聲
         btn.classList.add(ok ? 'correct' : 'wrong');
         if (!ok) wrap.querySelectorAll('.opt')[b.correct].classList.add('correct');
         panel.appendChild(el(`<div class="result ${ok ? 'ok' : 'bad'}">${esc(b.explanation)}</div>`));
@@ -850,6 +894,7 @@ function chapterClearScreen(c) {
   const secured = (S.evidence['ch' + c.id] || []).length;
   const perfect = !!(S.perfect || {})[c.id];
   clear();
+  sfx('gong', 0.7, 0.65);           // 過關:鑼聲
   const lay = el(`<div class="layer fade" style="display:flex;align-items:center;justify-content:center">
     <div class="bg" style="background-image:url('${c.background}');filter:brightness(.4)"></div>
     <div class="scrim"></div></div>`);
@@ -1010,6 +1055,7 @@ function chapter9Endings(c) {
   const unlocked = hiddenRouteUnlocked();
   // 解鎖隱藏門扉 → 續進第十章;否則普通結局完結、回題名
   showEnding(e, unlocked ? () => {
+    sfx('door', 0.9, 0.62);         // 穿過隱藏門扉:開門聲(原版 play_sfx 'door'）
     toast('無名度量院的門扉在你身後開啟');
     S.chapter = 10; save(); go('chapter');
   } : null, '普通結局', unlocked ? '穿過隱藏門扉 ▸' : '回題名');

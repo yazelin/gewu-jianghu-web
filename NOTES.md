@@ -22,9 +22,15 @@
 - **情緣 3 線**:柳照微/江濯月/蘇檀;第 9 章許諾(≥2)、第 11 章定局(延續或 ≥4)。
 - **30 成就**:章回/格物/人物/三印/敗局 5 類,reconcile + 解鎖 toast + 成就譜(未解顯模糊線索)。
 - **配樂系統**:按章 lazy 背景樂 + ♪ 靜音(持久)+ 配樂鑑賞 15 曲。接 6 首 MP3(戰鬥樂+環境樂)。
+- **音效 SFX**(1:1 還原原作):8 個音效由原作 PCK 抽出(答對鐘聲 / 翻卷 / 腳步 / 木頭 / 鑼 / 開門),
+  觸發點與各章 clue 專屬音效對齊原作 `play_sfx` / `_campaign_clue_sfx`(見 `provenance/AUDIO.md`)。
+
+### 場景保真(對照原作 main.gd 反編)
+- **證據點**:狀態符號(◇/✓/✕)+ 證據名稱按鈕 + 物理概念 tooltip(非純圓點,還原原作 190×38 按鈕)。
+- **對話立繪**:發話者為角色時左側顯示大立繪卡(還原原作 `_portrait_card`),旁白時隱藏。
 
 ### 離線
-- **Service Worker**(`sw.js`)全量 precache 138 檔(html/js/json + WebP + 圖示 + 21 音檔,約 19.5 MB)。
+- **Service Worker**(`sw.js`)全量 precache 146 檔(html/js/json + WebP + 圖示 + 21 配樂 + 8 音效,約 19.6 MB)。
   首次進入即背景載齊,之後完全離線可玩;程式走 network-first、`/assets/` 走 cache-first。
 - PWA `manifest.json`(`display:standalone` / landscape,可安裝);手機直向顯示轉橫屏提示。
 
@@ -46,7 +52,7 @@
 - 現況:本機 15/15、design 對照全一致;線上 Pages 同套亦通過。
 
 ## 已知取捨(ponytail ceiling)
-- **ogg 環境樂(22 首)**未內含:Godot 以 OggPacketSequence 包裝(非標準 ogg 分頁),需 Godot re-export
-  或自寫 remuxer。刻意排除以守離線體積;配樂鑑賞列出、缺檔靜音降級。戰鬥樂(mp3)已接。
+- **配樂**取原作標示的 CC0 原始來源重編(非反解 PCK),見 `provenance/AUDIO.md`;**音效 SFX** 則以自寫 remuxer
+  從原作 PCK 的 Godot 匯入串流(OggPacketSequence)抽出、8 個全接並進 precache。
 - 破局失敗僅「重來本章」;原作專屬失敗文本已在 `data/game.json` failure_texts(證物滅失文本已用於答錯)。
 - A/B 分流的 alliance flags(結盟)主要由章末抉擇驅動,與原作章內特殊觸發可能有極少數邊界差異。
