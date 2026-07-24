@@ -30,9 +30,9 @@ const newState = () => ({
 const MUSIC = {
   ambient: 'oriental_calm', prologue: 'oriented_suspense',
   investigation: { 1: 'chapter1_workshop', 2: 'chapter2_river', 3: 'chapter3_ridge', 4: 'chapter4_forge',
-    5: 'chapter5_thunder_alliance', 6: 'chapter5_thunder_alliance', 7: 'chapter7_mirror_city',
+    5: 'chapter5_thunder_alliance', 6: 'chapter6_observatory', 7: 'chapter7_mirror_city',
     8: 'chapter8_crafts_prison', 9: 'chapter9_tianli_bureau', 10: 'chapter10_nameless_institute', 11: 'chapter11_heaven_earth' },
-  battle: { 1: 'asianoriental_battle', 2: 'asianoriental_battle', 3: 'chapter3_battle', 4: 'chapter4_battle',
+  battle: { 1: 'chapter1_crisis', 2: 'asianoriental_battle', 3: 'chapter3_battle', 4: 'chapter4_battle',
     5: 'chapter5_battle', 6: 'chapter6_battle', 7: 'chapter4_battle', 8: 'chapter8_battle',
     9: 'asianoriental_battle', 10: 'chapter10_battle', 11: 'chapter11_battle' },
 };
@@ -331,8 +331,10 @@ function sTitle() {
   bg.appendChild(el(`<div class="bg" style="background-image:url('${G.title_keyart}');filter:brightness(.7)"></div>`));
   bg.appendChild(el(`<div class="scrim"></div>`));
   const col = el(`<div class="center-col">
+    <div class="tkicker">原創武俠物理解題 RPG</div>
     <div class="gtitle">格物江湖錄</div>
     <div class="gsub">天 理 殘 卷</div>
+    <div class="tomen">巨鐘未落,真相已先被定罪。</div>
   </div>`);
   const bNew = el(`<button class="btn">開新局</button>`);
   bNew.onclick = () => { S = newState(); difficultySelect(); };
@@ -340,17 +342,20 @@ function sTitle() {
   bCont.disabled = !hasSave();
   bCont.onclick = () => { S = loadSave() || newState(); render(); };
   col.append(bNew, bCont);
-  const bCodex = el(`<button class="btn sm ghost">江湖成就譜</button>`);
-  bCodex.disabled = !hasSave();
-  bCodex.onclick = () => { const prev = S; S = loadSave() || newState(); achievementCodex(); S = prev; };
-  const bMusic = el(`<button class="btn sm ghost">配樂鑑賞</button>`);
-  bMusic.disabled = !hasSave();
-  bMusic.onclick = () => { const prev = S; S = loadSave() || newState(); musicGallery(); S = prev; };
-  const bAtlas = el(`<button class="btn sm ghost">格物先賢譜</button>`);
-  bAtlas.onclick = () => scientistAtlas();
-  const row2 = el(`<div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center"></div>`);
-  row2.append(bCodex, bMusic, bAtlas, shareBtn('分享', '武俠懸疑包裝的物理解題 RPG——《格物江湖錄:天理殘卷》,可離線遊玩。', G.title_keyart));
+  // 載入存檔跑面板(題名時 S 為暫態,查看用存檔進度),看完還原
+  const withSave = (fn) => { const prev = S; S = loadSave() || newState(); fn(); S = prev; };
+  const tbtn = (label, fn, needSave) => { const x = el(`<button class="btn sm ghost">${label}</button>`); if (needSave) x.disabled = !hasSave(); x.onclick = fn; return x; };
+  const row2 = el(`<div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;max-width:760px"></div>`);
+  row2.append(
+    tbtn('江湖成就譜', () => withSave(achievementCodex), true),
+    tbtn('結局圖鑑', () => withSave(endingGallery), true),
+    tbtn('配樂鑑賞', () => withSave(musicGallery), true),
+    tbtn('格物先賢譜', () => scientistAtlas()),
+    tbtn('重看劇情序引', () => replayIntro()),
+    tbtn('素材與製作名錄', () => creditsPanel()),
+    shareBtn('分享', '武俠懸疑包裝的物理解題 RPG——《格物江湖錄:天理殘卷》,可離線遊玩。', G.title_keyart));
   col.append(row2);
+  col.append(el(`<div class="troute">十一章懸案｜雙走向承接｜多重結局｜三線情緣</div>`));
   bg.appendChild(col);
   stage.appendChild(bg);
   document.getElementById('lamp')?.classList.add('on');           // 雨夜鐘樓燈火呼吸
@@ -376,9 +381,12 @@ function difficultySelect() {
 }
 
 // ================= 電影式序引(4 幕) =================
+let introReplay = false;                          // 從題名「重看序引」進入 → 播完回題名,不開局
+function replayIntro() { introReplay = true; sIntro(); }
 function sIntro() {
   let i = 0;
   const pages = G.story_intro;
+  const finish = () => { if (introReplay) { introReplay = false; go('title'); } else { S.intro_seen = true; go('prologue'); } };
   const show = () => {
     clear();
     const p = pages[i];
@@ -393,10 +401,10 @@ function sIntro() {
     const nav = el(`<div style="position:absolute;right:60px;bottom:48px;display:flex;gap:14px"></div>`);
     const prev = el(`<button class="btn sm ghost">上一幕</button>`); prev.disabled = i === 0;
     prev.onclick = () => { i--; show(); };
-    const next = el(`<button class="btn sm">${i < pages.length - 1 ? '下一幕' : '入局'}</button>`);
-    next.onclick = () => { i < pages.length - 1 ? (i++, show()) : (S.intro_seen = true, go('prologue')); };
+    const next = el(`<button class="btn sm">${i < pages.length - 1 ? '下一幕' : (introReplay ? '回題名' : '入局')}</button>`);
+    next.onclick = () => { i < pages.length - 1 ? (i++, show()) : finish(); };
     const skip = el(`<button class="btn sm ghost">略過</button>`);
-    skip.onclick = () => { S.intro_seen = true; go('prologue'); };
+    skip.onclick = finish;
     nav.append(prev, next, skip);
     lay.appendChild(nav);
     stage.appendChild(lay);
@@ -859,6 +867,45 @@ function scientistAtlas() {
     graph.appendChild(btn);
   }
   board.append(graph, detail, pBtn('收起先賢譜', 455, 565, 220, 44, true, close));
+}
+
+// ---------- 結局圖鑑(還原原作 show_ending_gallery / show_full_ending_gallery)----------
+function endingGallery() {
+  sfx('paper', 1.0, 0.5);
+  const { board, close } = boardOverlay(90, 42, 1100, 636, 110);
+  const seenN = new Set(S.seen_normal || []), seenF = new Set(S.seen_finale || []);
+  board.append(
+    pLbl('天理殘卷・結局圖鑑', 40, 20, 1020, 30, 'var(--br)', { align: 'center', bold: true }),
+    pLbl(`普通結局 ${seenN.size}／4　｜　完整版結局 ${seenF.size}／4　（圖鑑會跨越命運回折保留）`, 40, 60, 1020, 14, 'var(--pa2)', { align: 'center' }));
+  [['第九章・普通結局', G.endings_ch9, seenN, 92], ['第十一章・完整版結局', G.endings_finale, seenF, 358]].forEach(([label, ends, seen, y]) => {
+    board.appendChild(pLbl(label, 42, y, 400, 15, 'var(--jade)', { bold: true }));
+    Object.entries(ends).forEach(([id, e], i) => {
+      const on = seen.has(id), x = 42 + i * 258;
+      const card = pCard(x, y + 22, 244, 208, on ? 'var(--br)' : 'rgba(87,97,97,.7)');
+      card.style.overflow = 'hidden';
+      if (on) card.appendChild(el(`<img src="${e.image}" style="position:absolute;left:0;top:0;width:100%;height:150px;object-fit:cover">`));
+      card.appendChild(pLbl(on ? esc(e.title) : '尚未收錄', 8, on ? 158 : 90, 228, on ? 16 : 15, on ? 'var(--br)' : 'var(--pa2)', { align: 'center', wrap: true, bold: on }));
+      if (on && e.subtitle) card.appendChild(pLbl(esc(e.subtitle), 8, 182, 228, 11, 'var(--pa2)', { align: 'center', wrap: true }));
+      board.appendChild(card);
+    });
+  });
+  board.appendChild(pBtn('收起圖鑑', 440, 590, 220, 40, true, close));
+}
+
+// ---------- 素材與製作名錄(還原原作 _show_credits)----------
+function creditsPanel() {
+  sfx('paper', 1.0, 0.5);
+  const { board, close } = boardOverlay(210, 78, 860, 570, 110);
+  board.appendChild(pLbl('素材與製作名錄', 40, 28, 780, 31, 'var(--br)', { align: 'center', bold: true }));
+  const credits =
+    '概念、劇情與原始程式｜原作者 @changyi123456（物理教師）\n' +
+    '網頁離線版改作｜yazelin，經原作者授權（見 SOURCE.md）\n\n' +
+    '場景、證物、角色與結局圖｜OpenAI image generation，依原專案提示與物理校正產生\n\n' +
+    '配樂（CC0）\n・Oriental／Oriented／Asianoriental 系列\n・Night of the Streets — nene\n・Factory／Dungeon Ambience — yd\n・Fast Fight — Ville Nousiainen\n・Ancient Temple — Umplix\n・Ending Scene — nene\n\n' +
+    '音效（CC0）\n・Correct Bell、Paper、Footsteps、Tree Creaking、100 CC0 SFX\n\n' +
+    '字型｜Noto Sans TC（SIL OFL 1.1）\n\n完整作者、原始網址、逐檔雜湊與授權見 provenance/asset-ledger.csv。';
+  board.appendChild(el(`<div class="plbl" style="left:62px;top:90px;width:736px;font-size:16px;color:var(--pa);white-space:pre-wrap;line-height:1.65">${esc(credits)}</div>`));
+  board.appendChild(pBtn('關閉', 320, 500, 220, 44, true, close));
 }
 
 // ================= 破局戰(氣勢答題) =================
