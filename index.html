@@ -82,8 +82,8 @@ html,body{height:100%;background:#000;overflow:hidden;
 .intro-text{font-size:1.35rem;line-height:2.1;color:#d6cbb4;max-width:64%}
 
 /* investigation */
-.topbar{position:absolute;top:0;left:0;right:0;height:56px;background:linear-gradient(180deg,rgba(10,8,6,.85),transparent);
-  display:flex;align-items:center;padding:0 24px;gap:18px;z-index:20}
+.topbar{position:absolute;top:0;left:0;right:0;min-height:56px;background:linear-gradient(180deg,rgba(10,8,6,.85),transparent);
+  display:flex;align-items:center;flex-wrap:wrap;padding:10px 150px 6px 96px;gap:10px;z-index:20}
 .chip{background:rgba(20,17,14,.85);border:1px solid var(--line);border-radius:20px;padding:6px 16px;font-size:.95rem}
 .chip b{color:var(--jade)}
 .topbar .spacer{flex:1}
@@ -161,10 +161,10 @@ html,body{height:100%;background:#000;overflow:hidden;
 
 /* overlay panels (evidence scroll etc.) */
 .modal{position:absolute;inset:0;background:rgba(8,6,4,.8);z-index:60;display:flex;align-items:center;justify-content:center;padding:40px;animation:fadeIn .2s ease}
-.modal .sheet{background:var(--ink2);border:1px solid var(--br);border-radius:14px;padding:28px;max-width:720px;width:100%;max-height:80%;overflow:auto;animation:sheetIn .28s cubic-bezier(.2,.8,.25,1)}
+.modal .sheet{position:relative;background:var(--ink2);border:1px solid var(--br);border-radius:14px;padding:28px;max-width:720px;width:100%;max-height:80%;overflow:auto;animation:sheetIn .28s cubic-bezier(.2,.8,.25,1)}
 @keyframes sheetIn{from{opacity:0;transform:scale(.95) translateY(10px)}to{opacity:1;transform:none}}
 .modal h2{color:#f3ead6;margin-bottom:1rem;letter-spacing:.08em}
-.modal .close{position:absolute;top:24px;right:32px}
+.modal .close{position:sticky;top:0;float:right;margin:-8px -8px 6px 10px;z-index:3}
 .evrow{padding:8px 0;border-bottom:1px solid var(--line);font-size:1rem}
 .evrow .en{color:var(--jade);font-weight:700}
 .toast{position:absolute;top:70px;left:50%;transform:translateX(-50%);background:rgba(20,17,14,.95);
@@ -173,22 +173,21 @@ html,body{height:100%;background:#000;overflow:hidden;
 @keyframes fadeup{from{opacity:0;transform:translate(-50%,10px)}to{opacity:1;transform:translate(-50%,0)}}
 .fade{animation:fade .5s}@keyframes fade{from{opacity:0}to{opacity:1}}
 .loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--pa2);font-size:1.2rem;letter-spacing:.2em}
-/* 全域靜音鈕:固定右上,任何頁面都在 */
-#gmute{position:fixed;top:14px;right:14px;z-index:9998;width:42px;height:42px;border-radius:50%;
-  background:rgba(20,17,14,.85);border:1px solid var(--br);color:var(--pa);cursor:pointer;
-  display:flex;align-items:center;justify-content:center;padding:0;transition:.15s;backdrop-filter:blur(2px)}
+/* 全域 chrome 層:在舞台座標系內,跟畫面一起縮放,clear() 不清掉 —— 統一 UI 層級 */
+#chrome{position:absolute;inset:0;z-index:40;pointer-events:none}
+#chrome-r{position:absolute;top:14px;right:14px;display:flex;gap:10px;align-items:center}
+#chrome button{pointer-events:auto;transition:.15s;backdrop-filter:blur(2px);font-family:inherit}
+#gmute{width:42px;height:42px;border-radius:50%;background:rgba(20,17,14,.85);border:1px solid var(--br);
+  color:var(--pa);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0}
 #gmute:hover{background:var(--cin);border-color:var(--cin);color:#fff}
 #gmute.muted{color:var(--danger);border-color:var(--danger)}
-/* 安裝鈕:固定右上、靜音鈕左邊,僅可安裝時顯示 */
-#ginstall{position:fixed;top:14px;right:66px;z-index:9998;height:42px;padding:0 16px;border-radius:21px;
-  background:var(--cin);border:1px solid var(--cin);color:#fff;cursor:pointer;font-size:.9rem;
-  font-family:inherit;letter-spacing:.05em;transition:.15s;backdrop-filter:blur(2px)}
+#ginstall{height:42px;padding:0 16px;border-radius:21px;background:var(--cin);border:1px solid var(--cin);
+  color:#fff;cursor:pointer;font-size:.9rem;letter-spacing:.05em}
 #ginstall:hover{filter:brightness(1.12)}
 #ginstall[hidden]{display:none}
-/* 遊戲中選單鈕:固定左上,非題名頁才顯示 */
-#gmenu{position:fixed;top:14px;left:14px;z-index:9998;height:42px;padding:0 18px;border-radius:21px;
+#gmenu{position:absolute;top:14px;left:14px;height:42px;padding:0 18px;border-radius:21px;
   background:rgba(20,17,14,.85);border:1px solid var(--br);color:var(--pa);cursor:pointer;
-  font-size:.9rem;font-family:inherit;letter-spacing:.1em;transition:.15s;backdrop-filter:blur(2px)}
+  font-size:.9rem;letter-spacing:.1em}
 #gmenu:hover{background:var(--cin);border-color:var(--cin);color:#fff}
 #gmenu[hidden]{display:none}
 </style>
@@ -199,10 +198,16 @@ html,body{height:100%;background:#000;overflow:hidden;
   <p>請將手機轉為橫向<br>以最佳比例遊玩</p>
 </div>
 <div id="ambient"></div>
-<div id="wrap"><div id="stage"><div class="loading">載入中…</div></div></div>
-<button id="gmute" title="開關聲音" aria-label="開關聲音">♪</button>
-<button id="ginstall" hidden>安裝</button>
-<button id="gmenu" hidden title="選單">選單</button>
+<div id="wrap"><div id="stage">
+  <div id="chrome">
+    <button id="gmenu" hidden title="選單">選單</button>
+    <div id="chrome-r">
+      <button id="ginstall" hidden>安裝</button>
+      <button id="gmute" title="開關聲音" aria-label="開關聲音">♪</button>
+    </div>
+  </div>
+  <div class="loading">載入中…</div>
+</div></div>
 <script>
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').then(reg => {
   // 偵測到新版(且已有舊 SW 在控制 = 這是更新)→ 自動重載,免手動硬重整

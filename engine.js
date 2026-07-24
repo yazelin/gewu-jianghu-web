@@ -159,7 +159,7 @@ const hasSave = () => !!localStorage.getItem(SAVE_KEY);
 // ---------- 工具 ----------
 const el = (html) => { const d = document.createElement('div'); d.innerHTML = html.trim(); return d.firstElementChild; };
 const esc = (s) => String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
-const clear = () => { stage.innerHTML = ''; };
+const clear = () => { [...stage.children].forEach(c => { if (c.id !== 'chrome') c.remove(); }); };
 const preload = (list) => Promise.all([...new Set(list)].map(src => new Promise(r => {
   const i = new Image(); i.onload = i.onerror = r; i.src = src;
 })));
@@ -340,7 +340,7 @@ function sPrologue() {
   preload([p.background, ...p.hotspots.map(h => h.cell)]).then(() => {
     playDialogue(p.background, p.narration, null, () => investigate({
       key: 'prologue', background: p.background, title: '序章・鐘樓墜案',
-      clues: p.hotspots, min: 3, failable: false,
+      clues: p.hotspots, min: 3, failable: true, onFail: prologueFailure,
       onDone: () => {
         // 序章結果 → world_flags(第一章路線依此)
         if (S.evidence.prologue && S.evidence.prologue.includes('keeper')) setFlags(['keeper_saved']);
@@ -390,7 +390,7 @@ function chapterIntro(c) {
 }
 
 // ================= 調查(證據 / 序章熱點) =================
-function investigate({ key, background, title, clues, min, onDone, failable }) {
+function investigate({ key, background, title, clues, min, onDone, failable, onFail }) {
   S.evidence[key] = S.evidence[key] || [];
   S.lost[key] = S.lost[key] || [];
   sceneMusic(key === 'prologue' ? 'prologue' : 'investigation');
@@ -433,7 +433,7 @@ function investigate({ key, background, title, clues, min, onDone, failable }) {
     else if (maxReach < min) hintChip.textContent = '證據鏈已斷,無法湊足…';   // 即將破局失敗
     else if (remaining > 0) hintChip.textContent = `還有 ${remaining} 件證物待查(需 ${min} 件有效證據)`;
     else hintChip.textContent = '';
-    if (n >= min && !failable && remaining === 0) proceed.textContent = '進入第一章 ▸';
+    if (n >= min && key === 'prologue') proceed.textContent = '進入第一章 ▸';
   };
 
   const secured = (cl) => S.evidence[key].includes(cl.id);
@@ -567,7 +567,7 @@ function investigate({ key, background, title, clues, min, onDone, failable }) {
     const maxReach = S.evidence[key].length + clues.filter(
       x => !S.evidence[key].includes(x.id) && !S.lost[key].includes(x.id)).length;
     if (failable && maxReach < min)
-      setTimeout(() => chapterFailure(chById(S.chapter), '有效證據不足四項,證據鏈斷裂,本章破局失敗。'), 1100);
+      setTimeout(() => (onFail || (() => chapterFailure(chById(S.chapter), '有效證據不足,證據鏈斷裂,本章破局失敗。')))(), 1100);
   }
 }
 
@@ -728,25 +728,34 @@ function battleCleared(c) {
   else finalChoice(c);
 }
 
-function chapterFailure(c, reason) {
+// 通用失敗畫面:標題 + 原因 + 重來(自訂)+ 回題名
+function failScreen(background, title, reason, retry, retryLabel) {
   clear();
   const lay = el(`<div class="layer fade"></div>`);
-  lay.appendChild(el(`<div class="bg" style="background-image:url('${c.background}');filter:brightness(.3) grayscale(.5)"></div>`));
+  lay.appendChild(el(`<div class="bg" style="background-image:url('${background}');filter:brightness(.3) grayscale(.5)"></div>`));
   lay.appendChild(el(`<div class="scrim"></div>`));
   const box = el(`<div class="choicebox" style="text-align:center">
-    <div class="gsub" style="color:var(--danger);font-size:1.3rem;margin-bottom:1rem">本章失敗</div>
+    <div class="gsub" style="color:var(--danger);font-size:1.3rem;margin-bottom:1rem">${esc(title)}</div>
     <div class="body" style="font-size:1.15rem;line-height:1.9;margin-bottom:1.5rem">${esc(reason)}</div>
   </div>`);
-  S.flags['failed_ch' + c.id] = true; save();   // 敗卷重開成就用
   const row = el(`<div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap"></div>`);
-  const retry = el(`<button class="btn">重來本章</button>`);
-  retry.onclick = () => { S.evidence[ckey()] = []; S.lost[ckey()] = []; delete S.rewarded['reward_ch' + c.id]; go('chapter'); };
+  const bRetry = el(`<button class="btn">${esc(retryLabel || '重來本章')}</button>`);
+  bRetry.onclick = retry;
   const home = el(`<button class="btn ghost">回題名</button>`);
   home.onclick = () => go('title');
-  row.append(retry, home);
+  row.append(bRetry, home);
   box.appendChild(row);
   lay.appendChild(box);
   stage.appendChild(lay);
+}
+function chapterFailure(c, reason) {
+  S.flags['failed_ch' + c.id] = true; save();   // 敗卷重開成就用
+  failScreen(c.background, '本章失敗', reason,
+    () => { S.evidence[ckey()] = []; S.lost[ckey()] = []; delete S.rewarded['reward_ch' + c.id]; go('chapter'); });
+}
+function prologueFailure() {
+  failScreen(G.prologue.background, '線索斷裂', '墜鐘案現場證據不足,無法立案。重新勘查現場。',
+    () => { S.evidence.prologue = []; S.lost.prologue = []; sPrologue(); }, '重新勘查');
 }
 
 // ================= 章末抉擇 → 分流 =================
