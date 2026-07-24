@@ -797,35 +797,29 @@ function chapter9Endings(c) {
   } : null, '普通結局', unlocked ? '穿過隱藏門扉 ▸' : '回題名');
 }
 
-// ================= 完整版結局(4,真結局有嚴格條件) =================
-function finaleEndings(c) {
-  const seals = sealSnapshot(), rel = S.affinity || {};
+// 完整版真結局解鎖(忠實還原 true_ending_unlocked)
+function trueEndingUnlocked(sealCount) {
+  const rel = S.affinity || {}, f = S.flags || {};
   const deep = Object.values(rel).filter(v => v >= 3).length;
-  const trueOK = seals.count === 3 && !!S.flags.veto_clause_restored &&
-    !!S.flags.allies_crosschecked_final && deep >= 3 && (rel['裴無咎'] || 0) >= 1;
-  const avail = Object.keys(G.endings_finale).filter(id =>
-    id === 'heaven_earth_shared' ? trueOK : true);
-  clear();
-  const lay = el(`<div class="layer fade"></div>`);
-  lay.appendChild(el(`<div class="bg" style="background-image:url('${c.background}');filter:brightness(.4)"></div>`));
-  lay.appendChild(el(`<div class="scrim"></div>`));
-  const box = el(`<div class="choicebox"><div class="prompt">天地共衡・終局
-    <div style="font-size:.9rem;color:var(--pa2);margin-top:.5rem">三印 ${seals.count}/3${trueOK ? '　真結局已解鎖' : ''}</div></div>`);
-  avail.forEach(id => {
-    const e = G.endings_finale[id];
-    const isTrue = id === 'heaven_earth_shared';
-    const b = el(`<button class="choice" ${isTrue ? 'style="border-color:var(--cin)"' : ''}>
-      <b>${esc(e.title)}</b><small>${esc(e.subtitle)}</small></button>`);
-    b.onclick = () => {
-      S.finale_ending = id;
-      S.seen_finale = [...new Set([...(S.seen_finale || []), id])];
-      save(); reconcile();
-      showEnding(e, () => go('title'), '完整版結局');
-    };
-    box.appendChild(b);
-  });
-  lay.appendChild(box);
-  stage.appendChild(lay);
+  return sealCount >= 3 && S.cleared.includes(10) && S.cleared.includes(11)
+    && !!f.veto_clause_restored && !!f.allies_crosschecked_final
+    && S.choices['final11'] === 'open_shared_standard'   // 第11章須選「萬手共衡」
+    && deep >= 3 && (rel['裴無咎'] || 0) >= 1;
+}
+// 完整版結局:依真結局解鎖 + 第11章章末抉擇「算」出(忠實還原 suggested_ending),非自由選
+function finaleEndingId(sealCount) {
+  if (trueEndingUnlocked(sealCount)) return 'heaven_earth_shared';
+  const fc = S.choices['final11'] || '';
+  if (fc === 'open_shared_standard') return 'common_measure';
+  if (fc === 'seal_four_key_standard') return 'four_keys';
+  return 'masterless_road';
+}
+function finaleEndings(c) {
+  const id = finaleEndingId(sealSnapshot().count);
+  S.finale_ending = id;
+  S.seen_finale = [...new Set([...(S.seen_finale || []), id])];
+  save(); reconcile();
+  showEnding(G.endings_finale[id], null, '完整版結局');   // 終局 → 回題名
 }
 
 // ================= 結局播放 =================
