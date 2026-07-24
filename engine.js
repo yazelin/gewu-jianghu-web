@@ -55,10 +55,15 @@ function sceneMusic(kind) {                                      // 依場景挑
   if (kind === 'prologue') return playMusic(MUSIC.prologue);
   return playMusic(MUSIC.ambient);
 }
-function muteButton() {
-  const b = el(`<button class="util">${isMuted() ? '♪ 靜音' : '♪ 開'}</button>`);
-  b.onclick = () => { setMuted(!isMuted()); b.textContent = isMuted() ? '♪ 靜音' : '♪ 開'; if (!isMuted()) _audio && _audio.play().catch(() => { }); };
-  return b;
+// 全域靜音鈕(固定於畫面右上,任何場景都在)—— 內嵌 SVG 喇叭圖示
+const SVG_SOUND_ON = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor" stroke="none"/><path d="M16.5 8.5a4 4 0 010 7"/><path d="M19 6a7 7 0 010 12"/></svg>`;
+const SVG_SOUND_OFF = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor" stroke="none"/><path d="M16.5 9.5l5 5M21.5 9.5l-5 5"/></svg>`;
+function initGlobalMute() {
+  const b = document.getElementById('gmute');
+  if (!b) return;
+  const sync = () => { b.innerHTML = isMuted() ? SVG_SOUND_OFF : SVG_SOUND_ON; b.classList.toggle('muted', isMuted()); };
+  b.onclick = () => { setMuted(!isMuted()); sync(); if (!isMuted() && _audio) _audio.play().catch(() => { }); };
+  sync();
 }
 function musicGallery() {
   const rows = G.achievements.music_gallery.map(m => {
@@ -162,10 +167,6 @@ function sTitle() {
   row2.append(bCodex, bMusic);
   col.append(row2);
   bg.appendChild(col);
-  bg.appendChild(el(`<div class="linkrow">
-    <a href="${G.author_url}" target="_blank" rel="noopener">作者連結｜Instagram</a>
-    <a href="${G.donation_url}" target="_blank" rel="noopener">自由贊助｜支持創作</a>
-  </div>`));
   stage.appendChild(bg);
 }
 
@@ -333,7 +334,7 @@ function investigate({ key, background, title, clues, min, onDone, failable }) {
   bInv.onclick = () => inventoryModal();
   const bScroll = el(`<button class="util">格物卷</button>`);
   bScroll.onclick = () => evidenceModal(key, clues);
-  bar.append(bAff, bInv, bScroll, muteButton());
+  bar.append(bAff, bInv, bScroll);
   const proceed = el(`<button class="util" style="border-color:var(--jade);color:#bfe6d2">進入破局 ▸</button>`);
   proceed.style.display = 'none';
   proceed.onclick = onDone;
@@ -901,6 +902,7 @@ fetch('data/game.json').then(r => r.json()).then(data => {
   G = data;
   S = loadSave() || newState();
   S.scene = 'title';                 // 一律回題名;存檔進度保留,按「繼續」才載入
+  initGlobalMute();
   fit();
   render();
 }).catch(e => { stage.innerHTML = `<div class="loading">載入失敗：${esc(e.message)}</div>`; });

@@ -155,6 +155,12 @@ html,body{height:100%;background:#000;overflow:hidden;
 @keyframes fadeup{from{opacity:0;transform:translate(-50%,10px)}to{opacity:1;transform:translate(-50%,0)}}
 .fade{animation:fade .5s}@keyframes fade{from{opacity:0}to{opacity:1}}
 .loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--pa2);font-size:1.2rem;letter-spacing:.2em}
+/* 全域靜音鈕:固定右上,任何頁面都在 */
+#gmute{position:fixed;top:14px;right:14px;z-index:9998;width:42px;height:42px;border-radius:50%;
+  background:rgba(20,17,14,.85);border:1px solid var(--br);color:var(--pa);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;padding:0;transition:.15s;backdrop-filter:blur(2px)}
+#gmute:hover{background:var(--cin);border-color:var(--cin);color:#fff}
+#gmute.muted{color:var(--danger);border-color:var(--danger)}
 </style>
 </head>
 <body>
@@ -163,6 +169,7 @@ html,body{height:100%;background:#000;overflow:hidden;
   <p>請將手機轉為橫向<br>以最佳比例遊玩</p>
 </div>
 <div id="wrap"><div id="stage"><div class="loading">載入中…</div></div></div>
+<button id="gmute" title="開關聲音" aria-label="開關聲音">♪</button>
 <script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});</script>
 <script src="engine.js"></script>
 </body>
