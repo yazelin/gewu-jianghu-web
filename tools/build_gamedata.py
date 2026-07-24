@@ -138,20 +138,9 @@ G['logic'] = {
         '10': {'any': ['ending:people_witness', 'seal:people']},
         '11': {'all': ['veto_clause_restored']},
     },
-    # 章末抉擇 a/b 設定的 world_flags(a=救人線 / b=奪證線)
-    'final_flags': {
-        '1': {'a': ['apprentice_protected'], 'b': ['copper_seal', 'registry_exposed']},
-        '2': {'a': ['jiang_alliance', 'river_passengers_saved'], 'b': ['residual_page_recovered']},
-        '3': {'a': ['witness_saved'], 'b': ['wugou_cipher_recovered']},
-        '4': {'a': ['forge_workers_saved', 'huo_alliance'], 'b': ['thermal_core_secured']},
-        '5': {'a': ['leihuo_witnesses_saved', 'xie_alliance'], 'b': ['field_notes_recovered']},
-        '6': {'a': ['true_ephemeris_published', 'observatory_students_saved', 'ning_alliance'], 'b': ['secret_star_chart_recovered']},
-        '7': {'a': ['mirror_testimony_published'], 'b': ['master_mirror_secured']},
-        '8': {'a': ['artisan_league_freed'], 'b': ['zero_standard_secured']},
-        '9': {'a': ['reversible_shutdown'], 'b': ['destroy_tianli_axle']},
-        '10': {'a': ['veto_clause_restored'], 'b': ['origin_table_secured']},
-        '11': {'a': ['shared_standard_opened'], 'b': ['four_key_standard_sealed']},
-    },
+    # 章末抉擇 a/b 的完整後果:旗標(True/False)+ 好感增減
+    # 逐字還原自 main.gd _choose_campaign_final(見 parse_final.py)
+    'final_effects': json.load(open('final_effects.json')),
     'start_inventory': {'steadfast_talisman': 1, 'logic_token': 1, 'measuring_rule': 1},
     'reward_rule': {'always': 'calm_powder', 'ev5': 'logic_token', 'ev6': 'breath_manual'},
     # 關係階梯(非候選)value 門檻 → 標籤

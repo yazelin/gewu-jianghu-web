@@ -650,11 +650,17 @@ function finalChoice(c) {
   lay.appendChild(el(`<div class="bg" style="background-image:url('${c.background}');filter:brightness(.5)"></div>`));
   lay.appendChild(el(`<div class="scrim"></div>`));
   const box = el(`<div class="choicebox"><div class="prompt">${esc(fc.prompt)}</div></div>`);
-  const ff = G.logic.final_flags[String(c.id)] || {};
+  const eff = G.logic.final_effects[String(c.id)] || {};
   [['a', 'A'], ['b', 'B']].forEach(([k, route]) => {
     if (!fc[k]) return;
     const b = el(`<button class="choice"><b>${esc(fc[k].title)}</b><small>${esc(fc[k].detail)}</small></button>`);
-    b.onclick = () => { S.choices['final' + c.id] = fc[k].id; setFlags(ff[k]); save(); afterChapter(c); };
+    b.onclick = () => {
+      S.choices['final' + c.id] = fc[k].id;
+      const e = eff[k] || {};
+      Object.entries(e.flags || {}).forEach(([f, v]) => { S.flags[f] = v; });   // 旗標(含 false)
+      Object.entries(e.rel || {}).forEach(([person, d]) => affinity(person, d)); // 章末抉擇的好感後果
+      save(); afterChapter(c);
+    };
     box.appendChild(b);
   });
   lay.appendChild(box);
@@ -801,7 +807,7 @@ function romanceSelect(phase, next) {
 // 第9章普通結局:依一路建立的關係/旗標「算出」結局(忠實還原 suggested_ending)
 function suggestedEnding() {
   const rel = S.affinity || {}, f = S.flags || {};
-  if (!f.reversible_shutdown) return 'nameless_ashes';   // 選斷軸焚卷 → 無名灰燼
+  if (S.choices['final9'] !== 'reversible_shutdown') return 'nameless_ashes';   // 選斷軸焚卷 → 無名灰燼
   const people = (rel['柳照微'] || 0) + (rel['江濯月'] || 0) + (rel['霍離'] || 0);
   const archive = (rel['顧玄策'] || 0) + (rel['寧觀瀾'] || 0) + (f.zero_standard_secured ? 3 : 0);
   const mountain = (rel['裴無咎'] || 0) * 2 + (f.master_mirror_secured ? 2 : 0);
@@ -811,7 +817,7 @@ function suggestedEnding() {
 }
 // 第十章「隱藏門扉」:選了可逆止機 且 三印≥2 才解鎖(忠實還原 hidden_route_unlocked)
 function hiddenRouteUnlocked() {
-  return !!(S.flags || {}).reversible_shutdown && sealSnapshot().count >= 2;
+  return S.choices['final9'] === 'reversible_shutdown' && sealSnapshot().count >= 2;
 }
 function chapter9Endings(c) {
   const id = suggestedEnding();
