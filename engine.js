@@ -26,11 +26,17 @@ const newState = () => ({
 });
 
 // ---------- 音樂(按需 lazy 載入,缺檔靜音) ----------
+// 曲目對應原作各章投卷/破局配樂;檔案為 CC0 原始來源重編(見 provenance)
 const MUSIC = {
-  ambient: 'oriental_calm',                                     // 題名/一般環境樂(mp3)
-  battle: { 4: 'chapter4_battle', 5: 'chapter5_battle', 7: 'chapter7_battle', 10: 'chapter10_battle' },
-  investigation: { 7: 'chapter7_mirror_city' },
+  ambient: 'oriental_calm', prologue: 'oriented_suspense',
+  investigation: { 1: 'chapter1_workshop', 2: 'chapter2_river', 3: 'chapter3_ridge', 4: 'chapter4_forge',
+    5: 'chapter5_thunder_alliance', 6: 'chapter6_observatory', 7: 'chapter7_mirror_city',
+    8: 'chapter8_crafts_prison', 9: 'chapter9_tianli_bureau', 10: 'chapter10_nameless_institute', 11: 'chapter11_heaven_earth' },
+  battle: { 1: 'asianoriental_battle', 2: 'asianoriental_battle', 3: 'chapter3_battle', 4: 'chapter4_battle',
+    5: 'chapter5_battle', 6: 'chapter6_battle', 7: 'chapter7_battle', 8: 'chapter8_battle',
+    9: 'asianoriental_battle', 10: 'chapter10_battle', 11: 'chapter11_battle' },
 };
+const MP3_TRACKS = new Set(['oriental_calm', 'chapter4_battle', 'chapter5_battle', 'chapter7_battle', 'chapter7_mirror_city', 'chapter10_battle']);
 let _audio = null, _curTrack = '';
 const isMuted = () => localStorage.getItem('gewu_muted') === '1';
 function setMuted(v) { localStorage.setItem('gewu_muted', v ? '1' : '0'); if (_audio) _audio.muted = v; }
@@ -40,12 +46,13 @@ function playMusic(basename) {
   _audio.muted = isMuted();
   if (_curTrack === basename) return;
   _curTrack = basename;
-  _audio.src = `assets/audio/${basename}.mp3`;
+  _audio.src = `assets/audio/${basename}.${MP3_TRACKS.has(basename) ? 'mp3' : 'ogg'}`;
   _audio.play().catch(() => { });                               // 自動播放受限/缺檔 → 靜默
 }
-function sceneMusic(kind) {                                      // 依場景挑曲(缺則環境樂)
+function sceneMusic(kind) {                                      // 依場景挑曲
   if (kind === 'battle') return playMusic(MUSIC.battle[S.chapter] || MUSIC.ambient);
   if (kind === 'investigation') return playMusic(MUSIC.investigation[S.chapter] || MUSIC.ambient);
+  if (kind === 'prologue') return playMusic(MUSIC.prologue);
   return playMusic(MUSIC.ambient);
 }
 function muteButton() {
@@ -305,7 +312,7 @@ function chapterIntro(c) {
 function investigate({ key, background, title, clues, min, onDone, failable }) {
   S.evidence[key] = S.evidence[key] || [];
   S.lost[key] = S.lost[key] || [];
-  sceneMusic('investigation');
+  sceneMusic(key === 'prologue' ? 'prologue' : 'investigation');
   clear();
   const lay = el(`<div class="layer fade"></div>`);
   lay.appendChild(el(`<div class="bg" style="background-image:url('${background}')"></div>`));
