@@ -53,8 +53,10 @@ function playMusic(basename) {
 // 首次使用者互動解鎖音訊(瀏覽器自動播放政策)
 function initAudioUnlock() {
   const unlock = () => { if (_audio && !isMuted()) _audio.play().catch(() => { }); };
-  ['pointerdown', 'keydown', 'touchstart'].forEach(ev => addEventListener(ev, unlock, { passive: true }));
+  ['pointerdown', 'click', 'keydown', 'touchstart'].forEach(ev => addEventListener(ev, unlock, { passive: true }));
 }
+// 使用者互動(任何 sfx)時順手喚醒背景樂,補足自動播放被擋的情況
+function wakeMusic() { if (_audio && _audio.paused && !isMuted()) _audio.play().catch(() => { }); }
 function sceneMusic(kind) {                                      // 依場景挑曲
   if (kind === 'battle') return playMusic(MUSIC.battle[S.chapter] || MUSIC.ambient);
   if (kind === 'investigation') return playMusic(MUSIC.investigation[S.chapter] || MUSIC.ambient);
@@ -64,6 +66,7 @@ function sceneMusic(kind) {                                      // 依場景挑
 // ---------- 音效 SFX(短音、可重疊;檔案為原版 audio_service 同源 CC0,見 provenance)----------
 // 一次性播放,受全域靜音控制;playbackRate=音高、volume=音量(對齊原版 play_sfx 參數)
 function sfx(key, pitch = 1.0, volume = 0.6) {
+  wakeMusic();                          // 使用者互動 → 順手喚醒被自動播放政策擋住的背景樂
   if (!key || isMuted()) return;
   const a = new Audio(`assets/audio/sfx/${key}.mp3`);
   a.volume = Math.max(0, Math.min(1, volume));
@@ -341,16 +344,20 @@ function sTitle() {
     <div class="gsub">天 理 殘 卷</div>
     <div class="tomen">巨鐘未落，真相已先被定罪。</div>
   </div>`);
-  // 題目難度:首頁下拉選單直接選(還原原作 difficulty_option),開新局即以此難度進序引
-  const diffWrap = el(`<div style="display:flex;align-items:center;gap:10px">
-    <span style="color:var(--pa2);font-size:.95rem;letter-spacing:.1em">題目難度</span></div>`);
-  const diffSel = el(`<select class="tdiff" title="選擇心法難度">
-    <option value="說書">說書｜國中理化起步</option>
-    <option value="行俠" selected>行俠｜國中至高中混合</option>
-    <option value="宗師">宗師｜高中物理綜合</option></select>`);
-  diffWrap.appendChild(diffSel);
+  // 心法(難度):三檔以提示詳略區分,用武俠語言不提學科(還原原作三心法:說書/行俠/宗師)
+  const DIFFS = [['說書', '說書人循循道來,提示最詳盡'], ['行俠', '行俠仗劍,提示適中,可隨時翻閱格物卷'], ['宗師', '宗師只點模型與方向,獨闖險關']];
+  const diff = { val: '行俠' };
+  const diffWrap = el(`<div class="tseg-wrap"></div>`);
+  const seg = el(`<div class="tseg"></div>`);
+  const desc = el(`<div class="tseg-desc">行俠仗劍,提示適中,可隨時翻閱格物卷</div>`);
+  DIFFS.forEach(([v, d]) => {
+    const p = el(`<button class="tseg-btn${v === '行俠' ? ' on' : ''}">${v}</button>`);
+    p.onclick = () => { diff.val = v; seg.querySelectorAll('.tseg-btn').forEach(x => x.classList.remove('on')); p.classList.add('on'); desc.textContent = d; sfx('paper', 1.1, 0.3); };
+    seg.appendChild(p);
+  });
+  diffWrap.append(el(`<div class="tseg-label">擇一心法</div>`), seg, desc);
   const bNew = el(`<button class="btn">新案入局｜觀看劇情序引</button>`);
-  bNew.onclick = () => { S = newState(); S.difficulty = diffSel.value; sfx('door'); go('intro'); };
+  bNew.onclick = () => { S = newState(); S.difficulty = diff.val; sfx('door'); go('intro'); };
   const bCont = el(`<button class="btn ghost">繼續</button>`);
   bCont.disabled = !hasSave();
   bCont.onclick = () => { S = loadSave() || newState(); render(); };

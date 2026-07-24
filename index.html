@@ -110,12 +110,16 @@ body.reduced #rain{display:none}
 .tomen{font-size:1.05rem;letter-spacing:.08em;color:#c9bda3;margin-top:-.3rem}
 .ttag{font-size:1.02rem;letter-spacing:.1em;color:#e8dcc0;margin-top:.4rem}
 .troute{font-size:.85rem;letter-spacing:.12em;color:var(--pa2);margin-top:.15rem}
-.tdiff{appearance:none;-webkit-appearance:none;-moz-appearance:none;height:40px;line-height:38px;
-  padding:0 40px 0 16px;border-radius:20px;border:1px solid var(--br);color:var(--pa);
-  font-family:inherit;font-size:.95rem;letter-spacing:.05em;cursor:pointer;
-  background:rgba(20,17,14,.9) url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="8"><path d="M1 1l5 5 5-5" fill="none" stroke="%238a6b3a" stroke-width="1.6"/></svg>') no-repeat right 15px center}
-.tdiff:hover,.tdiff:focus{border-color:var(--cin);outline:none}
-.tdiff option{background:#14110e;color:var(--pa)}
+/* 心法分段選擇器(三檔,選中朱紅填色;取代下拉,更俐落更沉浸)*/
+.tseg-wrap{display:flex;flex-direction:column;align-items:center;gap:9px}
+.tseg-label{color:var(--pa2);font-size:.82rem;letter-spacing:.32em}
+.tseg{display:inline-flex;border:1px solid var(--br);border-radius:22px;overflow:hidden;background:rgba(20,17,14,.72)}
+.tseg-btn{background:none;border:0;border-right:1px solid rgba(138,107,58,.32);color:var(--pa2);font-family:inherit;
+  font-size:1.05rem;letter-spacing:.22em;padding:9px 30px;cursor:pointer;transition:background .2s,color .2s}
+.tseg-btn:last-child{border-right:0}
+.tseg-btn:hover{color:#f0e6d2}
+.tseg-btn.on{background:var(--cin);color:#fff;text-shadow:0 1px 6px rgba(0,0,0,.4)}
+.tseg-desc{color:var(--br);font-size:.86rem;letter-spacing:.06em;min-height:1.2em}
 /* 暗色主題捲軸(面板/名錄/彈窗內可捲區)*/
 .plbl,.sheet,.pboard{scrollbar-width:thin;scrollbar-color:rgba(138,107,58,.55) transparent}
 .plbl::-webkit-scrollbar,.sheet::-webkit-scrollbar,.pboard::-webkit-scrollbar{width:9px;height:9px}
