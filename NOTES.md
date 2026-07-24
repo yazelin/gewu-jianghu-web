@@ -24,14 +24,26 @@
 - **配樂系統**:按章 lazy 背景樂 + ♪ 靜音(持久)+ 配樂鑑賞 15 曲。接 6 首 MP3(戰鬥樂+環境樂)。
 
 ### 離線
-- **Service Worker**(`sw.js`)precache 核心 124 檔(html/js/json + 120 張 WebP,約 11 MB)。
-  已驗證:斷網重載題名正常、game.json 走快取。音樂與 ogg 不入 precache(按需 cache,守體積)。
-- PWA `manifest.json`(fullscreen / landscape);手機直向顯示轉橫屏提示。
+- **Service Worker**(`sw.js`)全量 precache 138 檔(html/js/json + WebP + 圖示 + 21 音檔,約 19.5 MB)。
+  首次進入即背景載齊,之後完全離線可玩;程式走 network-first、`/assets/` 走 cache-first。
+- PWA `manifest.json`(`display:standalone` / landscape,可安裝);手機直向顯示轉橫屏提示。
 
-## 驗證紀錄(Playwright,headless Chromium)
-- 全 11 章自動通關:cleared [0–11]、第 9 章結局 + 完整版結局 + 情緣 + 16 成就,零 error。
-- 注入滿好感存檔:三印 3/3、真結局解鎖、結局播放 / 成就譜 / 配樂鑑賞視覺確認。
-- A/B 分流 8 組案例、離線斷網重載,全數通過。
+## 自動化測試(可重複跑,免肉眼檢查)
+一鍵:`bash tools/test.sh`(本機自動起 server)/ `bash tools/test.sh --live`(改測線上 Pages)。
+兩支獨立測試,退出碼 0=全過、1=有落差(可接 CI):
+
+- **`tools/check_design.py`** — 拿 `data/game.json`(事實母本)自動對照 `design.html`(公式站/攻略):
+  逐塊解析每題的正解標記,驗 116 題答案與遊戲完全一致;並驗題數守恆、11 章 / 8 結局 / 30 成就 /
+  情緣候選齊備、保留原作者致謝。改資料後重生成公式站,跑這支就知道有沒有漏或標錯。
+- **`tools/e2e.mjs`**(Playwright headless)— 15 項:
+  - A 線新局→選難度→序→第一~九章自動全破到普通結局(用 game.json 答案鍵自動作答)。
+  - 隱藏路線:注入「三印齊全」合法存檔進第十章,**實跑第十、十一章**到完整版真結局
+    `heaven_earth_shared`(cleared 含 10、11)。
+  - 解鎖邏輯單元檢查:封印計算 3/3、隱藏門扉正/反例、真結局門檻。
+  - 題名分享鈕、配樂鑑賞可單獨播放、成就譜、公式站可達。
+  - Service Worker 全量 precache、斷網重載題名、未播章末音檔命中快取。
+  - 全程 console 零錯誤。
+- 現況:本機 15/15、design 對照全一致;線上 Pages 同套亦通過。
 
 ## 已知取捨(ponytail ceiling)
 - **ogg 環境樂(22 首)**未內含:Godot 以 OggPacketSequence 包裝(非標準 ogg 分頁),需 Godot re-export
