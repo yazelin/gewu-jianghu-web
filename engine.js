@@ -832,6 +832,7 @@ function showEnding(e, next, badge) {
 fetch('data/game.json').then(r => r.json()).then(data => {
   G = data;
   S = loadSave() || newState();
+  S.scene = 'title';                 // 一律回題名;存檔進度保留,按「繼續」才載入
   fit();
   render();
 }).catch(e => { stage.innerHTML = `<div class="loading">載入失敗：${esc(e.message)}</div>`; });
