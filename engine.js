@@ -193,7 +193,8 @@ function shareBtn(label, text, imageUrl) {
 }
 
 // ---------- 場景路由 ----------
-function go(scene) { S.scene = scene; save(); render(); }
+// 題名為暫時畫面,不寫入存檔的 scene(否則「繼續」會停在題名);其餘場景照存
+function go(scene) { S.scene = scene; if (scene !== 'title') save(); render(); }
 function render() {
   clear();
   const menu = document.getElementById('gmenu');
