@@ -14,10 +14,12 @@ def check(name, cond, extra=''):
     print(f'{"PASS" if cond else "FAIL"}  {name}' + (f'  — {extra}' if extra else ''))
     if not cond: fails.append(name)
 
-# 收集所有題目(序章熱點 + 各章六證 + 破局戰)
+# 收集所有題目(序章熱點 + 序章破局選擇 + 各章六證 + 破局戰)
 questions = []
 for h in G['prologue']['hotspots']:
     questions.append(('序章・' + h['name'], h['options'], h['correct']))
+for b in G['prologue'].get('battle', []):
+    questions.append(('序章破局・' + b['title'], b['options'], b['correct']))
 for c in G['chapters']:
     for cl in c['clues']:
         questions.append((c['title'] + '・' + cl['name'], cl['options'], cl['correct']))
@@ -29,6 +31,7 @@ for c in G['chapters']:
 # 由來源建「問題文字 -> 正解文字」
 src_q = []
 for h in G['prologue']['hotspots']: src_q.append((h['question'], h['options'][h['correct']]))
+for b in G['prologue'].get('battle', []): src_q.append((b['prompt'], b['options'][b['correct']]))
 for c in G['chapters']:
     for cl in c['clues']: src_q.append((cl['question'], cl['options'][cl['correct']]))
     for b in c['battles']: src_q.append((b['prompt'], b['options'][b['correct']]))

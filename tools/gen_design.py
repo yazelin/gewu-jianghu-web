@@ -38,7 +38,37 @@ for h in p['hotspots']:
     <h4>{e(h["name"])}</h4><p class="body">{e(h["body"])}</p>
     {qbox(h["question"], h["options"], h["correct"], h.get("note"), h.get("concept"))}
     <p class="ev">證據：{e(h["evidence"])}</p></article>''')
-out.append('</div></section>')
+out.append('</div>')
+# 序章前置抉擇
+if p.get('choice'):
+    ch = p['choice']
+    out.append(f'<h3>對白抉擇</h3><p class="q">{e(ch["prompt"])}</p><ul class="choice">' +
+               ''.join(f'<li>{e(o["text"])}<span class="pin">好感 {e(o.get("relationship"))} {o.get("delta",0):+d}</span></li>' for o in ch['options']) + '</ul>')
+# 序章破局(3 選擇 + 滑桿)
+if p.get('battle'):
+    out.append('<h3>破局戰（3 式選擇 + 終式滑桿）</h3><div class="battles">')
+    for b in p['battle']:
+        out.append(f'<article><h4>{e(b["title"])}</h4><p class="body">{e(b["body"])}</p>'
+                   f'{qbox(b["prompt"], b["options"], b["correct"], b.get("explanation"))}</article>')
+    s = p['slider']
+    out.append(f'''<article><h4>{e(s["title"])}</h4><p class="body">{e(s["body"])}</p>
+    <p class="q">{e(s["prompt"])}</p>
+    <p class="note ok">正解：支點距離 ≥ {s["threshold"]} m（反向力矩＝300×10×距離，須達 {s["target"]} N·m）</p></article>''')
+    out.append('</div>')
+# 序章章末抉擇 + 三結局
+if p.get('final_choice'):
+    fc = p['final_choice']
+    out.append(f'<h3>章末抉擇（決定第一章 A／B 線）</h3><ul class="choice">' +
+               ''.join(f'<li><b>{e(o["text"])}</b><span class="pin">好感 {e(o["rel"])} {o["delta"]:+d}</span></li>' for o in fc['options']) + '</ul>')
+    out.append('<p class="meta">案情強度＝理證 ≥ 3 且洞察 ≥ 3。救人＋強→鐘止人存（keeper_saved，章1 A 線）；'
+               '追兇＋強→雨痕追兇（copper_seal，章1 B 線）；否則→殘鐘疑雲。</p>')
+if p.get('endings'):
+    out.append('<h3>序章結局</h3><div class="grid">')
+    for eid, en in p['endings'].items():
+        out.append(f'<article><h4>{e(en["title"])}</h4><p class="body">{e(en["text"])}</p>'
+                   f'<p class="reveal">章末後續：{e(en["followup"])}</p></article>')
+    out.append('</div>')
+out.append('</section>')
 
 # ---- 各章 ----
 for c in G['chapters']:
