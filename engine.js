@@ -99,30 +99,35 @@ function initGlobalMute() {
 const isReduced = () => localStorage.getItem('gewu_reduced') === '1' ||
   (localStorage.getItem('gewu_reduced') === null && matchMedia('(prefers-reduced-motion: reduce)').matches);
 function syncReduced() { document.body.classList.toggle('reduced', isReduced()); }
-// ---------- 雨幕 + 浮塵(還原原作 rain_overlay:64 條斜向雨絲;另加緩慢浮塵)----------
+// ---------- 電影級雨幕 + 浮塵(概念參考原作 rain_overlay,獨立重製:三層景深 + 陣風 + 平均散佈)----------
 function initWeather() {
   const cv = document.getElementById('rain');
   if (!cv) return;
   const ctx = cv.getContext('2d');
-  const drops = Array.from({ length: 64 }, (_, i) => ({ x: (i * 197) % 1320, y: (i * 83) % 760, i }));
-  const dust = Array.from({ length: 22 }, (_, i) => ({ x: (i * 331) % 1280, y: (i * 149) % 720, i }));
+  // 三層景深:遠(慢短暗細)→ 近(快長亮粗),視差營造縱深
+  const LAYERS = [{ n: 55, vy: 430, len: 11, w: 0.7, a: 0.07 }, { n: 66, vy: 640, len: 17, w: 1.0, a: 0.11 }, { n: 56, vy: 900, len: 25, w: 1.5, a: 0.17 }];
+  const rain = [];
+  LAYERS.forEach((L, li) => { for (let k = 0; k < L.n; k++) rain.push({ L, li, k, x: (li * 313 + k * 197) % 1280, y: (li * 271 + k * 149) % 720 }); });
+  const dust = Array.from({ length: 26 }, (_, i) => ({ x: (i * 331) % 1280, y: (i * 149) % 720, i }));
   let last = 0;
   const frame = (t) => {
     requestAnimationFrame(frame);
     ctx.clearRect(0, 0, 1280, 720);
     if (isReduced()) { last = t; return; }
     const dt = last ? Math.min((t - last) / 1000, 0.05) : 0; last = t;
-    for (const d of drops) {                                   // 雨絲:向左下墜落,出界回右上
-      d.x -= dt * (22 + (d.i % 5) * 3); d.y += dt * (145 + (d.i % 7) * 8);
-      if (d.y > 760 || d.x < -20) { d.x = 1280 + (d.i % 11) * 7; d.y = -(d.i % 9) * 18; }
-      ctx.strokeStyle = `rgba(158,199,224,${0.08 + (d.i % 4) * 0.025})`;
-      ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(d.x, d.y); ctx.lineTo(d.x - 5, d.y + 18); ctx.stroke();
+    const gust = 0.1 + 0.06 * Math.sin(t / 3400);            // 緩慢陣風,雨帶一致斜度
+    for (const d of rain) {
+      const L = d.L;
+      d.y += dt * L.vy; d.x -= dt * L.vy * gust;
+      if (d.y > 720 + L.len) { d.y = -L.len - (d.k % 7) * 12; d.x = ((d.k * 197 + d.li * 71 + (t * 0.05 | 0)) % 1340) - 30; }  // 回收平均散佈整幅頂邊
+      ctx.strokeStyle = `rgba(176,208,232,${L.a})`;
+      ctx.lineWidth = L.w; ctx.beginPath(); ctx.moveTo(d.x, d.y); ctx.lineTo(d.x - L.len * gust, d.y + L.len); ctx.stroke();
     }
     for (const m of dust) {                                    // 浮塵:緩慢上飄微擺
       m.y -= dt * (6 + (m.i % 4) * 2); m.x += Math.sin((t / 1000 + m.i) * 0.5) * dt * 8;
-      if (m.y < -6) { m.y = 726; m.x = (m.i * 331) % 1280; }
-      ctx.fillStyle = `rgba(214,198,150,${0.05 + (m.i % 3) * 0.02})`;
-      ctx.beginPath(); ctx.arc(m.x, m.y, 1.3 + (m.i % 3) * 0.5, 0, 6.283); ctx.fill();
+      if (m.y < -6) { m.y = 726; m.x = (m.i * 331 + (t * 0.02 | 0)) % 1280; }
+      ctx.fillStyle = `rgba(216,200,152,${0.05 + (m.i % 3) * 0.022})`;
+      ctx.beginPath(); ctx.arc(m.x, m.y, 1.2 + (m.i % 3) * 0.6, 0, 6.283); ctx.fill();
     }
   };
   requestAnimationFrame(frame);
@@ -334,14 +339,22 @@ function sTitle() {
     <div class="tkicker">原創武俠物理解題 RPG</div>
     <div class="gtitle">格物江湖錄</div>
     <div class="gsub">天 理 殘 卷</div>
-    <div class="tomen">巨鐘未落,真相已先被定罪。</div>
+    <div class="tomen">巨鐘未落，真相已先被定罪。</div>
   </div>`);
-  const bNew = el(`<button class="btn">開新局</button>`);
-  bNew.onclick = () => { S = newState(); difficultySelect(); };
+  // 題目難度:首頁下拉選單直接選(還原原作 difficulty_option),開新局即以此難度進序引
+  const diffWrap = el(`<div style="display:flex;align-items:center;gap:10px">
+    <span style="color:var(--pa2);font-size:.95rem;letter-spacing:.1em">題目難度</span></div>`);
+  const diffSel = el(`<select class="tdiff" title="選擇心法難度">
+    <option value="說書">說書｜國中理化起步</option>
+    <option value="行俠" selected>行俠｜國中至高中混合</option>
+    <option value="宗師">宗師｜高中物理綜合</option></select>`);
+  diffWrap.appendChild(diffSel);
+  const bNew = el(`<button class="btn">新案入局｜觀看劇情序引</button>`);
+  bNew.onclick = () => { S = newState(); S.difficulty = diffSel.value; sfx('door'); go('intro'); };
   const bCont = el(`<button class="btn ghost">繼續</button>`);
   bCont.disabled = !hasSave();
   bCont.onclick = () => { S = loadSave() || newState(); render(); };
-  col.append(bNew, bCont);
+  col.append(diffWrap, bNew, bCont);
   // 載入存檔跑面板(題名時 S 為暫態,查看用存檔進度),看完還原
   const withSave = (fn) => { const prev = S; S = loadSave() || newState(); fn(); S = prev; };
   const tbtn = (label, fn, needSave) => { const x = el(`<button class="btn sm ghost">${label}</button>`); if (needSave) x.disabled = !hasSave(); x.onclick = fn; return x; };
@@ -352,11 +365,14 @@ function sTitle() {
     tbtn('配樂鑑賞', () => withSave(musicGallery), true),
     tbtn('格物先賢譜', () => scientistAtlas()),
     tbtn('重看劇情序引', () => replayIntro()),
-    tbtn('素材與製作名錄', () => creditsPanel()),
     shareBtn('分享', '武俠懸疑包裝的物理解題 RPG——《格物江湖錄:天理殘卷》,可離線遊玩。', G.title_keyart));
   col.append(row2);
+  col.append(el(`<div class="ttag">看懂世界如何運作，才有資格改變命運。</div>`));
   col.append(el(`<div class="troute">十一章懸案｜雙走向承接｜多重結局｜三線情緣</div>`));
   bg.appendChild(col);
+  const credLink = el(`<button class="tcredits">素材與製作名錄</button>`);   // 移到右下角小連結,不佔按鈕堆
+  credLink.onclick = () => creditsPanel();
+  bg.appendChild(credLink);
   stage.appendChild(bg);
   document.getElementById('lamp')?.classList.add('on');           // 雨夜鐘樓燈火呼吸
   [...col.children].forEach((n, i) => { n.classList.add('slide-in'); n.style.animationDelay = (0.06 + i * 0.1) + 's'; });   // 選單進場動畫
@@ -463,7 +479,7 @@ function playDialogue(bgUrl, lines, choice, done) {
 function sPrologue() {
   const p = G.prologue;
   preload([p.background, ...p.hotspots.map(h => h.cell)]).then(() => {
-    playDialogue(p.background, p.narration, null, () => investigate({
+    playDialogue(p.background, p.narration, p.choice, () => investigate({
       key: 'prologue', background: p.background, title: '序章・鐘樓墜案',
       clues: p.hotspots, min: 3, failable: true, onFail: prologueFailure,
       onDone: () => {
@@ -904,8 +920,8 @@ function creditsPanel() {
     '配樂（CC0）\n・Oriental／Oriented／Asianoriental 系列\n・Night of the Streets — nene\n・Factory／Dungeon Ambience — yd\n・Fast Fight — Ville Nousiainen\n・Ancient Temple — Umplix\n・Ending Scene — nene\n\n' +
     '音效（CC0）\n・Correct Bell、Paper、Footsteps、Tree Creaking、100 CC0 SFX\n\n' +
     '字型｜Noto Sans TC（SIL OFL 1.1）\n\n完整作者、原始網址、逐檔雜湊與授權見 provenance/asset-ledger.csv。';
-  board.appendChild(el(`<div class="plbl" style="left:62px;top:90px;width:736px;font-size:16px;color:var(--pa);white-space:pre-wrap;line-height:1.65">${esc(credits)}</div>`));
-  board.appendChild(pBtn('關閉', 320, 500, 220, 44, true, close));
+  board.appendChild(el(`<div class="plbl" style="left:62px;top:88px;width:736px;height:388px;overflow-y:auto;font-size:14.5px;color:var(--pa);white-space:pre-wrap;line-height:1.6">${esc(credits)}</div>`));
+  board.appendChild(pBtn('關閉', 320, 502, 220, 44, true, close));
 }
 
 // ================= 破局戰(氣勢答題) =================

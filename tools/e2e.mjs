@@ -52,7 +52,7 @@ const AUTOPLAY = async (page, maxSteps = 2600) => page.evaluate(async ({ clueCor
     if (eb && /結局/.test(T(eb.textContent))) {                       // 到達結局畫面 = 通關
       return { done: true, trace, ending: T(document.querySelector('.intro-title')?.textContent), badge: T(eb.textContent), save: S2 };
     }
-    if (byText('.btn', '開新局')) { click(byText('.btn', '開新局')); continue; }
+    if (byText('.btn', '新案入局')) { click(byText('.btn', '新案入局')); continue; }
     if (byText('.btn', '下一幕')) { click(byText('.btn', '下一幕')); continue; }
     if (byText('.btn', '入局')) { click(byText('.btn', '入局')); continue; }
     const choice = [...document.querySelectorAll('.choicebox .choice')].filter(vis);
