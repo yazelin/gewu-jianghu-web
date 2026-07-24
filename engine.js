@@ -24,6 +24,49 @@ const newState = () => ({
   flags: {}, rewarded: {}, normal_ending: '', finale_ending: '', romance: '', achievements: {},
 });
 
+// ---------- 音樂(按需 lazy 載入,缺檔靜音) ----------
+const MUSIC = {
+  ambient: 'oriental_calm',                                     // 題名/一般環境樂(mp3)
+  battle: { 4: 'chapter4_battle', 5: 'chapter5_battle', 7: 'chapter7_battle', 10: 'chapter10_battle' },
+  investigation: { 7: 'chapter7_mirror_city' },
+};
+let _audio = null, _curTrack = '';
+const isMuted = () => localStorage.getItem('gewu_muted') === '1';
+function setMuted(v) { localStorage.setItem('gewu_muted', v ? '1' : '0'); if (_audio) _audio.muted = v; }
+function playMusic(basename) {
+  if (!basename) return;
+  if (!_audio) { _audio = new Audio(); _audio.loop = true; _audio.volume = 0.5; }
+  _audio.muted = isMuted();
+  if (_curTrack === basename) return;
+  _curTrack = basename;
+  _audio.src = `assets/audio/${basename}.mp3`;
+  _audio.play().catch(() => { });                               // 自動播放受限/缺檔 → 靜默
+}
+function sceneMusic(kind) {                                      // 依場景挑曲(缺則環境樂)
+  if (kind === 'battle') return playMusic(MUSIC.battle[S.chapter] || MUSIC.ambient);
+  if (kind === 'investigation') return playMusic(MUSIC.investigation[S.chapter] || MUSIC.ambient);
+  return playMusic(MUSIC.ambient);
+}
+function muteButton() {
+  const b = el(`<button class="util">${isMuted() ? '♪ 靜音' : '♪ 開'}</button>`);
+  b.onclick = () => { setMuted(!isMuted()); b.textContent = isMuted() ? '♪ 靜音' : '♪ 開'; if (!isMuted()) _audio && _audio.play().catch(() => { }); };
+  return b;
+}
+function musicGallery() {
+  const rows = G.achievements.music_gallery.map(m => {
+    const unlocked = !m.unlock || S.achievements[m.unlock];
+    return `<div class="evrow" style="${unlocked ? '' : 'opacity:.5'}">
+      <span class="en" style="color:${unlocked ? 'var(--jade)' : 'var(--pa2)'}">${unlocked ? esc(m.title) : '未解鎖曲目'}</span>
+      <span style="color:var(--pa2);font-size:.85rem">　${esc(m.source_title)}</span></div>`;
+  }).join('');
+  const m = el(`<div class="modal"><div class="sheet">
+    <button class="btn sm close">關閉</button><h2>配樂鑑賞</h2>
+    <p style="color:var(--pa2);font-size:.85rem;margin-bottom:.8rem">環境樂逐章 lazy 載入,可於任意頂欄以 ♪ 靜音。</p>${rows}</div></div>`);
+  m.querySelector('.close').onclick = () => m.remove();
+  m.onclick = (e) => { if (e.target === m) m.remove(); };
+  stage.appendChild(m);
+}
+
 // ---------- world_flags / 路線 ----------
 function setFlags(list) { (list || []).forEach(f => { if (f) S.flags[f] = true; }); }
 function routeFor(n) {
@@ -79,6 +122,7 @@ function render() {
 
 // ================= 題名頁 =================
 function sTitle() {
+  playMusic(MUSIC.ambient);
   const bg = el(`<div class="layer fade"></div>`);
   bg.appendChild(el(`<div class="bg" style="background-image:url('${G.title_keyart}');filter:brightness(.7)"></div>`));
   bg.appendChild(el(`<div class="scrim"></div>`));
@@ -95,7 +139,12 @@ function sTitle() {
   const bCodex = el(`<button class="btn sm ghost">江湖成就譜</button>`);
   bCodex.disabled = !hasSave();
   bCodex.onclick = () => { const prev = S; S = loadSave() || newState(); achievementCodex(); S = prev; };
-  col.append(bCodex);
+  const bMusic = el(`<button class="btn sm ghost">配樂鑑賞</button>`);
+  bMusic.disabled = !hasSave();
+  bMusic.onclick = () => { const prev = S; S = loadSave() || newState(); musicGallery(); S = prev; };
+  const row2 = el(`<div style="display:flex;gap:12px"></div>`);
+  row2.append(bCodex, bMusic);
+  col.append(row2);
   bg.appendChild(col);
   bg.appendChild(el(`<div class="linkrow">
     <a href="${G.author_url}" target="_blank" rel="noopener">作者連結｜Instagram</a>
@@ -228,6 +277,7 @@ function chapterIntro(c) {
 function investigate({ key, background, title, clues, min, onDone, failable }) {
   S.evidence[key] = S.evidence[key] || [];
   S.lost[key] = S.lost[key] || [];
+  sceneMusic('investigation');
   clear();
   const lay = el(`<div class="layer fade"></div>`);
   lay.appendChild(el(`<div class="bg" style="background-image:url('${background}')"></div>`));
@@ -243,7 +293,7 @@ function investigate({ key, background, title, clues, min, onDone, failable }) {
   bInv.onclick = () => inventoryModal();
   const bScroll = el(`<button class="util">格物卷</button>`);
   bScroll.onclick = () => evidenceModal(key, clues);
-  bar.append(bAff, bInv, bScroll);
+  bar.append(bAff, bInv, bScroll, muteButton());
   const proceed = el(`<button class="util" style="border-color:var(--jade);color:#bfe6d2">進入破局 ▸</button>`);
   proceed.style.display = 'none';
   proceed.onclick = onDone;
@@ -440,6 +490,7 @@ function inventoryModal(onChange) {
 function battle(c) {
   S.qishi = S.qishi_max;
   let bi = 0;
+  sceneMusic('battle');
   const run = () => {
     if (bi >= c.battles.length) return battleCleared(c);
     clear();
