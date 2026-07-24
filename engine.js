@@ -652,85 +652,145 @@ function investigate({ key, background, title, clues, min, onDone, failable, onF
   }
 }
 
+// ===== 忠實還原原作三大 overlay 面板(固定 1280×720 座標,對齊原作 _panel/_label 佈局)=====
+function boardOverlay(x, y, w, h, z, onOutside) {
+  const ov = el(`<div class="povl" style="z-index:${z}"></div>`);
+  const board = el(`<div class="pboard" style="left:${x}px;top:${y}px;width:${w}px;height:${h}px"></div>`);
+  ov.appendChild(board);
+  const close = () => ov.remove();
+  ov.addEventListener('click', e => { if (e.target === ov) (onOutside || close)(); });
+  stage.appendChild(ov);
+  return { ov, board, close };
+}
+const pLbl = (text, x, y, w, size, color, o = {}) =>
+  el(`<div class="plbl" style="left:${x}px;top:${y}px;width:${w}px;font-size:${size}px;color:${color};text-align:${o.align || 'left'};${o.wrap ? '' : 'white-space:nowrap;'}${o.bold ? 'font-weight:700;' : ''}">${text}</div>`);
+const pCard = (x, y, w, h, border) =>
+  el(`<div class="pcard" style="left:${x}px;top:${y}px;width:${w}px;height:${h}px;border-color:${border}"></div>`);
+const pRule = (x, y, w) => el(`<div class="prule" style="left:${x}px;top:${y}px;width:${w}px"></div>`);
+function pBtn(text, x, y, w, h, primary, onClick, disabled) {
+  const b = el(`<button class="pbtn${primary ? ' go' : ''}" style="left:${x}px;top:${y}px;width:${w}px;height:${h}px"${disabled ? ' disabled' : ''}>${esc(text)}</button>`);
+  if (!disabled) b.onclick = onClick;
+  return b;
+}
+const relColor = v => v > 0 ? 'var(--jade)' : v < 0 ? 'var(--danger)' : 'var(--pa2)';
+// 登場章門檻(還原原作 _relationship_person_is_introduced)
+function relIntroduced(name) {
+  const gate = { 江濯月: 2, 顧玄策: 3, 霍離: 4, 謝驚弦: 5, 寧觀瀾: 6 }[name];
+  return gate ? S.chapter >= gate : true;
+}
+function affinityStatus(name, v) {          // 還原原作 _affinity_status
+  if (!relIntroduced(name)) return '尚未相識';
+  return '關係：' + (G.logic.rel_ladder.find(([t]) => v >= t) || [, '態度未定'])[1];
+}
+function romanceStatus(name, v) {           // 還原原作 _romance_status
+  if (name === '裴無咎') return '定位：師徒羈絆';
+  if (!relIntroduced(name)) return '定位：尚未相識';
+  if (!G.logic.romance_order.includes(name)) return '定位：重要同伴';
+  if (S.romance === name) return '情緣：已許心意';
+  if (S.chapter >= 9 && v >= 2) return '情緣：可以確認心意';
+  if (v >= 2) return '情緣：牽掛漸深';
+  if (v >= 1) return '情緣：初有在意';
+  return '情緣：仍是同行者';
+}
+
+// ---------- 格物卷(證據板,還原原作 toggle_evidence_board)----------
 function evidenceModal(key, clues) {
-  sfx('paper', 1.05, 0.5);          // 展開格物卷:翻卷聲
-  const got = S.evidence[key] || [];
-  const rows = clues.filter(c => got.includes(c.id))
-    .map(c => `<div class="evrow"><span class="en">${esc(c.evidence)}</span>　<span style="color:var(--pa2)">${esc(c.concept)}</span></div>`)
-    .join('') || '<div class="evrow" style="color:var(--pa2)">尚無證據</div>';
-  const m = el(`<div class="modal"><div class="sheet">
-    <button class="pclose close" title="關閉">✕</button><h2>格物卷</h2>${rows}</div></div>`);
-  m.querySelector('.close').onclick = () => m.remove();
-  m.onclick = (e) => { if (e.target === m) m.remove(); };
-  stage.appendChild(m);
-}
-
-// ---------- 好感面板(9 人立繪 ±5) ----------
-function relStage(name, value, appeared) {
-  if (!appeared) return { role: '定位：尚未相識', stage: '尚未相識' };
-  const isCand = G.logic.romance_order.includes(name);
-  const role = name === '裴無咎' ? '定位：師徒羈絆' : isCand ? '定位：情緣候選' : '定位：重要同伴';
-  let stage;
-  if (isCand) {
-    if (S.chapter >= 9 && value >= 2) stage = '情緣：可以確認心意';
-    else if (value >= 2) stage = '情緣：牽掛漸深';
-    else if (value >= 1) stage = '情緣：初有在意';
-    else stage = '情緣：仍是同行者';
-    if (S.romance === name) stage = '情緣：已許心意';
-  } else {
-    stage = (G.logic.rel_ladder.find(([t]) => value >= t) || [, '—'])[1];
-    stage = '關係：' + stage;
-  }
-  return { role, stage };
-}
-function affinityBoard() {
-  sfx('paper', 0.98, 0.5);          // 展開人物卷:翻卷聲
-  const cards = G.people.map(p => {
-    const appeared = S.chapter >= p.first || S.cleared.length > 0 && p.first <= S.chapter;
-    const v = S.affinity[p.name] || 0;
-    const { role, stage } = relStage(p.name, v, appeared);
-    const pips = Array.from({ length: 11 }, (_, i) => i - 5)
-      .map(n => `<span style="width:12px;height:12px;border-radius:50%;display:inline-block;margin:1px;
-        border:1px solid ${n === 0 ? 'var(--pa2)' : 'var(--line)'};
-        background:${appeared && (v >= 0 ? n > 0 && n <= v : n < 0 && n >= v) ? (v >= 0 ? 'var(--jade)' : 'var(--danger)') : 'transparent'}"></span>`).join('');
-    return `<div style="display:flex;gap:14px;padding:12px 0;border-bottom:1px solid var(--line);${appeared ? '' : 'opacity:.4'}">
-      <img src="${G.portraits[p.name]}" style="width:64px;height:96px;object-fit:cover;border-radius:6px;${appeared ? '' : 'filter:grayscale(1) brightness(.4)'}">
-      <div style="flex:1">
-        <div style="font-size:1.1rem;color:#f3ead6">${esc(p.name)} <span class="pin" style="color:var(--br)">${esc(role)}</span></div>
-        <div style="margin:.4rem 0">${pips} <span style="color:var(--pa2);margin-left:8px">${appeared ? (v >= 0 ? '+' : '') + v : ''}</span></div>
-        <div style="color:var(--jade);font-size:.9rem">${esc(stage)}</div>
-      </div></div>`;
-  }).join('');
-  const m = el(`<div class="modal"><div class="sheet">
-    <button class="pclose close" title="關閉">✕</button><h2>人物好感與情緣</h2>${cards}</div></div>`);
-  m.querySelector('.close').onclick = () => m.remove();
-  m.onclick = (e) => { if (e.target === m) m.remove(); };
-  stage.appendChild(m);
-}
-
-// ---------- 行囊 ----------
-function inventoryModal(onChange) {
-  sfx('paper', 1.02, 0.5);          // 打開行囊:翻卷聲
-  const rows = Object.entries(G.items).map(([id, it]) => {
-    const n = S.inventory[id] || 0;
-    const usable = id === 'breath_manual' && n > 0 && S.qishi_max < G.max_qishi;
-    return `<div class="evrow" style="display:flex;align-items:center;gap:12px">
-      <div style="flex:1"><span class="en" style="color:var(--pa)">${esc(it.name)}</span> ×${n}
-        <div style="color:var(--pa2);font-size:.85rem">${esc(it.description)}</div></div>
-      ${usable ? `<button class="btn sm" data-use="${id}">參悟</button>` : ''}</div>`;
-  }).join('');
-  const m = el(`<div class="modal"><div class="sheet">
-    <button class="pclose close" title="關閉">✕</button><h2>行囊　氣勢上限 ${S.qishi_max}/${G.max_qishi}</h2>${rows}</div></div>`);
-  m.querySelectorAll('[data-use]').forEach(b => b.onclick = () => {
-    const id = b.dataset.use;
-    if (id === 'breath_manual' && useItem('breath_manual') && S.qishi_max < G.max_qishi) {
-      S.qishi_max++; S.qishi = Math.min(S.qishi + 1, S.qishi_max); toast('氣勢上限提升至 ' + S.qishi_max);
-    }
-    save(); m.remove(); onChange && onChange(); inventoryModal(onChange);
+  sfx('paper', 1.05, 0.55);
+  const { board, close } = boardOverlay(120, 60, 1040, 600, 90);
+  const title = (chById(S.chapter) || {}).title || '鐘樓墜案';
+  board.append(
+    pLbl('格物卷｜' + esc(title), 35, 25, 760, 28, 'var(--br)', { bold: true }),
+    pLbl('點擊空白處收卷', 770, 33, 220, 14, 'var(--pa2)', { align: 'right' }),
+    pRule(35, 80, 970));
+  const got = clues.filter(c => (S.evidence[key] || []).includes(c.id));
+  if (!got.length) {
+    board.appendChild(pLbl('尚未收錄證據。回到現場，先看現象，再選模型。', 60, 140, 920, 19, 'var(--pa)', { align: 'center' }));
+  } else got.forEach((c, i) => {
+    const x = 45 + (i % 2) * 492, y = 105 + Math.floor(i / 2) * 135;
+    const cd = pCard(x, y, 465, 115, 'var(--jade)');
+    cd.append(
+      pLbl('◆　' + esc(c.evidence), 18, 12, 425, 18, 'var(--br)', { bold: true }),
+      pLbl(esc(c.note || c.concept || ''), 18, 45, 425, 14, 'var(--pa)', { wrap: true }));
+    board.appendChild(cd);
   });
-  m.querySelector('.close').onclick = () => { m.remove(); onChange && onChange(); };
-  m.onclick = (e) => { if (e.target === m) { m.remove(); onChange && onChange(); } };
-  stage.appendChild(m);
+  board.appendChild(pBtn('收卷', 835, 546, 160, 38, true, close));
+}
+
+// ---------- 好感面板(還原原作 toggle_affinity_board:3×3 網格 + 三印列)----------
+function affinityBoard() {
+  sfx('paper', 0.98, 0.5);
+  const { board, close } = boardOverlay(140, 60, 1000, 600, 105);
+  board.append(
+    pLbl('人物好感與情緣', 35, 20, 600, 30, 'var(--br)', { bold: true }),
+    pLbl('點擊空白處收起', 700, 30, 250, 14, 'var(--pa2)', { align: 'right' }),
+    pRule(35, 76, 930));
+  const names = ['柳照微', '裴無咎', '祁望舒', '蘇檀', '江濯月', '顧玄策', '霍離', '謝驚弦', '寧觀瀾'];
+  const pos = [[35, 92], [350, 92], [665, 92], [35, 216], [350, 216], [665, 216], [35, 340], [350, 340], [665, 340]];
+  names.forEach((name, i) => {
+    const v = S.affinity[name] || 0, known = relIntroduced(name), rc = relColor(v);
+    const [cx, cy] = pos[i];
+    const cd = pCard(cx, cy, 300, 112, known ? rc : 'rgba(87,97,97,.85)');
+    cd.appendChild(el(`<div class="pthumb" style="left:9px;top:9px;width:72px;height:94px;border-color:${known ? 'var(--br)' : 'rgba(87,97,97,.85)'}">${G.portraits[name] ? `<img src="${G.portraits[name]}"${known ? '' : ' style="filter:grayscale(1) brightness(.35)"'}>` : ''}</div>`));
+    cd.append(
+      pLbl(known ? esc(name) : '尚未相識', 91, 8, 135, 17, known ? 'var(--br)' : 'var(--pa2)', { bold: true }),
+      pLbl(known ? (v >= 0 ? '+' : '') + v : '—', 228, 8, 56, 18, rc, { align: 'right', bold: true }),
+      pLbl(esc(affinityStatus(name, v)), 91, 35, 200, 12, 'var(--pa)'),
+      pLbl(esc(romanceStatus(name, v)), 91, 55, 200, 12, G.logic.romance_order.includes(name) ? '#9fc4b9' : 'var(--pa2)'),
+      pLbl('−5', 84, 82, 28, 10, 'var(--pa2)', { align: 'center' }),
+      pLbl('+5', 258, 82, 30, 10, 'var(--pa2)', { align: 'center' }));
+    const meter = el(`<div class="pmeter" style="left:116px;top:82px;width:140px"></div>`);
+    for (let n = -5; n <= 5; n++) {
+      const on = known && (v >= 0 ? (n > 0 && n <= v) : (n < 0 && n >= v));
+      meter.appendChild(el(`<span class="ptick" style="background:${on ? rc : 'transparent'};border-color:${n === 0 ? 'var(--pa2)' : 'var(--line)'}"></span>`));
+    }
+    cd.appendChild(meter);
+    board.appendChild(cd);
+  });
+  const s = sealSnapshot(), sm = k => s[k] ? '◆' : '◇';
+  board.append(
+    pLbl(`折衡匣三印｜人和 ${sm('people')}　理證 ${sm('evidence')}　殘卷 ${sm('fragment')}　（${s.count}／3）`, 80, 468, 840, 15, 'var(--br)', { align: 'center', bold: true }),
+    pLbl('僅柳照微、江濯月、蘇檀可發展情緣：+2 可於第九章確認，舊約可延續至第十一章，或以 +4 深交在終章選擇。其他人物維持同伴／師徒線。', 70, 496, 860, 13, 'var(--pa2)', { align: 'center', wrap: true }),
+    pBtn('收起人物關係', 390, 542, 220, 42, true, close));
+}
+
+// ---------- 行囊(還原原作 toggle_inventory:道具卡列 + 關鍵物彙整)----------
+function keyItemSummary() {
+  const pairs = [['半枚銅印', 'copper_seal'], ['工坊密圖', 'apprentice_protected'], ['裴無咎殘頁', 'residual_page_recovered'],
+  ['密箭暗碼', 'wugou_cipher_recovered'], ['封存熱核', 'thermal_core_secured'], ['雷火盟接地令', 'leihuo_witnesses_saved'],
+  ['霆磁圖譜', 'field_notes_recovered'], ['公開真曆', 'true_ephemeris_published'], ['密曜星圖', 'secret_star_chart_recovered'],
+  ['破鏡證詞', 'mirror_testimony_published'], ['天理母鏡', 'master_mirror_secured'], ['百工盟冊', 'artisan_league_freed'], ['零度母尺', 'zero_standard_secured']];
+  const got = pairs.filter(([, f]) => (S.flags || {})[f]).map(([n]) => n);
+  return got.length ? got.join('、') : '尚無';
+}
+function inventoryModal(onChange) {
+  sfx('paper', 1.02, 0.5);
+  const done = () => { ov.remove(); onChange && onChange(); };
+  const { ov, board } = boardOverlay(110, 55, 1060, 610, 105, () => done());
+  board.append(
+    pLbl('行囊｜格物器用', 35, 20, 640, 28, 'var(--br)', { bold: true }),
+    pLbl(`氣勢 ${S.qishi}／${S.qishi_max}　｜　養成上限 ${S.qishi_max}／5`, 650, 27, 360, 15, 'var(--pa2)', { align: 'right' }),
+    pRule(35, 72, 990));
+  const order = ['breath_manual', 'calm_powder', 'steadfast_talisman', 'logic_token', 'measuring_rule'];
+  order.forEach((id, i) => {
+    const it = G.items[id], cnt = S.inventory[id] || 0;
+    const cd = pCard(42, 90 + i * 87, 976, 74, cnt > 0 ? 'var(--jade)' : 'rgba(66,82,82,.7)');
+    cd.append(
+      pLbl(`${esc(it.category)}｜${esc(it.name)}　×${cnt}`, 18, 12, 300, 18, cnt > 0 ? 'var(--br)' : 'var(--pa2)', { bold: true }),
+      pLbl(esc(it.description), 325, 12, 445, 14, 'var(--pa)', { wrap: true }));
+    if (id !== 'steadfast_talisman') {          // 定心符自動發動,無使用鈕
+      const usable = id === 'breath_manual' && cnt > 0 && S.qishi_max < G.max_qishi;   // 其餘道具於情境內使用(格物卷/破局戰)
+      cd.appendChild(pBtn(it.use_text, 785, 18, 170, 38, false, () => {
+        if (useItem('breath_manual') && S.qishi_max < G.max_qishi) {
+          S.qishi_max++; S.qishi = Math.min(S.qishi + 1, S.qishi_max); toast('氣勢上限提升至 ' + S.qishi_max);
+        }
+        done(); inventoryModal(onChange);
+      }, !usable));
+    }
+    board.appendChild(cd);
+  });
+  board.append(
+    pLbl('關鍵物｜' + esc(keyItemSummary()), 45, 528, 710, 13, 'var(--pa2)', { wrap: true }),
+    pBtn('收起行囊', 795, 530, 220, 40, true, done));
 }
 
 // ================= 破局戰(氣勢答題) =================
