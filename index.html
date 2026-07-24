@@ -204,7 +204,16 @@ html,body{height:100%;background:#000;overflow:hidden;
 <button id="ginstall" hidden>安裝</button>
 <button id="gmenu" hidden title="選單">選單</button>
 <script>
-if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').then(reg => {
+  // 偵測到新版(且已有舊 SW 在控制 = 這是更新)→ 自動重載,免手動硬重整
+  reg.addEventListener('updatefound', () => {
+    const nw = reg.installing;
+    if (!nw) return;
+    nw.addEventListener('statechange', () => {
+      if (nw.state === 'installed' && navigator.serviceWorker.controller) location.reload();
+    });
+  });
+}).catch(() => {});
 addEventListener('beforeinstallprompt', e => { e.preventDefault(); window.__deferredInstall = e; });
 </script>
 <script src="engine.js"></script>

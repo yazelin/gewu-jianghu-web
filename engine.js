@@ -731,9 +731,13 @@ function chapterFailure(c, reason) {
     <div class="body" style="font-size:1.15rem;line-height:1.9;margin-bottom:1.5rem">${esc(reason)}</div>
   </div>`);
   S.flags['failed_ch' + c.id] = true; save();   // 敗卷重開成就用
+  const row = el(`<div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap"></div>`);
   const retry = el(`<button class="btn">重來本章</button>`);
-  retry.onclick = () => { S.evidence[ckey()] = []; S.lost[ckey()] = []; go('chapter'); };
-  box.appendChild(retry);
+  retry.onclick = () => { S.evidence[ckey()] = []; S.lost[ckey()] = []; delete S.rewarded['reward_ch' + c.id]; go('chapter'); };
+  const home = el(`<button class="btn ghost">回題名</button>`);
+  home.onclick = () => go('title');
+  row.append(retry, home);
+  box.appendChild(row);
   lay.appendChild(box);
   stage.appendChild(lay);
 }
