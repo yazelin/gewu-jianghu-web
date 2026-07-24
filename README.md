@@ -17,7 +17,8 @@
 
 ## 本網頁版的貢獻(由 [林亞澤 / yazelin](https://github.com/yazelin) 製作)
 
-原作只發佈 Windows / macOS 執行檔;本專案把它**還原並改寫成純網頁版**:
+本網頁版基於原作 [gewu-jianghu-lu **release v1.4.0**](https://github.com/changyi123456/gewu-jianghu-lu/releases/tag/v1.4.0) 製作。
+原作只發佈 Windows / macOS 執行檔、**沒有 Linux 版**;我把它做成純網頁版,讓所有平台(含手機)都能玩:
 
 - **1:1 復刻**:11 章 + 序章、116 題物理、A/B 雙線分流、9 人好感、5 道具、氣勢戰鬥、
   4+4 結局(含真結局)、3 情緣、三印、30 成就、三檔難度、配樂——流程與判定逐條對照原作 bytecode 還原
