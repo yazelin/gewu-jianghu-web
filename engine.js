@@ -92,6 +92,10 @@ function sTitle() {
   bCont.disabled = !hasSave();
   bCont.onclick = () => { S = loadSave() || newState(); render(); };
   col.append(bNew, bCont);
+  const bCodex = el(`<button class="btn sm ghost">江湖成就譜</button>`);
+  bCodex.disabled = !hasSave();
+  bCodex.onclick = () => { const prev = S; S = loadSave() || newState(); achievementCodex(); S = prev; };
+  col.append(bCodex);
   bg.appendChild(col);
   bg.appendChild(el(`<div class="linkrow">
     <a href="${G.author_url}" target="_blank" rel="noopener">作者連結｜Instagram</a>
@@ -516,6 +520,7 @@ function chapterFailure(c, reason) {
     <div class="gsub" style="color:var(--danger);font-size:1.3rem;margin-bottom:1rem">本章失敗</div>
     <div class="body" style="font-size:1.15rem;line-height:1.9;margin-bottom:1.5rem">${esc(reason)}</div>
   </div>`);
+  S.flags['failed_ch' + c.id] = true; save();   // 敗卷重開成就用
   const retry = el(`<button class="btn">重來本章</button>`);
   retry.onclick = () => { S.evidence[ckey()] = []; S.lost[ckey()] = []; go('chapter'); };
   box.appendChild(retry);
@@ -538,34 +543,212 @@ function finalChoice(c) {
   [['a', 'A'], ['b', 'B']].forEach(([k, route]) => {
     if (!fc[k]) return;
     const b = el(`<button class="choice"><b>${esc(fc[k].title)}</b><small>${esc(fc[k].detail)}</small></button>`);
-    b.onclick = () => { S.choices['final' + c.id] = fc[k].id; setFlags(ff[k]); save(); advance(c); };
+    b.onclick = () => { S.choices['final' + c.id] = fc[k].id; setFlags(ff[k]); save(); afterChapter(c); };
     box.appendChild(b);
   });
   lay.appendChild(box);
   stage.appendChild(lay);
 }
 
-function advance(c) {
+function afterChapter(c) {
+  S.history = S.history || [];
+  if (!S.history.find(h => h.chapter === c.id)) S.history.push({ chapter: c.id, ending: 'clear' });
+  if (!S.cleared.includes(c.id)) S.cleared.push(c.id);
+  if (S.flags['failed_ch' + c.id]) S.flags.defeat_returned = true;   // 敗而復通
+  reconcile();
+  save();
   toast(`第 ${c.id} 章完成`);
-  if (c.id >= G.chapters.length) return endGameStub();
-  S.chapter = c.id + 1;
-  setTimeout(() => go('chapter'), 800);
+  if (c.id === 9) return setTimeout(() => romanceSelect('intent', () => chapter9Endings(c)), 700);
+  if (c.id === 11) return setTimeout(() => romanceSelect('final', () => finaleEndings(c)), 700);
+  S.chapter = c.id + 1; save();
+  setTimeout(() => go('chapter'), 700);
 }
 
-// 階段 1 收尾(結局系統為階段 3)
-function endGameStub() {
+// ================= 三印(seal_snapshot,忠實還原) =================
+function sealSnapshot() {
+  const L = G.logic, rel = S.affinity || {}, flags = S.flags || {};
+  const camps = new Set(); let positivePeople = 0;
+  for (const [name, camp] of Object.entries(L.camp_map))
+    if ((rel[name] || 0) >= 2) { positivePeople++; camps.add(camp); }
+  let modestAllies = 0;
+  for (const [name, v] of Object.entries(rel))
+    if (name !== '裴無咎' && v >= 1) modestAllies++;
+  const peopleSeal = (positivePeople >= 3 && camps.size >= 2) || ((rel['裴無咎'] || 0) >= 4 && modestAllies >= 2);
+  let clearCount = 0, lateClear = true;
+  for (const h of (S.history || [])) {
+    if (h.ending === 'clear') { clearCount++; }
+    if (h.chapter >= 7 && h.chapter <= 9 && h.ending !== 'clear') lateClear = false;
+  }
+  // ch7-9 必須都 clear
+  for (const n of [7, 8, 9]) if (!(S.history || []).find(h => h.chapter === n && h.ending === 'clear')) lateClear = false;
+  const evidenceSeal = clearCount >= 7 && lateClear;
+  const peopleFlags = L.people_flags.filter(f => flags[f]).length;
+  const standardFlags = L.standard_flags.filter(f => flags[f]).length;
+  const hasLateKey = L.late_keys.some(f => flags[f]);
+  const fragmentSeal = peopleFlags >= 2 && standardFlags >= 2 && hasLateKey;
+  const count = (peopleSeal ? 1 : 0) + (evidenceSeal ? 1 : 0) + (fragmentSeal ? 1 : 0);
+  return { people: peopleSeal, evidence: evidenceSeal, fragment: fragmentSeal, count };
+}
+
+// ================= 成就(reconcile + toast + 成就譜) =================
+function reconcile() {
+  const rel = S.affinity || {}, seals = sealSnapshot();
+  const evAll = S.evidence || {};
+  const six = (k) => (evAll[k] || []).length >= 6;
+  const deep = Object.values(rel).filter(v => v >= 3).length;
+  const cond = {
+    story_00_bell: () => S.cleared.includes(0), story_01_workshop: () => S.cleared.includes(1),
+    story_02_river: () => S.cleared.includes(2), story_03_ridge: () => S.cleared.includes(3),
+    story_04_forge: () => S.cleared.includes(4), story_05_thunder: () => S.cleared.includes(5),
+    story_06_stars: () => S.cleared.includes(6), story_07_mirror: () => S.cleared.includes(7),
+    story_08_prison: () => S.cleared.includes(8), story_09_tianli: () => S.cleared.includes(9),
+    story_10_tenth_line: () => S.cleared.includes(10), story_11_shared_calibration: () => S.cleared.includes(11),
+    mastery_six_evidence: () => Object.keys(evAll).some(six),
+    mastery_four_forms: () => S.cleared.some(n => n >= 1),
+    mastery_perfect_chapter: () => G.chapters.some(c => six('ch' + c.id) && S.cleared.includes(c.id)),
+    mastery_all_eleven_perfect: () => G.chapters.every(c => six('ch' + c.id)),
+    mastery_grandmaster_finale: () => S.finale_ending === 'heaven_earth_shared',
+    mastery_error_signed: () => Object.values(evAll).flat().length > 0 &&
+      G.chapters.some(c => c.clues.some(cl => (evAll['ch' + c.id] || []).includes(cl.id) && /誤差|有效數字|可追溯|署名/.test(cl.concept))),
+    relationship_lifebond: () => Object.values(rel).some(v => v >= 5),
+    relationship_three_deep: () => deep >= 3,
+    relationship_pei_reconciled: () => (rel['裴無咎'] || 0) >= 1,
+    relationship_nine_paths: () => G.people.every(p => (rel[p.name] || 0) >= 1),
+    seal_people: () => seals.people, seal_evidence: () => seals.evidence, seal_fragment: () => seals.fragment,
+    ending_all_normal: () => (S.seen_normal || []).length >= 4,
+    ending_all_complete: () => (S.seen_finale || []).length >= 4,
+    ending_true_shared: () => S.finale_ending === 'heaven_earth_shared',
+    system_defeat_return: () => !!S.flags.defeat_returned,
+    system_talisman_survivor: () => !!S.flags.talisman_used,
+  };
+  const newly = [];
+  for (const id of G.achievements.ordered)
+    if (!S.achievements[id] && cond[id] && cond[id]()) { S.achievements[id] = true; newly.push(id); }
+  newly.forEach((id, i) => setTimeout(() => toast('成就解鎖：' + G.achievements.items[id].title), 400 + i * 1400));
+  return newly;
+}
+function achievementCodex() {
+  const cats = G.achievements.categories;
+  let html = '';
+  for (const [ck, cat] of Object.entries(cats)) {
+    const items = G.achievements.ordered.filter(id => G.achievements.items[id].category === ck);
+    html += `<h3 style="color:var(--br);margin:1rem 0 .4rem">${esc(cat.name)}</h3>`;
+    for (const id of items) {
+      const a = G.achievements.items[id], got = S.achievements[id];
+      html += `<div class="evrow" style="${got ? '' : 'opacity:.5'}">
+        <span class="en" style="color:${got ? 'var(--jade)' : 'var(--pa2)'}">${got ? '✦ ' + esc(a.title) : '未解秘印'}</span>
+        <span style="color:var(--pa2);font-size:.85rem">　${esc(got ? a.description : a.hint)}</span></div>`;
+    }
+  }
+  const total = Object.keys(S.achievements).filter(k => S.achievements[k]).length;
+  const m = el(`<div class="modal"><div class="sheet">
+    <button class="btn sm close">關閉</button><h2>江湖成就譜　${total}/${G.achievements.ordered.length}</h2>${html}</div></div>`);
+  m.querySelector('.close').onclick = () => m.remove();
+  m.onclick = (e) => { if (e.target === m) m.remove(); };
+  stage.appendChild(m);
+}
+
+// ================= 情緣選擇 =================
+function romanceSelect(phase, next) {
+  const order = G.logic.romance_order, rel = S.affinity || {};
+  const need = phase === 'final' ? 2 : 2;
+  let cands = order.filter(n => (rel[n] || 0) >= need);
+  if (phase === 'final') {
+    // 定局:延續第9章同一人(≥2)或候選之一 ≥4
+    cands = order.filter(n => (S.romance === n && (rel[n] || 0) >= 2) || (rel[n] || 0) >= 4);
+  }
+  if (!cands.length) { S.romance = phase === 'final' ? S.romance : ''; save(); return next(); }
   clear();
-  const lay = el(`<div class="layer fade" style="display:flex;align-items:center;justify-content:center">
-    <div class="bg" style="background-image:url('${G.title_keyart}');filter:brightness(.4)"></div>
-    <div class="scrim"></div>
-    <div class="choicebox" style="text-align:center">
-      <div class="gsub" style="margin-bottom:1rem">已通過目前實作的章節</div>
-      <div class="body">結局／成就／情緣系統為後續階段。感謝遊玩。</div>
-    </div></div>`);
-  const b = el(`<button class="btn">回題名</button>`);
-  b.onclick = () => go('title');
-  lay.querySelector('.choicebox').appendChild(b);
+  const lay = el(`<div class="layer fade"></div>`);
+  lay.appendChild(el(`<div class="bg" style="background-image:url('${G.title_keyart}');filter:brightness(.4)"></div>`));
+  lay.appendChild(el(`<div class="scrim"></div>`));
+  const box = el(`<div class="choicebox"><div class="prompt">${phase === 'final' ? '第十一章・情緣定局' : '第九章・止機之後,可確認心意'}</div></div>`);
+  cands.forEach(n => {
+    const c = G.romance.candidates[n];
+    const b = el(`<button class="choice"><b>${esc(n)}　<span class="pin">${esc(c.role)}</span></b>
+      <small>${esc(phase === 'final' ? c.near : c.mid)}</small></button>`);
+    b.onclick = () => { S.romance = n; save(); reconcile(); next(); };
+    box.appendChild(b);
+  });
+  const solo = el(`<button class="choice"><b>此刻不許諾｜仍以同道相守</b><small>獨行亦非孤身,師友與同道仍在。</small></button>`);
+  solo.onclick = () => { if (phase !== 'final') S.romance = ''; save(); next(); };
+  box.appendChild(solo);
+  lay.appendChild(box);
   stage.appendChild(lay);
+}
+
+// ================= 第九章普通結局(4) =================
+function chapter9Endings(c) {
+  clear();
+  const lay = el(`<div class="layer fade"></div>`);
+  lay.appendChild(el(`<div class="bg" style="background-image:url('${c.background}');filter:brightness(.4)"></div>`));
+  lay.appendChild(el(`<div class="scrim"></div>`));
+  const box = el(`<div class="choicebox"><div class="prompt">天理衡停下後,你選擇讓真相去往何處?</div></div>`);
+  Object.entries(G.endings_ch9).forEach(([id, e]) => {
+    const b = el(`<button class="choice"><b>${esc(e.title)}</b><small>${esc(e.subtitle)}</small></button>`);
+    b.onclick = () => {
+      S.normal_ending = id;
+      S.seen_normal = [...new Set([...(S.seen_normal || []), id])];
+      if (id === 'people_witness') setFlags(['seal_people']);
+      save(); reconcile();
+      showEnding(e, () => { S.chapter = 10; save(); go('chapter'); }, '普通結局');
+    };
+    box.appendChild(b);
+  });
+  lay.appendChild(box);
+  stage.appendChild(lay);
+}
+
+// ================= 完整版結局(4,真結局有嚴格條件) =================
+function finaleEndings(c) {
+  const seals = sealSnapshot(), rel = S.affinity || {};
+  const deep = Object.values(rel).filter(v => v >= 3).length;
+  const trueOK = seals.count === 3 && !!S.flags.veto_clause_restored &&
+    !!S.flags.allies_crosschecked_final && deep >= 3 && (rel['裴無咎'] || 0) >= 1;
+  const avail = Object.keys(G.endings_finale).filter(id =>
+    id === 'heaven_earth_shared' ? trueOK : true);
+  clear();
+  const lay = el(`<div class="layer fade"></div>`);
+  lay.appendChild(el(`<div class="bg" style="background-image:url('${c.background}');filter:brightness(.4)"></div>`));
+  lay.appendChild(el(`<div class="scrim"></div>`));
+  const box = el(`<div class="choicebox"><div class="prompt">天地共衡・終局
+    <div style="font-size:.9rem;color:var(--pa2);margin-top:.5rem">三印 ${seals.count}/3${trueOK ? '　真結局已解鎖' : ''}</div></div>`);
+  avail.forEach(id => {
+    const e = G.endings_finale[id];
+    const isTrue = id === 'heaven_earth_shared';
+    const b = el(`<button class="choice" ${isTrue ? 'style="border-color:var(--cin)"' : ''}>
+      <b>${esc(e.title)}</b><small>${esc(e.subtitle)}</small></button>`);
+    b.onclick = () => {
+      S.finale_ending = id;
+      S.seen_finale = [...new Set([...(S.seen_finale || []), id])];
+      save(); reconcile();
+      showEnding(e, () => go('title'), '完整版結局');
+    };
+    box.appendChild(b);
+  });
+  lay.appendChild(box);
+  stage.appendChild(lay);
+}
+
+// ================= 結局播放 =================
+function showEnding(e, next, badge) {
+  clear();
+  preload([e.image]).then(() => {
+    const lay = el(`<div class="layer fade"></div>`);
+    lay.appendChild(el(`<div class="bg" style="background-image:url('${e.image}');filter:brightness(.55)"></div>`));
+    lay.appendChild(el(`<div class="scrim"></div>`));
+    lay.appendChild(el(`<div style="position:absolute;left:80px;right:80px;top:80px">
+      <div class="intro-eyebrow">${esc(badge || '結局')}</div>
+      <div class="intro-title" style="max-width:90%">${esc(e.title)}</div>
+      <div style="color:var(--pa2);letter-spacing:.1em;margin-bottom:1.5rem">${esc(e.subtitle)}</div>
+      <div class="intro-text" style="max-width:80%;font-size:1.15rem;max-height:280px;overflow:auto">${esc(e.text)}
+        <div style="margin-top:1.2rem;color:#b9ad93">${esc(e.epilogue || '')}</div></div>
+    </div>`));
+    const b = el(`<button class="btn" style="position:absolute;right:60px;bottom:48px">${next === undefined ? '回題名' : '繼續 ▸'}</button>`);
+    b.onclick = next || (() => go('title'));
+    lay.appendChild(b);
+    stage.appendChild(lay);
+  });
 }
 
 // ================= 啟動 =================

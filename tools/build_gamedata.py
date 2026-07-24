@@ -157,6 +157,13 @@ G['logic'] = {
     # 關係階梯(非候選)value 門檻 → 標籤
     'rel_ladder': [[4, '生死相託'], [2, '信任加深'], [1, '開始信任'], [0, '態度未定'], [-2, '有所疏離'], [-99, '戒備甚深']],
     'romance_order': G['romance']['order'],
+    # 三印(seal_snapshot)判定用
+    'camp_map': {'柳照微': '民', '江濯月': '民', '霍離': '民',
+                 '蘇檀': '學', '謝驚弦': '學', '寧觀瀾': '學',
+                 '顧玄策': '律', '祁望舒': '律'},
+    'people_flags': A['ending_content']['PEOPLE_FLAGS'],
+    'standard_flags': A['ending_content']['STANDARD_FLAGS'],
+    'late_keys': ['mirror_testimony_published', 'master_mirror_secured', 'artisan_league_freed', 'zero_standard_secured'],
 }
 
 os.makedirs('/home/ct/gewu-jianghu-web/data', exist_ok=True)
