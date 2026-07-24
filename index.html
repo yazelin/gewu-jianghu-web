@@ -101,6 +101,18 @@ body.reduced #rain{display:none}
 .pbtn.go{background:var(--cin);border-color:var(--cin);color:#fff}
 .pbtn.go:hover{filter:brightness(1.12)}
 .pbtn:disabled{opacity:.4;cursor:default}
+/* 統一清單面板(成就譜/配樂):同一外框 + 主題化捲動列 */
+.pscroll{position:absolute;overflow-y:auto;padding-right:12px}
+.pcat{color:var(--br);font-size:1rem;letter-spacing:.14em;margin:16px 0 6px;padding-bottom:5px;border-bottom:1px solid var(--line)}
+.pcat:first-child{margin-top:0}
+.prow{display:flex;align-items:baseline;gap:12px;padding:9px 8px;border-bottom:1px solid rgba(46,40,32,.55)}
+.prow-t{color:var(--jade);font-size:.98rem;white-space:nowrap}
+.prow-d{color:var(--pa2);font-size:.85rem;flex:1}
+.prow.locked{opacity:.5}
+.prow.locked .prow-t{color:var(--pa2)}
+.prow.play{cursor:pointer;border-radius:8px;transition:background .15s}
+.prow.play:hover{background:rgba(168,50,42,.15)}
+.prow .mplay{color:var(--jade);width:20px;flex:none}
 
 /* title */
 .center-col{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem}

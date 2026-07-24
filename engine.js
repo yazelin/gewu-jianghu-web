@@ -194,33 +194,28 @@ const GALLERY_FILE = {
   chapter9_ending: 'chapter9_ending', chapter11_ending: 'chapter9_ending',
 };
 function musicGallery() {
-  const m = el(`<div class="modal"><div class="sheet">
-    <button class="pclose close" title="關閉">✕</button><h2>配樂鑑賞</h2>
-    <p style="color:var(--pa2);font-size:.85rem;margin-bottom:.8rem">點曲目即可試聽(需先以右上 ♪ 開啟聲音)。</p></div></div>`);
-  const sheet = m.querySelector('.sheet');
-  const setPlaying = (id) => sheet.querySelectorAll('[data-mid]').forEach(r =>
+  sfx('paper', 1.0, 0.5);
+  const { content } = boardScroll(860, 620, '配樂鑑賞', '點曲目即可試聽(需先以右上 ♪ 開啟聲音)');
+  const setPlaying = (id) => content.querySelectorAll('[data-mid]').forEach(r =>
     r.querySelector('.mplay').textContent = (r.dataset.mid === id ? '❚❚' : '▶'));
   G.achievements.music_gallery.forEach(mm => {
     const unlocked = !mm.unlock || S.achievements[mm.unlock];
-    const row = el(`<div class="evrow" data-mid="${mm.id}" style="display:flex;align-items:center;gap:12px;${unlocked ? 'cursor:pointer' : 'opacity:.5'}">
-      <span class="mplay" style="width:22px;color:var(--jade)">${unlocked ? '▶' : '·'}</span>
-      <span style="flex:1"><span class="en" style="color:${unlocked ? 'var(--jade)' : 'var(--pa2)'}">${unlocked ? esc(mm.title) : '未解鎖曲目'}</span>
-        <span style="color:var(--pa2);font-size:.85rem">　${esc(mm.source_title)}</span></span></div>`);
+    const row = el(`<div class="prow${unlocked ? ' play' : ' locked'}" data-mid="${mm.id}">
+      <span class="mplay">${unlocked ? '▶' : '·'}</span>
+      <span class="prow-t">${unlocked ? esc(mm.title) : '未解鎖曲目'}</span>
+      <span class="prow-d">${esc(mm.source_title)}</span></div>`);
     if (unlocked) row.onclick = () => {
       const file = GALLERY_FILE[mm.id];
       if (_curTrack === file && _audio && !_audio.paused) { _audio.pause(); setPlaying(''); return; }  // 再點=暫停
-      if (isMuted()) setMuted(false), initGlobalMute();     // 試聽自動開聲
+      if (isMuted()) { setMuted(false); initGlobalMute(); }     // 試聽自動開聲
       playMusic(file); setPlaying(mm.id);
     };
-    sheet.appendChild(row);
+    content.appendChild(row);
   });
   if (_audio && !_audio.paused) {                               // 標示目前正在播的曲目
     const curId = Object.keys(GALLERY_FILE).find(k => GALLERY_FILE[k] === _curTrack);
     if (curId) setPlaying(curId);
   }
-  m.querySelector('.close').onclick = () => m.remove();
-  m.onclick = (e) => { if (e.target === m) m.remove(); };
-  stage.appendChild(m);
 }
 
 // ---------- 難度提示(逐字還原三檔) ----------
@@ -750,6 +745,16 @@ function pBtn(text, x, y, w, h, primary, onClick, disabled) {
   if (!disabled) b.onclick = onClick;
   return b;
 }
+// 統一外框 + 內部捲動內容區(給長清單面板:成就譜/配樂鑑賞,與固定板同一視覺語言)
+function boardScroll(w, h, title, sub) {
+  const { board, close } = boardOverlay((1280 - w) / 2, (720 - h) / 2, w, h, 108);
+  board.append(pLbl(esc(title), 40, 24, w - 80, 27, 'var(--br)', { bold: true, align: 'center' }));
+  if (sub) board.append(pLbl(esc(sub), 40, 60, w - 80, 13, 'var(--pa2)', { align: 'center' }));
+  board.append(pRule(40, sub ? 84 : 68, w - 80));
+  const content = el(`<div class="pscroll" style="left:34px;right:22px;top:${sub ? 98 : 82}px;bottom:74px"></div>`);
+  board.append(content, pBtn('關閉', (w - 200) / 2, h - 56, 200, 40, true, close));
+  return { board, content, close };
+}
 const relColor = v => v > 0 ? 'var(--jade)' : v < 0 ? 'var(--danger)' : 'var(--pa2)';
 // 登場章門檻(還原原作 _relationship_person_is_introduced)
 function relIntroduced(name) {
@@ -1181,24 +1186,18 @@ function reconcile() {
   return newly;
 }
 function achievementCodex() {
-  const cats = G.achievements.categories;
-  let html = '';
-  for (const [ck, cat] of Object.entries(cats)) {
-    const items = G.achievements.ordered.filter(id => G.achievements.items[id].category === ck);
-    html += `<h3 style="color:var(--br);margin:1rem 0 .4rem">${esc(cat.name)}</h3>`;
-    for (const id of items) {
-      const a = G.achievements.items[id], got = S.achievements[id];
-      html += `<div class="evrow" style="${got ? '' : 'opacity:.5'}">
-        <span class="en" style="color:${got ? 'var(--jade)' : 'var(--pa2)'}">${got ? '✦ ' + esc(a.title) : '未解秘印'}</span>
-        <span style="color:var(--pa2);font-size:.85rem">　${esc(got ? a.description : a.hint)}</span></div>`;
-    }
-  }
+  sfx('paper', 0.98, 0.5);
   const total = Object.keys(S.achievements).filter(k => S.achievements[k]).length;
-  const m = el(`<div class="modal"><div class="sheet">
-    <button class="pclose close" title="關閉">✕</button><h2>江湖成就譜　${total}/${G.achievements.ordered.length}</h2>${html}</div></div>`);
-  m.querySelector('.close').onclick = () => m.remove();
-  m.onclick = (e) => { if (e.target === m) m.remove(); };
-  stage.appendChild(m);
+  const { content } = boardScroll(920, 622, `江湖成就譜　${total}／${G.achievements.ordered.length}`, '已解成就顯名;未解僅示模糊線索');
+  for (const [ck, cat] of Object.entries(G.achievements.categories)) {
+    content.appendChild(el(`<div class="pcat">${esc(cat.name)}</div>`));
+    G.achievements.ordered.filter(id => G.achievements.items[id].category === ck).forEach(id => {
+      const a = G.achievements.items[id], got = S.achievements[id];
+      content.appendChild(el(`<div class="prow${got ? '' : ' locked'}">
+        <span class="prow-t">${got ? '✦ ' + esc(a.title) : '未解秘印'}</span>
+        <span class="prow-d">${esc(got ? a.description : a.hint)}</span></div>`));
+    });
+  }
 }
 
 // ================= 情緣選擇 =================
