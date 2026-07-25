@@ -122,7 +122,7 @@ await page.evaluate((st) => {
   S.chapter = 10; S.scene = 'chapter'; save(); go('chapter');
 }, TRUE_STATE);
 await page.waitForTimeout(400);
-const hidden = await AUTOPLAY(page);
+const hidden = await AUTOPLAY(page, 4200);   // 隱藏路線對白/抉擇多,給更寬步數上限避免偶發跑不完
 const hs = hidden.save || {};
 ok('第十、十一章實跑到結局', hidden.done && (hs.cleared || []).includes(10) && (hs.cleared || []).includes(11),
   `結局「${hidden.ending}」(${hidden.badge}) finale=${hs.finale_ending} cleared=[${(hs.cleared || []).join(',')}]`);
