@@ -183,7 +183,7 @@ function installedHint() {
   if (document.getElementById('installed-hint')) return;
   const h = el(`<div id="installed-hint">
     <b>安裝完成</b>
-    <span>接下來請回<b>主畫面點「格物江湖錄」圖示</b>開啟——那是全螢幕橫式的離線版,不必再用瀏覽器分頁。</span>
+    <span>接下來請回<b>主畫面點「格物江湖錄」圖示</b>開啟——那是全螢幕橫式的離線版，不必再用瀏覽器分頁。</span>
     <button class="btn sm">知道了</button></div>`);
   h.querySelector('button').onclick = () => h.remove();
   document.body.appendChild(h);
@@ -199,7 +199,7 @@ const GALLERY_FILE = {
 };
 function musicGallery() {
   sfx('paper', 1.0, 0.5);
-  const { content } = boardScroll(860, 620, '配樂鑑賞', '點曲目即可試聽(需先以右上 ♪ 開啟聲音)');
+  const { content } = boardScroll(860, 620, '配樂鑑賞', '點曲目即可試聽（需先以右上 ♪ 開啟聲音）');
   const setPlaying = (id) => content.querySelectorAll('[data-mid]').forEach(r =>
     r.querySelector('.mplay').textContent = (r.dataset.mid === id ? '❚❚' : '▶'));
   G.achievements.music_gallery.forEach(mm => {
@@ -224,9 +224,9 @@ function musicGallery() {
 
 // ---------- 難度提示(逐字還原三檔) ----------
 const DIFF_HINT = {
-  '說書': '說書提示｜先找題目給定的量與單位,再從格物卷比對同類現象。',
-  '行俠': '行俠提示｜可按格物卷,比對本章已收錄的證據。',
-  '宗師': '宗師規則｜先判斷模型與單位,再計算;答錯仍會留下劇情後果。',
+  '說書': '說書提示｜先找題目給定的量與單位，再從格物卷比對同類現象。',
+  '行俠': '行俠提示｜可按格物卷，比對本章已收錄的證據。',
+  '宗師': '宗師規則｜先判斷模型與單位，再計算；答錯仍會留下劇情後果。',
 };
 const diffHintHTML = () => `<div class="concept" style="margin:.3rem 0 .6rem;color:var(--pa2)">${esc(DIFF_HINT[S.difficulty] || DIFF_HINT['行俠'])}</div>`;
 
@@ -330,7 +330,7 @@ function initMenu() {
     mk('繼續遊戲', () => { });
     if (S.scene === 'chapter') mk('重來本章', () => { S.evidence[ckey()] = []; S.lost[ckey()] = []; delete S.rewarded['reward_ch' + S.chapter]; go('chapter'); });
     mk('回題名', () => go('title'));      // 題名可「開新局」重玩或「繼續」
-    mk(isReduced() ? '動態效果:關(點擊開啟)' : '動態效果:開(點擊關閉)', () => {
+    mk(isReduced() ? '動態效果：關（點擊開啟）' : '動態效果：開（點擊關閉）', () => {
       localStorage.setItem('gewu_reduced', isReduced() ? '0' : '1'); syncReduced();
     });
     m.onclick = (e) => { if (e.target === m) m.remove(); };
@@ -353,17 +353,29 @@ function sTitle() {
     <div class="tomen">巨鐘未落，真相已先被定罪。</div>
   </div>`);
   // 心法(難度):三檔以提示詳略區分,用武俠語言(還原原作三心法:說書/行俠/宗師)
-  const DIFFS = [['說書', '說書人循循道來,提示最詳盡'], ['行俠', '行俠仗劍,提示適中,可隨時翻閱格物卷'], ['宗師', '宗師只點模型與方向,獨闖險關']];
+  // 心法(難度):平時收合成一顆 chip(與安裝同大小),點擊才展開三檔切換;說明只在展開時出現(全形標點)
+  const DIFFS = [['說書', '說書人循循道來，提示最詳盡'], ['行俠', '行俠仗劍，提示適中，可隨時翻閱格物卷'], ['宗師', '宗師只點模型與方向，獨闖險關']];
   const diff = { val: '行俠' };
-  const diffWrap = el(`<div class="tseg-wrap t-diff"></div>`);   // 置頂端右側,與安裝/♪ 同排
+  const diffWrap = el(`<div class="tseg-wrap t-diff"></div>`);
+  const dToggle = el(`<button class="tseg-toggle">心法 · <b>行俠</b><span class="caret">▾</span></button>`);
+  const dPop = el(`<div class="tpop"></div>`);
   const seg = el(`<div class="tseg"></div>`);
-  const desc = el(`<div class="tseg-desc">行俠仗劍,提示適中,可隨時翻閱格物卷</div>`);
+  const desc = el(`<div class="tseg-desc"></div>`);
+  const closeDiff = () => { dPop.classList.remove('open'); dToggle.classList.remove('open'); };
   DIFFS.forEach(([v, d]) => {
-    const p = el(`<button class="tseg-btn${v === '行俠' ? ' on' : ''}">${v}</button>`);
-    p.onclick = () => { diff.val = v; seg.querySelectorAll('.tseg-btn').forEach(x => x.classList.remove('on')); p.classList.add('on'); desc.textContent = d; sfx('paper', 1.1, 0.3); };
+    const p = el(`<button class="tseg-btn${v === diff.val ? ' on' : ''}">${v}</button>`);
+    p.onclick = () => {
+      diff.val = v;
+      seg.querySelectorAll('.tseg-btn').forEach(x => x.classList.remove('on')); p.classList.add('on');
+      desc.textContent = d; dToggle.querySelector('b').textContent = v; sfx('paper', 1.1, 0.3);
+      closeDiff();                                   // 選完即收合
+    };
     seg.appendChild(p);
   });
-  diffWrap.append(el(`<div class="tseg-label">擇一心法</div>`), seg, desc);
+  desc.textContent = DIFFS.find(x => x[0] === diff.val)[1];   // 預設說明(僅展開時可見)
+  dPop.append(seg, desc);
+  dToggle.onclick = () => { const open = !dPop.classList.contains('open'); dPop.classList.toggle('open', open); dToggle.classList.toggle('open', open); if (open) sfx('paper', 1.0, 0.25); };
+  diffWrap.append(dToggle, dPop);
   const bNew = el(`<button class="btn">新案入局</button>`);
   bNew.onclick = () => { S = newState(); S.difficulty = diff.val; sfx('door'); go('intro'); };
   // 下左:只留氛圍文案(標語 + 路線)
@@ -380,6 +392,7 @@ function sTitle() {
   const right = el(`<div class="t-right"></div>`);
   right.append(bNew, bCont);
   bg.append(kicker, top, bottom, diffWrap, right);   // 心法 diffWrap 置頂端右側(t-diff)
+  bg.addEventListener('click', (ev) => { if (!diffWrap.contains(ev.target)) closeDiff(); });   // 點空白處收合心法
   // 次要選項:退為畫面底部一列低調文字連結,保留電影感(不佔主畫面按鈕堆)
   const withSave = (fn) => { const prev = S; S = loadSave() || newState(); fn(); S = prev; };
   const menu = el(`<div class="tmenu"></div>`);
@@ -390,7 +403,7 @@ function sTitle() {
     mlink('配樂鑑賞', () => withSave(musicGallery), true),
     mlink('格物先賢譜', () => scientistAtlas()),
     mlink('重看序引', () => replayIntro()),
-    mlink('分享', () => shareContent('武俠懸疑包裝的物理解謎 RPG——《格物江湖錄:天理殘卷》,可離線遊玩。', G.title_keyart)),
+    mlink('分享', () => shareContent('武俠懸疑包裝的物理解謎 RPG——《格物江湖錄:天理殘卷》，可離線遊玩。', G.title_keyart)),
     mlink('素材與製作名錄', () => creditsPanel()),      // 併入同一排(分享右邊),不再孤立於角落
   ];
   items.forEach((it, i) => { if (i) menu.appendChild(el(`<span class="sep">·</span>`)); menu.appendChild(it); });
@@ -699,9 +712,9 @@ function investigate({ key, background, title, clues, min, onDone, failable, onF
     const maxReach = n + remaining;
     evChip.querySelector('.cnt').textContent = n;
     proceed.style.display = n >= min ? '' : 'none';
-    if (n >= min) hintChip.textContent = '證據已足,可進入破局';
-    else if (maxReach < min) hintChip.textContent = '證據鏈已斷,無法湊足…';   // 即將破局失敗
-    else if (remaining > 0) hintChip.textContent = `還有 ${remaining} 件證物待查(需 ${min} 件有效證據)`;
+    if (n >= min) hintChip.textContent = '證據已足，可進入破局';
+    else if (maxReach < min) hintChip.textContent = '證據鏈已斷，無法湊足…';   // 即將破局失敗
+    else if (remaining > 0) hintChip.textContent = `還有 ${remaining} 件證物待查（需 ${min} 件有效證據）`;
     else hintChip.textContent = '';
     if (n >= min && key === 'prologue') proceed.textContent = '進入第一章 ▸';
   };
@@ -775,7 +788,7 @@ function investigate({ key, background, title, clues, min, onDone, failable, onF
       t.onclick = () => {
         if (!useItem('logic_token')) return;
         const wrongs = [...optsWrap.querySelectorAll('.opt')].filter((_, i) => i !== cl.correct && !_.disabled);
-        if (wrongs.length) { wrongs[0].disabled = true; wrongs[0].style.opacity = .3; wrongs[0].textContent += '　(已排除)'; }
+        if (wrongs.length) { wrongs[0].disabled = true; wrongs[0].style.opacity = .3; wrongs[0].textContent += '　（已排除）'; }
         t.remove(); save();
       };
       tools.appendChild(t);
@@ -803,7 +816,7 @@ function investigate({ key, background, title, clues, min, onDone, failable, onF
         ${cl.response ? `<div class="reveal">${esc(cl.response)}</div>` : ''}
         ${rt ? `<div class="reveal"><span class="spk">${S.route} 線</span>　${esc(rt)}</div>` : ''}</div>`;
     }
-    const lossText = cl.loss || (G.failure_texts[cl.id]) || '此證物已滅失,無法在本章重驗。';
+    const lossText = cl.loss || (G.failure_texts[cl.id]) || '此證物已滅失，無法在本章重驗。';
     return `<div class="result bad">證物滅失｜${esc(lossText)}
       ${cl.note ? `<div class="concept">正解觀念｜${esc(cl.concept)}</div><div>${esc(cl.note)}</div>` : ''}</div>`;
   }
@@ -844,7 +857,7 @@ function investigate({ key, background, title, clues, min, onDone, failable, onF
     const maxReach = S.evidence[key].length + clues.filter(
       x => !S.evidence[key].includes(x.id) && !S.lost[key].includes(x.id)).length;
     if (failable && maxReach < min)
-      setTimeout(() => (onFail || (() => chapterFailure(chById(S.chapter), '有效證據不足,證據鏈斷裂,本章破局失敗。')))(), 1100);
+      setTimeout(() => (onFail || (() => chapterFailure(chById(S.chapter), '有效證據不足，證據鏈斷裂，本章破局失敗。')))(), 1100);
   }
 }
 
@@ -1011,7 +1024,7 @@ function scientistAtlas() {
   const svg = ['<svg width="1040" height="330" style="position:absolute;inset:0;pointer-events:none">'];
   for (const e of sc.edges) svg.push(`<line x1="${e.from[0]}" y1="${e.from[1]}" x2="${e.to[0]}" y2="${e.to[1]}" stroke="${e.color === 'cinnabar' ? 'var(--cin)' : 'var(--jade)'}" stroke-width="2"/>`);
   svg.push('</svg>'); graph.innerHTML = svg.join('');
-  const detail = pLbl('先賢譜不是背人名:每條線都要回到可觀察的現象與可驗證的模型。', 65, 452, 1000, 18, 'var(--pa)', { align: 'center', wrap: true });
+  const detail = pLbl('先賢譜不是背人名：每條線都要回到可觀察的現象與可驗證的模型。', 65, 452, 1000, 18, 'var(--pa)', { align: 'center', wrap: true });
   const active = (sc.active_by_chapter[String(S.chapter)]) || sc.active_default;
   for (const id of sc.order) {
     const n = sc.nodes[id], on = active.includes(id);
@@ -1105,14 +1118,14 @@ function battle(c) {
           S.qishi--;
           if (S.qishi <= 0 && S.inventory.steadfast_talisman > 0) {   // 定心符自動保命
             useItem('steadfast_talisman'); S.qishi = 1; saved = true;
-            panel.appendChild(el(`<div class="result ok">定心符發動,氣勢保留 1 點。</div>`));
+            panel.appendChild(el(`<div class="result ok">定心符發動，氣勢保留 1 點。</div>`));
           }
           renderQishi();
         }
         const dead = S.qishi <= 0;
         const nx = el(`<button class="btn sm" style="margin-top:16px">${dead ? '——' : '繼續 ▸'}</button>`);
         nx.onclick = () => {
-          if (dead) return chapterFailure(c, '氣勢耗盡,破局失敗。');
+          if (dead) return chapterFailure(c, '氣勢耗盡，破局失敗。');
           bi++; save(); run();
         };
         panel.appendChild(nx);
@@ -1167,7 +1180,7 @@ function chapterFailure(c, reason) {
     () => { S.evidence[ckey()] = []; S.lost[ckey()] = []; delete S.rewarded['reward_ch' + c.id]; go('chapter'); });
 }
 function prologueFailure() {
-  failScreen(G.prologue.background, '線索斷裂', '墜鐘案現場證據不足,無法立案。重新勘查現場。',
+  failScreen(G.prologue.background, '線索斷裂', '墜鐘案現場證據不足，無法立案。重新勘查現場。',
     () => { S.evidence.prologue = []; S.lost.prologue = []; sPrologue(); }, '重新勘查');
 }
 
@@ -1233,7 +1246,7 @@ function chapterClearScreen(c) {
     <div style="color:var(--pa2);margin-bottom:1.5rem">證據 ${secured}/6　${S.route} 線${perfect ? '　・格物無漏' : ''}</div>
   </div>`);
   const row = el(`<div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap"></div>`);
-  row.appendChild(shareBtn('分享通關', `我通關了《格物江湖錄:天理殘卷》${c.title}${perfect ? '(格物無漏!)' : ''}`, c.background));
+  row.appendChild(shareBtn('分享通關', `我通關了《格物江湖錄:天理殘卷》${c.title}${perfect ? '（格物無漏！)' : ''}`, c.background));
   const cont = el(`<button class="btn">繼續 ▸</button>`);
   cont.onclick = () => { S.chapter = c.id + 1; save(); go('chapter'); };
   row.append(cont);
@@ -1324,7 +1337,7 @@ function equipTitle(name) { S.equipped_title = name; save(); }
 function achievementCodex() {
   sfx('paper', 0.98, 0.5);
   const total = Object.keys(S.achievements).filter(k => S.achievements[k]).length;
-  const { content } = boardScroll(920, 624, `江湖成就譜　${total}／${G.achievements.ordered.length}`, '已解成就顯名;未解僅示模糊線索');
+  const { content } = boardScroll(920, 624, `江湖成就譜　${total}／${G.achievements.ordered.length}`, '已解成就顯名；未解僅示模糊線索');
   // 稱號佩印
   const titles = earnedTitles();
   content.appendChild(el(`<div class="pcat">佩印稱號（點擊佩用）</div>`));
@@ -1361,7 +1374,7 @@ function romanceSelect(phase, next) {
   const lay = el(`<div class="layer fade"></div>`);
   lay.appendChild(el(`<div class="bg" style="background-image:url('${G.title_keyart}');filter:brightness(.4)"></div>`));
   lay.appendChild(el(`<div class="scrim"></div>`));
-  const box = el(`<div class="choicebox"><div class="prompt">${phase === 'final' ? '第十一章・情緣定局' : '第九章・止機之後,可確認心意'}</div></div>`);
+  const box = el(`<div class="choicebox"><div class="prompt">${phase === 'final' ? '第十一章・情緣定局' : '第九章・止機之後，可確認心意'}</div></div>`);
   cands.forEach(n => {
     const c = G.romance.candidates[n];
     const b = el(`<button class="choice"><b>${esc(n)}　<span class="pin">${esc(c.role)}</span></b>
@@ -1369,7 +1382,7 @@ function romanceSelect(phase, next) {
     b.onclick = () => { S.romance = n; save(); reconcile(); next(); };
     box.appendChild(b);
   });
-  const solo = el(`<button class="choice"><b>此刻不許諾｜仍以同道相守</b><small>獨行亦非孤身,師友與同道仍在。</small></button>`);
+  const solo = el(`<button class="choice"><b>此刻不許諾｜仍以同道相守</b><small>獨行亦非孤身，師友與同道仍在。</small></button>`);
   solo.onclick = () => { if (phase !== 'final') S.romance = ''; save(); next(); };
   box.appendChild(solo);
   lay.appendChild(box);
