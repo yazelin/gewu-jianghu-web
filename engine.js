@@ -412,7 +412,7 @@ async function makeShareCard(bgUrl, headline, prof) {
   ctx.fillStyle = '#ffe6a6'; ctx.font = F(700, 60); clip(prof.title, 54, H - 148, W - 108);
   ctx.fillStyle = '#e8dcc0'; ctx.font = F(400, 29); clip(headline || '', 54, H - 96, W - 108);
   ctx.fillStyle = '#c9a24b'; ctx.font = F(400, 23); ctx.fillText(`成就 ${prof.achN}／30　·　結局 ${prof.endN}／8`, 54, H - 52);
-  ctx.fillStyle = '#9a8f78'; ctx.font = F(400, 20); ctx.fillText(SHARE_URL.replace(/^https?:\/\//, '') + '　·　可離線遊玩', 54, H - 22);
+  ctx.fillStyle = '#9a8f78'; ctx.font = F(400, 20); ctx.fillText(SHARE_URL.replace(/^https?:\/\//, ''), 54, H - 22);
   return new Promise(res => cv.toBlob(res, 'image/webp', .9));
 }
 // 分享視窗:卡片預覽 + 複製文字/連結 + 下載圖片 + (手機)系統分享
@@ -444,10 +444,9 @@ async function shareContent(text, imageUrl) {
     try { blob = await makeShareCard(imageUrl, text, prof); cardUrl = URL.createObjectURL(blob); imgEl.src = cardUrl; } catch (e) { imgEl.src = imageUrl; }
     imgEl.style.opacity = '1';
   };
-  if (titles.length > 1) {                                        // 有多個稱號才顯示切換列
-    titleRow.appendChild(el(`<span class="st-label">佩印稱號</span>`));
-    titles.forEach(t => { const c = el(`<button class="tchip">${esc(t)}</button>`); c.dataset.t = t; c.onclick = () => { curTitle = t; setEquipped(t); render(); sfx('paper', 1.1, 0.3); }; titleRow.appendChild(c); });
-  } else titleRow.style.display = 'none';
+  titleRow.appendChild(el(`<span class="st-label">佩印稱號</span>`));   // 一律顯示(就算只有預設一個,讓玩家知道可換/從哪換)
+  titles.forEach(t => { const c = el(`<button class="tchip">${esc(t)}</button>`); c.dataset.t = t; c.onclick = () => { curTitle = t; setEquipped(t); render(); sfx('paper', 1.1, 0.3); }; titleRow.appendChild(c); });
+  if (titles.length === 1) titleRow.appendChild(el(`<span class="st-hint">解鎖成就可獲得更多稱號</span>`));
   const mk = (label, fn) => { const b = el(`<button class="btn sm">${label}</button>`); b.onclick = fn; btns.appendChild(b); };
   const copy = async (t, msg) => { try { await navigator.clipboard.writeText(t); toast(msg); } catch (e) { toast('複製失敗,請長按選取'); } };
   mk('複製文字', () => copy(fullText, '已複製分享文字' + (curTitle !== DEFAULT_TITLE ? '(含稱號)' : '')));
