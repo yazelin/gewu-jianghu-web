@@ -346,8 +346,9 @@ function initMenu() {
 function sTitle() {
   playMusic(MUSIC.ambient);
   const bg = el(`<div class="layer fade"></div>`);
-  bg.appendChild(el(`<div class="bg" style="background-image:url('${G.title_keyart}');filter:brightness(.7)"></div>`));
-  bg.appendChild(el(`<div class="scrim"></div>`));
+  bg.appendChild(el(`<div class="bg" style="background-image:url('${G.title_keyart}');filter:brightness(.9)"></div>`));
+  const storm = el(`<div class="tstorm"></div>`);          // 可控暗幕:平常壓黑,閃電時掀開
+  bg.appendChild(storm);
   // 置中上緣:與底部連結列對稱(海報上下框)
   const kicker = el(`<div class="t-kicker">原創武俠物理解謎 RPG</div>`);
   // 上左:標題組(整體偏上)
@@ -416,6 +417,17 @@ function sTitle() {
   document.getElementById('lamp')?.classList.add('on');           // 雨夜鐘樓燈火呼吸
   document.getElementById('book')?.classList.add('on');           // 格物書呼吸暖金光
   [kicker, ...top.children, ...bottom.children, diffWrap, ...right.children].forEach((n, i) => { n.classList.add('slide-in'); n.style.animationDelay = (0.05 + i * 0.08) + 's'; });   // 進場動畫
+  startLightning(storm);                                          // 偶發閃電:掀開暗幕照亮全景
+}
+// 首頁閃電:不定時把暗幕透明度瞬掀(雙閃爍)→ 底下亮圖透出=被閃電照亮;離開題名(元素脫離 DOM)即停
+function startLightning(el) {
+  if (isReduced()) return;
+  const tick = () => {
+    if (!el.isConnected) return;                                  // 已離開題名 → 停止排程
+    el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
+    setTimeout(tick, 5000 + Math.random() * 11000);               // 下次 5–16 秒
+  };
+  setTimeout(tick, 2500 + Math.random() * 4500);                  // 首次 2.5–7 秒
 }
 
 
