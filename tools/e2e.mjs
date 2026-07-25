@@ -163,6 +163,20 @@ await ctx.setOffline(true);
 await page.reload({ waitUntil: 'domcontentloaded' }); await page.waitForTimeout(1500);
 ok('斷網後題名仍可載入', await page.evaluate(() => !!document.querySelector('.gtitle')));
 ok('斷網後未播過的章末音檔命中快取', (await page.evaluate(async () => { try { return (await fetch('assets/audio/chapter11_heaven_earth.ogg')).status; } catch { return 0; } })) === 200);
+// 命中快取 ≠ 播得出來:大音檔 Chrome 一律用 Range 抓,SW 沒合成 206 就會 Format error。
+// 這一項只有在真的送出 Range 的環境(線上 Pages)才有鑑別力,--live 是真正的關卡。
+const bigTrack = await page.evaluate(async () => {
+  const el = new Audio(); el.volume = 0; el.preload = 'auto';
+  el.src = 'assets/audio/chapter7_mirror_city.ogg';
+  const v = await new Promise(res => {
+    el.addEventListener('loadedmetadata', () => res('ok:' + Math.round(el.duration) + 's'));
+    el.addEventListener('error', () => res('err:' + (el.error && el.error.code)));
+    setTimeout(() => res('timeout'), 12000);
+  });
+  el.removeAttribute('src'); el.load();
+  return v;
+});
+ok('斷網後大音檔真的能解碼播放(1.1MB,Range→206)', bigTrack.startsWith('ok:'), bigTrack);
 const dp = await ctx.newPage();   // 缺 ignoreSearch 的話,這頁斷網會開成遊戲
 await dp.goto(BASE + 'design.html?utm_source=fb', { waitUntil: 'domcontentloaded' }).catch(() => {});
 ok('斷網開 design.html?utm_source=fb 不會開成遊戲', (await dp.title()).includes('設計與公式站'));

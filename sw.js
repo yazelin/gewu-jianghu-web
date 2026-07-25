@@ -2,7 +2,7 @@
 //   殼(HTML/JS/data,約 0.4MB)每次部署 bump;資產(assets/,約 33MB)只有同名檔換內容才 bump。
 //   舊做法把 33MB 和殼放同一個 CACHE,每次部署 activate 整包刪掉重抓——不只浪費頻寬,更會反覆
 //   製造「重寫 33MB」的窗口,而寫入失敗(配額/SW 被回收)是靜默的,尾端最大的音檔最容易掉。
-const SHELL_CACHE="gewu-shell-v84";   // ← 每次部署 bump 這行(觸發新 SW + 自動重整)
+const SHELL_CACHE="gewu-shell-v85";   // ← 每次部署 bump 這行(觸發新 SW + 自動重整)
 // ponytail: 新增/改名的資產 URL 變了就自動抓;只有「同名檔換內容」才要手動 bump 這行
 // (本 repo 慣例是檔名帶 _vNN,如 title_keyart_v14.webp,平常不用動)。
 // 上限=靠人記得 bump;要根治就資產改雜湊檔名 + build step,見 NOTES.md。
@@ -63,6 +63,26 @@ self.addEventListener("activate",e=>{e.waitUntil((async()=>{
 })());});
 // 音檔用 Range 請求拿回來的是 206,Cache.put 存不進去 → 另抓一次完整檔補存。
 // 這樣「聽過的曲子」自己會留在離線包裡,不必等背景暖快取跑到最後那 14MB。
+// 從快取回應 Range 請求時,必須自己合成 206。Chrome 的媒體管線對超過一定大小的音檔
+// 一律用 Range 抓,拿到「200 但沒有 Content-Range」會直接判 Format error——斷網時
+// 小檔(如 144KB 的題名曲)照播、大檔全部播不出來的真因。做法同台語/客語字典 repo。
+async function rangedResponse(req,res){
+  const range=req.headers&&req.headers.get&&req.headers.get("range");
+  if(!range)return res;
+  const m=/^bytes=(\d*)-(\d*)$/i.exec(range.trim());
+  if(!m)return res;
+  const buf=await res.arrayBuffer(),len=buf.byteLength;
+  let start=m[1]?Number(m[1]):null,end=m[2]?Number(m[2]):null;
+  if(start===null&&end!==null){start=Math.max(0,len-end);end=len-1;}
+  else{start??=0;end=end===null?len-1:Math.min(end,len-1);}
+  if(!Number.isInteger(start)||!Number.isInteger(end)||start<0||start>end||start>=len)
+    return new Response(null,{status:416,headers:{"content-range":`bytes */${len}`}});
+  const h=new Headers(res.headers);
+  h.set("accept-ranges","bytes");
+  h.set("content-range",`bytes ${start}-${end}/${len}`);
+  h.set("content-length",String(end-start+1));
+  return new Response(buf.slice(start,end+1),{status:206,headers:h});
+}
 async function backfill(name,href){
   if(await (await caches.open(name)).match(href))return;
   try{const full=await fetch(href,{cache:"no-cache"});if(cacheable(full))await store(name,href,full);}catch{}
@@ -79,7 +99,7 @@ self.addEventListener("fetch",e=>{
   e.respondWith((async()=>{
     const c=await caches.open(name);
     const hit=forced?null:await c.match(req,{ignoreSearch:true});   // ignoreSearch:斷網開 design.html?utm=… 才不會開成遊戲
-    if(hit&&asset){finish();return hit;}                            // 資產不變 → 純快取優先,不再打網路
+    if(hit&&asset){finish();return rangedResponse(req,hit);}        // 資產不變 → 純快取優先;Range 請求要合成 206
     if(hit){(async()=>{try{const r=await fetch(req);if(cacheable(r)&&!u.search)await store(name,req,r.clone());}catch{}})().then(finish);return hit;}
     try{
       const r=await fetch(req);
@@ -89,7 +109,9 @@ self.addEventListener("fetch",e=>{
       return r;
     }catch{
       finish();
-      return (await c.match(req,{ignoreSearch:true}))||(nav?await c.match("index.html"):Response.error());
+      const cached=await c.match(req,{ignoreSearch:true});
+      if(cached)return asset?rangedResponse(req,cached):cached;
+      return (nav?await c.match("index.html"):Response.error());
     }
   })());
 });
