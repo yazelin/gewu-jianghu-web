@@ -1,6 +1,6 @@
 # 格物江湖錄:天理殘卷 — 網頁版
 
-武俠懸疑包裝的**物理解題 RPG**,題目涵蓋國中理化至高中物理。純網頁、**可離線遊玩**、可安裝到手機主畫面。
+武俠懸疑包裝的**物理解謎 RPG**,題目涵蓋國中理化至高中物理。純網頁、**可離線遊玩**、可安裝到手機主畫面。
 
 - **線上遊玩:** https://yazelin.github.io/gewu-jianghu-web/
 - **設計與公式站(攻略):** https://yazelin.github.io/gewu-jianghu-web/design.html

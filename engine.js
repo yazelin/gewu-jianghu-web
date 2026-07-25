@@ -341,7 +341,7 @@ function sTitle() {
   bg.appendChild(el(`<div class="bg" style="background-image:url('${G.title_keyart}');filter:brightness(.7)"></div>`));
   bg.appendChild(el(`<div class="scrim"></div>`));
   // 置中上緣:與底部連結列對稱(海報上下框)
-  const kicker = el(`<div class="t-kicker">原創武俠物理解題 RPG</div>`);
+  const kicker = el(`<div class="t-kicker">原創武俠物理解謎 RPG</div>`);
   // 上左:標題組(整體偏上)
   const top = el(`<div class="t-top">
     <div class="gtitle">格物江湖錄</div>
@@ -386,7 +386,7 @@ function sTitle() {
     mlink('配樂鑑賞', () => withSave(musicGallery), true),
     mlink('格物先賢譜', () => scientistAtlas()),
     mlink('重看序引', () => replayIntro()),
-    mlink('分享', () => shareContent('武俠懸疑包裝的物理解題 RPG——《格物江湖錄:天理殘卷》,可離線遊玩。', G.title_keyart)),
+    mlink('分享', () => shareContent('武俠懸疑包裝的物理解謎 RPG——《格物江湖錄:天理殘卷》,可離線遊玩。', G.title_keyart)),
     mlink('素材與製作名錄', () => creditsPanel()),      // 併入同一排(分享右邊),不再孤立於角落
   ];
   items.forEach((it, i) => { if (i) menu.appendChild(el(`<span class="sep">·</span>`)); menu.appendChild(it); });
