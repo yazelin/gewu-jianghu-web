@@ -614,10 +614,10 @@ if ('serviceWorker' in navigator) {
   }
   async function warmOffline() {
     const data = await askList(); if (!data || !data.list) return;
-    const list = data.list, total = list.length; let done = 0, shown = false; const t0 = Date.now();
-    const tick = () => { done++; if (done < total && (shown || Date.now() - t0 > 600)) { shown = true; showOffline(done, total, false); } };
+    const list = data.list, total = list.length; let done = 0; const t0 = Date.now();
+    const tick = () => { done++; if (done < total && Date.now() - t0 > 400) showOffline(done, total, false); };   // 真的在下載(>400ms)才顯示進度條
     for (let i = 0; i < total; i += 6) await Promise.all(list.slice(i, i + 6).map(u => fetch(u).then(() => {}, () => {}).then(tick)));   // 併發 6 條
-    if (shown) showOffline(total, total, true);   // 只有真的下載過才報「已可離線」;全快取回訪保持安靜
+    showOffline(total, total, true);   // 一律確認「已可離線遊玩」(即使全快取秒完也閃一下,讓使用者知道就緒)
     window.__offlineReady = true;
   }
   function tryWarm() { if (warmed || !navigator.serviceWorker.controller) return; warmed = true; setTimeout(warmOffline, 1000); }
