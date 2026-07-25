@@ -164,6 +164,32 @@ body.reduced #rain{display:none}
   background:linear-gradient(180deg,rgba(22,19,14,.72),rgba(11,9,7,.72));backdrop-filter:blur(2px);
   display:flex;align-items:center;justify-content:center;padding:12px 26px;font-size:15px;color:var(--pa);
   line-height:1.7;box-shadow:0 6px 22px rgba(0,0,0,.4)}
+/* 電影式滾動片尾(素材與製作名錄):由下往上捲、hover 暫停、捲完定格結語 */
+.roll-ov{position:absolute;inset:0;z-index:70;overflow:hidden;
+  background:radial-gradient(120% 90% at 50% 30%,rgba(16,13,10,.97),#050403 75%);animation:fadeIn .45s ease}
+.roll-track{position:absolute;left:0;right:0;top:0;display:flex;flex-direction:column;align-items:center;
+  text-align:center;padding:0 60px 140px}
+.roll-track.rolling{animation:rollUp 50s linear forwards}
+@keyframes rollUp{from{transform:translateY(730px)}to{transform:translateY(-100%)}}
+.roll-film-title{font-size:2.3rem;letter-spacing:.3em;color:var(--tx-hi);margin-top:170px;text-shadow:0 4px 26px #000}
+.roll-film-sub{font-size:1rem;letter-spacing:.4em;color:var(--br);margin-top:14px}
+.roll-h{font-size:1.05rem;letter-spacing:.34em;color:var(--gold);margin-top:58px;padding-bottom:6px}
+.roll-role{font-size:.82rem;letter-spacing:.3em;color:var(--tx-mut);margin-top:30px}
+.roll-name{font-size:1.28rem;letter-spacing:.08em;color:var(--tx-hi);margin-top:7px;line-height:1.55}
+.roll-name small{display:block;font-size:.82rem;color:var(--pa2);letter-spacing:.03em;margin-top:4px}
+.roll-sci{display:flex;gap:22px;justify-content:center;align-items:baseline;margin-top:13px;font-size:1.1rem}
+.roll-sci .s-nm{color:#f0e6cf;width:170px;text-align:right;letter-spacing:.05em}
+.roll-sci .s-dm{color:var(--steel);width:170px;text-align:left;font-size:.94rem}
+.roll-quip{color:var(--pa2);font-size:1rem;letter-spacing:.04em;margin-top:14px;line-height:1.9}
+.roll-epi{font-size:1.5rem;letter-spacing:.14em;color:var(--tx-hi);line-height:1.95}
+.roll-final{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;gap:18px;padding:60px;opacity:0;pointer-events:none}
+.roll-final.show{animation:fadeIn 2.4s ease forwards}
+.roll-close{position:absolute;top:16px;right:20px;z-index:5;background:rgba(20,17,14,.72);border:1px solid var(--br);
+  color:var(--pa);font-family:inherit;font-size:.9rem;letter-spacing:.12em;padding:8px 18px;border-radius:20px;cursor:pointer;backdrop-filter:blur(2px)}
+.roll-close:hover{border-color:var(--gold);color:#f3ead6}
+body.reduced .roll-track{position:relative;animation:none}
+body.reduced .roll-ov{overflow-y:auto}
 /* 稱號佩印 */
 .tchip-row{display:flex;flex-wrap:wrap;gap:8px;padding:4px 0 8px}
 .tchip{background:rgba(20,17,14,.7);border:1px solid var(--br);color:var(--pa2);font-family:inherit;font-size:.88rem;

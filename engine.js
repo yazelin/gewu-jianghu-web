@@ -1094,19 +1094,57 @@ function endingGallery() {
 }
 
 // ---------- 素材與製作名錄(還原原作 _show_credits)----------
+// ---------- 素材與製作名錄：電影式滾動片尾(有梗也實在;特別感謝格物先賢,動態帶入)----------
 function creditsPanel() {
   sfx('paper', 1.0, 0.5);
-  const { board, close } = boardOverlay(210, 78, 860, 570, 110);
-  board.appendChild(pLbl('素材與製作名錄', 40, 28, 780, 31, 'var(--br)', { align: 'center', bold: true }));
-  const credits =
-    '概念、劇情與原始程式｜原作者 @changyi123456\n' +
-    '網頁離線版改作｜yazelin，經原作者授權（見 SOURCE.md）\n\n' +
-    '場景、證物、角色與結局圖｜OpenAI image generation，依原專案提示與物理校正產生\n\n' +
-    '配樂（CC0）\n・Oriental／Oriented／Asianoriental 系列\n・Night of the Streets — nene\n・Factory／Dungeon Ambience — yd\n・Fast Fight — Ville Nousiainen\n・Ancient Temple — Umplix\n・Ending Scene — nene\n\n' +
-    '音效（CC0）\n・Correct Bell、Paper、Footsteps、Tree Creaking、100 CC0 SFX\n\n' +
-    '字型｜Noto Sans TC（SIL OFL 1.1）\n\n完整作者、原始網址、逐檔雜湊與授權見 provenance/asset-ledger.csv。';
-  board.appendChild(el(`<div class="plbl" style="left:62px;top:88px;width:736px;height:388px;overflow-y:auto;font-size:14.5px;color:var(--pa);white-space:pre-wrap;line-height:1.6">${esc(credits)}</div>`));
-  board.appendChild(pBtn('關閉', 320, 502, 220, 44, true, close));
+  const reduced = isReduced();
+  const ov = el(`<div class="roll-ov"></div>`);
+  const track = el(`<div class="roll-track"></div>`);
+  // 特別感謝的先賢:由 scientists 資料依年代帶入(名字＋領域),與先賢譜同源
+  const sci = (G.scientists.chrono || G.scientists.order).map(id => {
+    const n = G.scientists.nodes[id], dom = (n.chapter.split('｜')[1] || n.chapter).trim();
+    return `<div class="roll-sci"><span class="s-nm">${esc(n.name)}</span><span class="s-dm">${esc(dom)}</span></div>`;
+  }).join('');
+  const html = [
+    `<div class="roll-film-title">格物江湖錄</div>`,
+    `<div class="roll-film-sub">天 理 殘 卷　・　網頁離線版</div>`,
+    `<div class="roll-role">原著・劇情・原始程式</div><div class="roll-name">@changyi123456<small>概念與整套物理謎題的源頭</small></div>`,
+    `<div class="roll-role">網頁離線版改編・工程・重製</div><div class="roll-name">yazelin<small>經原作者授權，見 SOURCE.md</small></div>`,
+    `<div class="roll-role">場景・證物・角色・結局圖</div><div class="roll-name">OpenAI image generation<small>依原專案提示與物理校正產生</small></div>`,
+    `<div class="roll-h">配 樂（CC0）</div>`,
+    `<div class="roll-name">Oriental／Oriented／Asianoriental 系列</div>`,
+    `<div class="roll-name">Night of the Streets　—　nene</div>`,
+    `<div class="roll-name">Factory／Dungeon Ambience　—　yd</div>`,
+    `<div class="roll-name">Fast Fight　—　Ville Nousiainen</div>`,
+    `<div class="roll-name">Ancient Temple　—　Umplix</div>`,
+    `<div class="roll-name">Ending Scene　—　nene</div>`,
+    `<div class="roll-h">音 效（CC0）</div>`,
+    `<div class="roll-name">Correct Bell・Paper・Footsteps<small>Tree Creaking・100 CC0 SFX</small></div>`,
+    `<div class="roll-h">字 型</div>`,
+    `<div class="roll-name">Noto Sans TC<small>SIL OFL 1.1</small></div>`,
+    `<div class="roll-h">特別感謝・格物先賢</div>`,
+    `<div class="roll-quip">沒有他們，就沒有這些題目</div>`,
+    sci,
+    `<div class="roll-h">也一併感謝</div>`,
+    `<div class="roll-quip">感謝雨，從序章到片尾都沒停過<br>感謝那口鐘，願意被算進一道題<br>感謝每一顆被當成誤差的螺絲<br>製作過程沒有動物受傷<br>但有幾個 bug 英勇犧牲</div>`,
+    `<div class="roll-role">致</div><div class="roll-name">每一位願意追問<br>「這到底是怎麼運作的」的人</div>`,
+    `<div class="roll-quip" style="margin-top:42px">完整作者、原始網址、逐檔雜湊與授權<br>見 provenance／asset-ledger.csv</div>`,
+  ];
+  if (reduced) html.push(`<div class="roll-epi" style="margin-top:64px">看懂世界如何運作，<br>才有資格改變命運。</div>`);
+  track.innerHTML = html.join('');
+  ov.appendChild(track);
+  if (!reduced) {                                    // 動畫版:捲完淡入定格結語
+    const finalEl = el(`<div class="roll-final"><div class="roll-epi">看懂世界如何運作，<br>才有資格改變命運。</div><div class="roll-quip">——　敬　每一位願意追問的人</div></div>`);
+    ov.appendChild(finalEl);
+    track.addEventListener('animationend', () => finalEl.classList.add('show'));
+  }
+  const closeBtn = el(`<button class="roll-close">關閉</button>`);
+  const close = () => ov.remove();
+  closeBtn.onclick = close;
+  ov.appendChild(closeBtn);
+  ov.addEventListener('click', (e) => { if (e.target === ov) close(); });   // 點背景收起
+  stage.appendChild(ov);
+  if (!reduced) requestAnimationFrame(() => track.classList.add('rolling'));
 }
 
 // ================= 破局戰(氣勢答題) =================
