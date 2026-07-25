@@ -137,7 +137,7 @@ const playable = await page.evaluate(() => { const r = document.querySelector('[
 ok('配樂鑑賞(曲數>0 且可單獨播放)', rows > 0 && playable, `${rows} 曲`);
 await page.evaluate(() => document.querySelector('.povl')?.remove());
 await page.evaluate(() => { S = loadSave() || newState(); achievementCodex(); }); await page.waitForTimeout(250);
-ok('江湖成就譜', await page.evaluate(() => !!document.querySelector('.pboard') && [...document.querySelectorAll('.plbl')].some(l => l.textContent.includes('成就譜')) && document.querySelectorAll('.prow').length > 0));
+ok('江湖成就譜(徽記+篩選+進度)', await page.evaluate(() => !!document.querySelector('.pboard') && document.body.textContent.includes('成就譜') && document.querySelectorAll('.ach-card').length > 0 && document.querySelectorAll('.ach-tab').length > 1 && !!document.querySelector('.ach-prog-fill')));
 await page.evaluate(() => document.querySelector('.povl')?.remove());
 ok('公式站 design.html', (await page.evaluate(async () => (await fetch('design.html')).status)) === 200);
 

@@ -190,6 +190,44 @@ body.reduced #rain{display:none}
 .roll-close:hover{border-color:var(--gold);color:#f3ead6}
 body.reduced .roll-track{position:relative;animation:none}
 body.reduced .roll-ov{overflow-y:auto}
+/* 成就譜:印章徽記 + 篩選頁籤 + 解鎖進度 */
+.ach-prog{height:7px;border-radius:4px;background:rgba(138,107,58,.2);overflow:hidden;margin:2px 0 12px}
+.ach-prog-fill{height:100%;background:linear-gradient(90deg,var(--br),var(--gold));box-shadow:0 0 10px rgba(201,162,75,.5)}
+.ach-tabs{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 14px}
+.ach-tab{background:rgba(20,17,14,.7);border:1px solid var(--br);color:var(--pa2);font-family:inherit;font-size:.86rem;letter-spacing:.08em;padding:6px 16px;border-radius:16px;cursor:pointer;transition:.15s}
+.ach-tab:hover{color:#f0e6d2;border-color:var(--gold)}
+.ach-tab.on{background:var(--br);color:#f6eed9;border-color:var(--br)}
+.ach-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ach-card{display:flex;gap:12px;align-items:flex-start;padding:11px 13px;border-radius:10px;border:1px solid rgba(138,107,58,.4);background:linear-gradient(160deg,rgba(34,28,19,.68),rgba(18,15,11,.7))}
+.ach-card.locked{opacity:.6;border-style:dashed}
+.ach-badge{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:21px;flex:none;border:2px solid var(--gold);font-weight:600}
+.ach-badge.got{color:#ffe6a6;background:radial-gradient(circle at 40% 35%,rgba(201,162,75,.4),rgba(40,30,14,.72));box-shadow:0 0 13px rgba(201,162,75,.32)}
+.ach-badge.locked{border-color:rgba(138,107,58,.45);border-style:dashed;color:var(--tx-mut);background:rgba(20,17,13,.5);font-size:17px}
+.ach-body{min-width:0}
+.ach-t{color:var(--jade);font-size:.98rem;font-weight:600;letter-spacing:.04em}
+.ach-card.locked .ach-t{color:var(--pa2)}
+.ach-d{color:var(--pa2);font-size:.82rem;line-height:1.5;margin-top:3px}
+.ach-tr{color:var(--br);font-size:.76rem;margin-left:6px;white-space:nowrap}
+/* 配樂鑑賞:原聲帶曲目表(曲序 + 播放中 equalizer 動態條) */
+.mtrack{display:flex;align-items:center;gap:14px;padding:11px 14px;border-radius:9px;border-bottom:1px solid rgba(46,40,32,.5);cursor:pointer;transition:background .15s}
+.mtrack:hover{background:rgba(201,162,75,.08)}
+.mtrack.locked{opacity:.45;cursor:default}
+.mtrack .m-no{font-size:.92rem;color:var(--br);width:26px;text-align:center;letter-spacing:.02em;flex:none}
+.mtrack .m-play{width:20px;color:var(--gold);font-size:.85rem;text-align:center;flex:none}
+.mtrack .m-meta{flex:1;min-width:0;display:flex;flex-direction:column}
+.mtrack .m-title{color:var(--tx-hi);font-size:1rem;letter-spacing:.03em}
+.mtrack.locked .m-title{color:var(--pa2)}
+.mtrack .m-src{color:var(--tx-mut);font-size:.78rem;margin-top:2px;letter-spacing:.02em}
+.mtrack.playing{background:rgba(201,162,75,.12)}
+.mtrack.playing .m-title{color:#ffe6a6}
+.m-eq{display:none;gap:2px;align-items:flex-end;height:16px;width:20px;flex:none}
+.mtrack.playing .m-eq{display:flex}
+.mtrack.playing .m-play{display:none}
+.m-eq span{width:3px;background:var(--gold);border-radius:1px;animation:eqbar .9s ease-in-out infinite}
+.m-eq span:nth-child(2){animation-delay:.3s}
+.m-eq span:nth-child(3){animation-delay:.55s}
+@keyframes eqbar{0%,100%{height:4px}50%{height:16px}}
+body.reduced .m-eq span{animation:none;height:11px}
 /* 稱號佩印 */
 .tchip-row{display:flex;flex-wrap:wrap;gap:8px;padding:4px 0 8px}
 .tchip{background:rgba(20,17,14,.7);border:1px solid var(--br);color:var(--pa2);font-family:inherit;font-size:.88rem;

@@ -199,15 +199,19 @@ const GALLERY_FILE = {
 };
 function musicGallery() {
   sfx('paper', 1.0, 0.5);
-  const { content } = boardScroll(860, 620, '配樂鑑賞', '點曲目即可試聽（需先以右上 ♪ 開啟聲音）');
-  const setPlaying = (id) => content.querySelectorAll('[data-mid]').forEach(r =>
-    r.querySelector('.mplay').textContent = (r.dataset.mid === id ? '❚❚' : '▶'));
-  G.achievements.music_gallery.forEach(mm => {
+  const tracks = G.achievements.music_gallery;
+  const unlockedN = tracks.filter(m => !m.unlock || S.achievements[m.unlock]).length;
+  const { content } = boardScroll(860, 620, '配樂鑑賞', `原聲帶 ${unlockedN}／${tracks.length} 曲　·　點曲目試聽（需先以右上 ♪ 開啟聲音）`);
+  const setPlaying = (id) => content.querySelectorAll('.mtrack').forEach(r => r.classList.toggle('playing', r.dataset.mid === id));
+  const eqHTML = '<span class="m-eq"><span></span><span></span><span></span></span>';
+  tracks.forEach((mm, i) => {
     const unlocked = !mm.unlock || S.achievements[mm.unlock];
-    const row = el(`<div class="prow${unlocked ? ' play' : ' locked'}" data-mid="${mm.id}">
-      <span class="mplay">${unlocked ? '▶' : '·'}</span>
-      <span class="prow-t">${unlocked ? esc(mm.title) : '未解鎖曲目'}</span>
-      <span class="prow-d">${esc(mm.source_title)}</span></div>`);
+    const no = String(i + 1).padStart(2, '0');
+    const row = el(`<div class="mtrack${unlocked ? '' : ' locked'}" data-mid="${mm.id}">
+      <span class="m-no">${unlocked ? no : '—'}</span>
+      <span class="m-play">${unlocked ? '▶' : '·'}</span>${eqHTML}
+      <span class="m-meta"><span class="m-title">${unlocked ? esc(mm.title) : '未解鎖曲目'}</span>
+        <span class="m-src">原曲｜${esc(mm.source_title)}</span></span></div>`);
     if (unlocked) row.onclick = () => {
       const file = GALLERY_FILE[mm.id];
       if (_curTrack === file && _audio && !_audio.paused) { _audio.pause(); setPlaying(''); return; }  // 再點=暫停
@@ -1078,19 +1082,19 @@ function endingGallery() {
   board.append(
     pLbl('天理殘卷・結局圖鑑', 40, 20, 1020, 30, 'var(--br)', { align: 'center', bold: true }),
     pLbl(`普通結局 ${seenN.size}／4　｜　完整版結局 ${seenF.size}／4　（圖鑑會跨越命運回折保留）`, 40, 60, 1020, 14, 'var(--pa2)', { align: 'center' }));
-  [['第九章・普通結局', G.endings_ch9, seenN, 92], ['第十一章・完整版結局', G.endings_finale, seenF, 358]].forEach(([label, ends, seen, y]) => {
+  [['第九章・普通結局', G.endings_ch9, seenN, 84], ['第十一章・完整版結局', G.endings_finale, seenF, 340]].forEach(([label, ends, seen, y]) => {
     board.appendChild(pLbl(label, 42, y, 400, 15, 'var(--jade)', { bold: true }));
     Object.entries(ends).forEach(([id, e], i) => {
       const on = seen.has(id), x = 42 + i * 258;
-      const card = pCard(x, y + 22, 244, 208, on ? 'var(--br)' : 'rgba(87,97,97,.7)');
+      const card = pCard(x, y + 20, 244, 222, on ? 'var(--br)' : 'rgba(87,97,97,.7)');   // 加高至 222,容納圖+2行標題+2行副標
       card.style.overflow = 'hidden';
-      if (on) card.appendChild(el(`<img src="${e.image}" style="position:absolute;left:0;top:0;width:100%;height:150px;object-fit:cover">`));
-      card.appendChild(pLbl(on ? esc(e.title) : '尚未收錄', 8, on ? 158 : 90, 228, on ? 16 : 15, on ? 'var(--br)' : 'var(--pa2)', { align: 'center', wrap: true, bold: on }));
-      if (on && e.subtitle) card.appendChild(pLbl(esc(e.subtitle), 8, 182, 228, 11, 'var(--pa2)', { align: 'center', wrap: true }));
+      if (on) card.appendChild(el(`<img src="${e.image}" style="position:absolute;left:0;top:0;width:100%;height:136px;object-fit:cover">`));
+      card.appendChild(pLbl(on ? esc(e.title) : '尚未收錄', 8, on ? 144 : 96, 228, on ? 16 : 15, on ? 'var(--br)' : 'var(--pa2)', { align: 'center', wrap: true, bold: on }));
+      if (on && e.subtitle) card.appendChild(pLbl(esc(e.subtitle), 8, 186, 228, 11, 'var(--pa2)', { align: 'center', wrap: true }));
       board.appendChild(card);
     });
   });
-  board.appendChild(pBtn('收起圖鑑', 440, 590, 220, 40, true, close));
+  board.appendChild(pBtn('收起圖鑑', 440, 596, 220, 40, true, close));
 }
 
 // ---------- 素材與製作名錄(還原原作 _show_credits)----------
@@ -1410,28 +1414,47 @@ function equipTitle(name) { S.equipped_title = name; save(); }
 
 function achievementCodex() {
   sfx('paper', 0.98, 0.5);
-  const total = Object.keys(S.achievements).filter(k => S.achievements[k]).length;
-  const { content } = boardScroll(920, 624, `江湖成就譜　${total}／${G.achievements.ordered.length}`, '已解成就顯名；未解僅示模糊線索');
+  const A = G.achievements, ord = A.ordered;
+  const gotCount = ord.filter(id => S.achievements[id]).length;
+  const { content } = boardScroll(940, 628, `江湖成就譜　${gotCount}／${ord.length}`, '解鎖後顯名並可佩用稱號；未解僅示模糊線索');
+  content.appendChild(el(`<div class="ach-prog"><div class="ach-prog-fill" style="width:${Math.round(gotCount / ord.length * 100)}%"></div></div>`));
   // 稱號佩印
   const titles = earnedTitles();
-  content.appendChild(el(`<div class="pcat">佩印稱號（點擊佩用）</div>`));
-  const trow = el(`<div class="tchip-row"></div>`);
-  titles.forEach(t => {
-    const chip = el(`<button class="tchip${t === equippedTitle() ? ' on' : ''}">${esc(t)}</button>`);
-    chip.onclick = () => { equipTitle(t); trow.querySelectorAll('.tchip').forEach(c => c.classList.remove('on')); chip.classList.add('on'); sfx('paper', 1.1, 0.3); };
-    trow.appendChild(chip);
-  });
-  content.appendChild(trow);
-  for (const [ck, cat] of Object.entries(G.achievements.categories)) {
-    content.appendChild(el(`<div class="pcat">${esc(cat.name)}</div>`));
-    G.achievements.ordered.filter(id => G.achievements.items[id].category === ck).forEach(id => {
-      const a = G.achievements.items[id], got = S.achievements[id];
-      const tr = got && a.title_reward ? `<span class="prow-tr">稱號「${esc(a.title_reward)}」</span>` : '';
-      content.appendChild(el(`<div class="prow${got ? '' : ' locked'}">
-        <span class="prow-t">${got ? '✦ ' + esc(a.title) : '未解秘印'}</span>
-        <span class="prow-d">${esc(got ? a.description : a.hint)}${tr}</span></div>`));
+  if (titles.length) {
+    content.appendChild(el(`<div class="pcat">佩印稱號（點擊佩用）</div>`));
+    const trow = el(`<div class="tchip-row"></div>`);
+    titles.forEach(t => {
+      const chip = el(`<button class="tchip${t === equippedTitle() ? ' on' : ''}">${esc(t)}</button>`);
+      chip.onclick = () => { equipTitle(t); trow.querySelectorAll('.tchip').forEach(c => c.classList.remove('on')); chip.classList.add('on'); sfx('paper', 1.1, 0.3); };
+      trow.appendChild(chip);
     });
+    content.appendChild(trow);
   }
+  // 篩選頁籤 + 印章徽記格(徽記＝印章;類別以篆意字表示,未解為「密」)
+  const GLYPH = { story: '卷', mastery: '格', relationship: '緣', ending: '終', system: '璽' };
+  const tabs = el(`<div class="ach-tabs"></div>`);
+  const grid = el(`<div class="ach-grid"></div>`);
+  let active = 'all';
+  const renderGrid = () => {
+    grid.innerHTML = '';
+    ord.filter(id => active === 'all' || A.items[id].category === active).forEach(id => {
+      const a = A.items[id], got = S.achievements[id];
+      const tr = got && a.title_reward ? `<span class="ach-tr">稱號「${esc(a.title_reward)}」</span>` : '';
+      grid.appendChild(el(`<div class="ach-card${got ? '' : ' locked'}">
+        <div class="ach-badge ${got ? 'got' : 'locked'}">${got ? (GLYPH[a.category] || '✦') : '密'}</div>
+        <div class="ach-body"><div class="ach-t">${got ? esc(a.title) : '未解秘印'}</div>
+          <div class="ach-d">${esc(got ? a.description : a.hint)}${tr}</div></div></div>`));
+    });
+  };
+  const mkTab = (key, label) => {
+    const t = el(`<button class="ach-tab${key === active ? ' on' : ''}">${esc(label)}</button>`);
+    t.onclick = () => { active = key; tabs.querySelectorAll('.ach-tab').forEach(x => x.classList.remove('on')); t.classList.add('on'); renderGrid(); sfx('paper', 1.05, 0.25); };
+    return t;
+  };
+  tabs.appendChild(mkTab('all', '全部'));
+  Object.entries(A.categories).forEach(([ck, cat]) => tabs.appendChild(mkTab(ck, cat.name)));
+  content.append(tabs, grid);
+  renderGrid();
 }
 
 // ================= 情緣選擇 =================
