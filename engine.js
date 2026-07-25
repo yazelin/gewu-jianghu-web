@@ -379,12 +379,10 @@ function sTitle() {
     mlink('格物先賢譜', () => scientistAtlas()),
     mlink('重看序引', () => replayIntro()),
     mlink('分享', () => shareContent('武俠懸疑包裝的物理解題 RPG——《格物江湖錄:天理殘卷》,可離線遊玩。', G.title_keyart)),
+    mlink('素材與製作名錄', () => creditsPanel()),      // 併入同一排(分享右邊),不再孤立於角落
   ];
   items.forEach((it, i) => { if (i) menu.appendChild(el(`<span class="sep">·</span>`)); menu.appendChild(it); });
   bg.appendChild(menu);
-  const credLink = el(`<button class="tcredits">素材與製作名錄</button>`);   // 移到右下角小連結,不佔按鈕堆
-  credLink.onclick = () => creditsPanel();
-  bg.appendChild(credLink);
   stage.appendChild(bg);
   document.getElementById('lamp')?.classList.add('on');           // 雨夜鐘樓燈火呼吸
   [...col.children].forEach((n, i) => { n.classList.add('slide-in'); n.style.animationDelay = (0.06 + i * 0.1) + 's'; });   // 選單進場動畫
