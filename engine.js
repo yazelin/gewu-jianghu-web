@@ -361,19 +361,20 @@ function sTitle() {
   diffWrap.append(el(`<div class="tseg-label">擇一心法</div>`), seg, desc);
   const bNew = el(`<button class="btn">新案入局｜觀看劇情序引</button>`);
   bNew.onclick = () => { S = newState(); S.difficulty = diff.val; sfx('door'); go('intro'); };
-  // 下左:標語 + 路線 + 心法 + 新案入局
+  // 下左:只留氛圍文案(標語 + 路線)
   const bottom = el(`<div class="t-bottom"></div>`);
   bottom.append(
     el(`<div class="ttag">看懂世界如何運作，才有資格改變命運。</div>`),
-    el(`<div class="troute">十一章懸案｜雙走向承接｜多重結局｜三線情緣</div>`),
-    diffWrap, bNew);
+    el(`<div class="troute">十一章懸案｜雙走向承接｜多重結局｜三線情緣</div>`));
   const savedTitle = (loadSave() || {}).equipped_title;      // 佩印稱號(讀存檔)
   if (savedTitle && savedTitle !== DEFAULT_TITLE) bottom.append(el(`<div class="ttitle">佩印稱號｜${esc(savedTitle)}</div>`));
-  // 右:繼續(次要動作移右側,讓出中央角色與場景)
-  const bCont = el(`<button class="btn ghost t-cont">繼續</button>`);
+  // 右:互動控制整組(擇一心法 + 新案入局 + 繼續),讓出中央角色與場景
+  const bCont = el(`<button class="btn ghost">繼續</button>`);
   bCont.disabled = !hasSave();
   bCont.onclick = () => { S = loadSave() || newState(); render(); };
-  bg.append(kicker, top, bottom, bCont);
+  const right = el(`<div class="t-right"></div>`);
+  right.append(diffWrap, bNew, bCont);
+  bg.append(kicker, top, bottom, right);
   // 次要選項:退為畫面底部一列低調文字連結,保留電影感(不佔主畫面按鈕堆)
   const withSave = (fn) => { const prev = S; S = loadSave() || newState(); fn(); S = prev; };
   const menu = el(`<div class="tmenu"></div>`);
@@ -391,7 +392,7 @@ function sTitle() {
   bg.appendChild(menu);
   stage.appendChild(bg);
   document.getElementById('lamp')?.classList.add('on');           // 雨夜鐘樓燈火呼吸
-  [kicker, ...top.children, ...bottom.children, bCont].forEach((n, i) => { n.classList.add('slide-in'); n.style.animationDelay = (0.05 + i * 0.08) + 's'; });   // 進場動畫
+  [kicker, ...top.children, ...bottom.children, ...right.children].forEach((n, i) => { n.classList.add('slide-in'); n.style.animationDelay = (0.05 + i * 0.08) + 's'; });   // 進場動畫
 }
 
 
