@@ -3,13 +3,31 @@
        字位是算出來的,不用 text-anchor/dominant-baseline 這類依賴字型度量的自動置中:
        量每個字在 100px 下的實際墨跡(canvas actualBoundingBox*),取四字最大邊 101
        得共用縮放 36/101=0.3564(字級 35.64,四字大小一致),再把墨跡中心平移到格心
-       (38,38)(82,38)(38,82)(82,82)——由 ±27 收到 ±22,外側離框與中央間距才平衡。scale(1,1.14) 是篆印慣例的垂直拉伸,繞格心縮放
-       所以不影響置中。 -->
-  <rect x="8.5" y="8.5" width="103" height="103" fill="none" stroke="#a8322a" stroke-width="6"/>
-  <g fill="#a8322a" font-family="Noto Serif TC, Songti TC, PingFang TC, serif" font-weight="700" font-size="35.64">
-    <g transform="translate(38,38) scale(1,1.14) translate(-38,-38)"><text x="20.00" y="51.54">格</text></g>
-    <g transform="translate(82,38) scale(1,1.14) translate(-82,-38)"><text x="64.71" y="51.72">物</text></g>
-    <g transform="translate(38,82) scale(1,1.14) translate(-38,-82)"><text x="20.00" y="94.12">天</text></g>
-    <g transform="translate(82,82) scale(1,1.14) translate(-82,-82)"><text x="64.18" y="95.37">理</text></g>
+       (38,38)(82,38)(38,82)(82,82)——由 ±27 收到 ±22,外側離框與中央間距才平衡。
+       scale(1,1.14) 是篆印慣例的垂直拉伸,繞格心縮放所以不影響置中。
+       最後整體套 #ink 濾鏡 + 輕微歪斜:蓋得太齊就不像印,要有飛白與邊緣缺損。 -->
+  <defs>
+    <filter id="ink" x="-8%" y="-8%" width="116%" height="116%">
+      <!-- 低頻擾動:邊緣不平整,像印泥吃進紙紋 -->
+      <feTurbulence type="fractalNoise" baseFrequency="0.09" numOctaves="4" seed="11" result="rough"/>
+      <feDisplacementMap in="SourceGraphic" in2="rough" scale="1.9"
+                         xChannelSelector="R" yChannelSelector="G" result="edged"/>
+      <!-- 高頻斑點 → 轉成 alpha 當「飛白」遮罩,挖掉部分墨色 -->
+      <feTurbulence type="fractalNoise" baseFrequency="0.5" numOctaves="3" seed="29" result="grain"/>
+      <feColorMatrix in="grain" type="luminanceToAlpha" result="grainA"/>
+      <feComponentTransfer in="grainA" result="speck">
+        <feFuncA type="discrete" tableValues="0 0 0 0 0 0 0 1"/>
+      </feComponentTransfer>
+      <feComposite in="edged" in2="speck" operator="out"/>
+    </filter>
+  </defs>
+  <g filter="url(#ink)" transform="rotate(-2.2 60 60)">
+    <rect x="8.5" y="8.5" width="103" height="103" fill="none" stroke="#a8322a" stroke-width="6"/>
+    <g fill="#a8322a" font-family="Noto Serif TC, Songti TC, PingFang TC, serif" font-weight="700" font-size="35.64">
+      <g transform="translate(38,38) scale(1,1.14) translate(-38,-38)"><text x="20.00" y="51.54">格</text></g>
+      <g transform="translate(82,38) scale(1,1.14) translate(-82,-38)"><text x="64.71" y="51.72">物</text></g>
+      <g transform="translate(38,82) scale(1,1.14) translate(-38,-82)"><text x="20.00" y="94.12">天</text></g>
+      <g transform="translate(82,82) scale(1,1.14) translate(-82,-82)"><text x="64.18" y="95.37">理</text></g>
+    </g>
   </g>
 </svg>
