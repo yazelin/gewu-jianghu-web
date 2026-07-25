@@ -592,26 +592,39 @@ body.reduced #loadbar::before{animation:none;left:0;width:100%;opacity:.5}
 <div id="offbadge" aria-live="polite"><span class="dot"></span><span class="txt"></span></div>
 <script>
 if ('serviceWorker' in navigator) {
-  let updated = false, refreshing = false, packing = false;
-  // 背景離線打包的低調進度徽章(仿客語 repo「畫面持續顯示真實進度」)
-  const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
-  const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
-  function showOffline(done, total, ready, ver) {
+  let updated = false, refreshing = false, warmed = false;
+  // 低調徽章:背景暖快取時顯示「離線打包中 N%」,完成顯示「已可離線遊玩」後淡出
+  function showOffline(done, total, ready) {
     const b = document.getElementById('offbadge'); if (!b) return;
     const t = b.querySelector('.txt');
-    if (!ready) { packing = true; b.classList.add('show'); b.classList.remove('gone', 'ready'); t.textContent = `離線打包中 ${Math.round(done / total * 100)}%`; return; }
-    if (packing || lsGet('gewu_offline_ready') !== ver) {   // 這次真的有打包、或這版第一次就緒 → 報一次「已可離線」
-      lsSet('gewu_offline_ready', ver);
-      b.classList.add('show', 'ready'); b.classList.remove('gone'); t.textContent = '已可離線遊玩';
-      setTimeout(() => b.classList.add('gone'), 1800);
-      setTimeout(() => { b.classList.remove('show', 'gone', 'ready'); packing = false; }, 2600);
-    }
+    if (!ready) { b.classList.add('show'); b.classList.remove('gone', 'ready'); t.textContent = `離線打包中 ${Math.round(done / total * 100)}%`; return; }
+    b.classList.add('show', 'ready'); b.classList.remove('gone'); t.textContent = '已可離線遊玩';
+    setTimeout(() => b.classList.add('gone'), 1800);
+    setTimeout(() => b.classList.remove('show', 'gone', 'ready'), 2600);
   }
-  navigator.serviceWorker.addEventListener('message', e => { if (e.data && e.data.type === 'offline') showOffline(e.data.done, e.data.total, e.data.ready, e.data.ver); });
-  navigator.serviceWorker.ready.then(reg => { (navigator.serviceWorker.controller || reg.active)?.postMessage({ type: 'offline-status' }); });
-  // 只在「已有舊 SW 在控制時偵測到新版」才算更新(首次造訪的初次接管不重載)
+  // 頁面主導的背景暖快取(仿客語 repo「畫面持續顯示真實進度」):向 SW 取完整清單,
+  // 逐一 fetch——命中快取即秒過、未快取才走網路下載;真的有下載(>600ms)才顯示徽章,全快取的回訪則靜默
+  function askList() {
+    return new Promise(res => {
+      const sw = navigator.serviceWorker.controller; if (!sw) { res(null); return; }
+      const ch = new MessageChannel(); ch.port1.onmessage = ev => res(ev.data);
+      sw.postMessage({ type: 'offline-list' }, [ch.port2]);
+      setTimeout(() => res(null), 5000);
+    });
+  }
+  async function warmOffline() {
+    const data = await askList(); if (!data || !data.list) return;
+    const list = data.list, total = list.length; let done = 0, shown = false; const t0 = Date.now();
+    const tick = () => { done++; if (done < total && (shown || Date.now() - t0 > 600)) { shown = true; showOffline(done, total, false); } };
+    for (let i = 0; i < total; i += 6) await Promise.all(list.slice(i, i + 6).map(u => fetch(u).then(() => {}, () => {}).then(tick)));   // 併發 6 條
+    if (shown) showOffline(total, total, true);   // 只有真的下載過才報「已可離線」;全快取回訪保持安靜
+    window.__offlineReady = true;
+  }
+  function tryWarm() { if (warmed || !navigator.serviceWorker.controller) return; warmed = true; setTimeout(warmOffline, 1000); }
+  navigator.serviceWorker.ready.then(tryWarm);
   navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (updated && !refreshing) { refreshing = true; location.reload(); }   // 新 SW 真正接管才重載 → 拿到新快取的新圖
+    if (updated && !refreshing) { refreshing = true; location.reload(); return; }   // 新 SW 真正接管才重載 → 拿到新快取的新圖
+    tryWarm();   // 首次接管(非更新)→ 開始背景暖快取
   });
   navigator.serviceWorker.register('sw.js').then(reg => {
     reg.addEventListener('updatefound', () => { if (navigator.serviceWorker.controller) { updated = true; document.getElementById('loadbar')?.classList.remove('done'); } });   // 有新版 → 重新顯示載入條,直到重整(把更新重整包進「載入中」)

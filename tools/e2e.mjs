@@ -143,7 +143,8 @@ ok('公式站 design.html', (await page.evaluate(async () => (await fetch('desig
 
 // ---- 5) 離線:Service Worker 全量 precache + 斷網重載 + 未播音檔命中 ----
 await page.waitForFunction(() => navigator.serviceWorker.controller !== null, { timeout: 15000 }).catch(() => {});
-await page.waitForTimeout(4000);
+await page.waitForFunction(() => window.__offlineReady === true, { timeout: 45000 }).catch(() => {});   // 等頁面主導的背景暖快取跑完
+await page.waitForTimeout(500);
 const cached = await page.evaluate(async (c) => { try { return (await (await caches.open(c)).keys()).length; } catch { return 0; } }, CACHE);
 ok(`Service Worker 全量快取(${CACHE})`, cached > 100, `${cached} 檔`);
 await ctx.setOffline(true);
