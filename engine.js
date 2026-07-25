@@ -1017,19 +1017,45 @@ function scientistAtlas() {
   sfx('paper', 1.0, 0.6);
   const { board, close } = boardOverlay(75, 45, 1130, 635, 115);
   const sc = G.scientists;
-  board.append(
-    pLbl('格物先賢譜｜物理科學家關係圖', 35, 20, 1060, 29, 'var(--br)', { align: 'center', bold: true }),
-    pLbl('青線＝概念承接　朱線＝同期爭論／競逐　點擊人物查看章回用途', 40, 64, 1050, 14, 'var(--pa2)', { align: 'center' }));
-  const graph = el(`<div style="position:absolute;left:45px;top:100px;width:1040px;height:330px"></div>`);
-  const svg = ['<svg width="1040" height="330" style="position:absolute;inset:0;pointer-events:none">'];
-  for (const e of sc.edges) svg.push(`<line x1="${e.from[0]}" y1="${e.from[1]}" x2="${e.to[0]}" y2="${e.to[1]}" stroke="${e.color === 'cinnabar' ? 'var(--cin)' : 'var(--jade)'}" stroke-width="2"/>`);
-  svg.push('</svg>'); graph.innerHTML = svg.join('');
-  const detail = pLbl('先賢譜不是背人名：每條線都要回到可觀察的現象與可驗證的模型。', 65, 452, 1000, 18, 'var(--pa)', { align: 'center', wrap: true });
+  const reduced = isReduced();
+  board.append(pLbl('格物先賢譜｜物理科學家關係圖', 35, 20, 1060, 29, 'var(--br)', { align: 'center', bold: true }));
+  // 圖例:青線＝概念承接、朱線＝同期爭論/競逐
+  board.append(el(`<div class="atlas-legend" style="position:absolute;left:40px;top:62px;width:1050px">
+    <span class="lg"><span class="sw" style="color:var(--jade);background:linear-gradient(90deg,var(--jade),#8fd4b4)"></span>概念承接</span>
+    <span class="lg"><span class="sw" style="color:var(--cin);background:linear-gradient(90deg,var(--cin),#e07a5f)"></span>同期爭論／競逐</span>
+    <span class="lg" style="opacity:.72">點擊人物查看章回用途</span></div>`));
+  const graph = el(`<div class="atlas-wrap" style="left:45px;top:100px;width:1040px;height:330px"></div>`);
+  // 曲線發光連線 + 能量流動(端點沿用原作座標,錨在方框周邊;內容 1:1,只升級表現)
+  const curve = (a, b) => {
+    const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2, dx = b[0] - a[0], dy = b[1] - a[1], L = Math.hypot(dx, dy) || 1, o = 18;
+    return `M${a[0]} ${a[1]} Q${(mx - dy / L * o).toFixed(1)} ${(my + dx / L * o).toFixed(1)} ${b[0]} ${b[1]}`;
+  };
+  const parts = [`<svg width="1040" height="330" style="position:absolute;inset:0;pointer-events:none">
+    <defs>
+      <filter id="atlasGlow" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="2.4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      <linearGradient id="gJade"><stop offset="0" stop-color="var(--jade)"/><stop offset="1" stop-color="#9be8c1"/></linearGradient>
+      <linearGradient id="gCin"><stop offset="0" stop-color="var(--cin)"/><stop offset="1" stop-color="#e5836a"/></linearGradient>
+    </defs>`];
+  for (const e of sc.edges) {
+    const d = curve(e.from, e.to), g = e.color === 'cinnabar' ? 'gCin' : 'gJade';
+    parts.push(`<path d="${d}" fill="none" stroke="url(#${g})" stroke-width="2.4" stroke-linecap="round" filter="url(#atlasGlow)" opacity=".92"/>`);
+    if (!reduced) parts.push(`<path d="${d}" fill="none" stroke="#f6ecd2" stroke-width="1.3" stroke-linecap="round" stroke-dasharray="2 15" opacity=".5"><animate attributeName="stroke-dashoffset" from="0" to="-34" dur="1.7s" repeatCount="indefinite"/></path>`);
+  }
+  parts.push('</svg>');
+  graph.innerHTML = parts.join('');
+  // 銘刻式詳情牌(置於圖下方)
+  const detail = el(`<div class="atlas-detail" style="left:60px;top:448px;width:1010px;min-height:76px"></div>`);
+  detail.textContent = '先賢譜不是背人名：每條線都要回到可觀察的現象與可驗證的模型。';
   const active = (sc.active_by_chapter[String(S.chapter)]) || sc.active_default;
+  let selBtn = null;
   for (const id of sc.order) {
     const n = sc.nodes[id], on = active.includes(id);
-    const btn = el(`<button class="pbtn${on ? ' go' : ''}" style="left:${n.pos[0]}px;top:${n.pos[1]}px;width:150px;height:58px;flex-direction:column;line-height:1.3;font-size:14px;padding:0 4px">${esc(n.name)}<span style="font-size:11px;opacity:.82">${esc(n.chapter)}</span></button>`);
-    btn.onclick = () => { detail.innerHTML = `<b>${esc(n.name)}</b>｜${esc(n.years)}<br>${esc(n.detail)}`; sfx('paper', 1.08, 0.32); };
+    const btn = el(`<button class="atlas-node${on ? ' on' : ''}" style="left:${n.pos[0]}px;top:${n.pos[1]}px">${on ? '<span class="relic"></span>' : ''}<span class="nm">${esc(n.name)}</span><span class="ch">${esc(n.chapter)}</span></button>`);
+    btn.onclick = () => {
+      if (selBtn) selBtn.classList.remove('sel'); btn.classList.add('sel'); selBtn = btn;
+      detail.innerHTML = `<span><b style="color:#ffe6a6">${esc(n.name)}</b>　<span style="color:var(--br)">${esc(n.years)}</span><br><span style="opacity:.92">${esc(n.detail)}</span></span>`;
+      sfx('paper', 1.08, 0.32);
+    };
     graph.appendChild(btn);
   }
   board.append(graph, detail, pBtn('收起先賢譜', 455, 565, 220, 44, true, close));

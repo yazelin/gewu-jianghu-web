@@ -68,7 +68,7 @@ html,body{height:100%;background:#000;overflow:hidden;
 @keyframes slideIn{from{opacity:0;transform:translateX(-18px)}to{opacity:1;transform:none}}
 .slide-in{animation:slideIn .55s cubic-bezier(.2,.7,.2,1) both}
 /* 減少動態:停止推鏡與裝飾動畫,保留靜態構圖(還原原作 reduced_motion) */
-body.reduced .bg,body.reduced .slide-in,body.reduced #lamp,body.reduced #book,body.reduced .gtitle{animation:none!important}
+body.reduced .bg,body.reduced .slide-in,body.reduced #lamp,body.reduced #book,body.reduced .gtitle,body.reduced .atlas-node.on{animation:none!important}
 body.reduced #rain{display:none}
 /* 燈火呼吸(暖光脈動,覆於題名雨夜構圖)*/
 #lamp{position:absolute;inset:0;z-index:7;pointer-events:none;opacity:0;transition:opacity .6s;
@@ -132,6 +132,37 @@ body.reduced #rain{display:none}
 .prow.play:hover{background:rgba(168,50,42,.15)}
 .prow .mplay{color:var(--jade);width:20px;flex:none}
 .prow-tr{color:var(--br);font-size:.78rem;margin-left:10px;white-space:nowrap}
+/* 格物先賢譜:星圖式關係圖(概念承接=青、爭論競逐=朱);節點=鎏金銅牌印,本回活躍者呼吸發光 */
+.atlas-wrap{position:absolute;border-radius:14px;
+  background:
+    radial-gradient(130% 100% at 50% 0%,rgba(38,52,54,.5),rgba(6,12,13,.15) 62%),
+    radial-gradient(80% 70% at 82% 88%,rgba(60,30,26,.28),transparent 60%),
+    rgba(6,11,12,.4);
+  box-shadow:inset 0 0 70px rgba(0,0,0,.55),inset 0 0 0 1px rgba(138,107,58,.28)}
+.atlas-node{position:absolute;width:150px;height:58px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:2px;cursor:pointer;border-radius:10px;line-height:1.25;
+  background:linear-gradient(162deg,rgba(40,33,22,.96),rgba(19,16,12,.96));
+  border:1px solid var(--br);color:var(--pa2);box-shadow:0 3px 12px rgba(0,0,0,.5);
+  transition:transform .18s,box-shadow .18s,border-color .18s,color .18s;font-family:inherit}
+.atlas-node .nm{font-size:15px;letter-spacing:.06em;color:#e9dcc0;font-weight:600}
+.atlas-node .ch{font-size:10.5px;letter-spacing:.02em;opacity:.72;padding:0 4px;text-align:center}
+.atlas-node:hover{transform:translateY(-3px);border-color:var(--gold);color:#f3ead6;box-shadow:0 9px 24px rgba(0,0,0,.62)}
+.atlas-node.on{border-color:var(--gold);
+  background:linear-gradient(162deg,rgba(72,55,26,.96),rgba(33,25,13,.97));animation:atlasBreath 4.6s ease-in-out infinite}
+.atlas-node.on .nm{color:#ffe6a6}
+.atlas-node.sel{border-color:var(--jade)!important;color:#eafaf1!important;
+  box-shadow:0 0 0 2px rgba(95,163,131,.6),0 0 26px rgba(95,163,131,.42)!important;animation:none}
+@keyframes atlasBreath{0%,100%{box-shadow:0 0 0 1px rgba(201,162,75,.4),0 0 15px rgba(201,162,75,.2)}
+  50%{box-shadow:0 0 0 1px rgba(201,162,75,.62),0 0 30px rgba(201,162,75,.42)}}
+.atlas-node .relic{position:absolute;top:-6px;right:-6px;width:13px;height:13px;border-radius:50%;
+  background:radial-gradient(circle at 40% 35%,#ffe9ad,#c9a24b 70%);box-shadow:0 0 9px rgba(201,162,75,.85)}
+.atlas-legend{display:flex;gap:20px;align-items:center;justify-content:center;flex-wrap:wrap}
+.atlas-legend .lg{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--pa2);letter-spacing:.04em}
+.atlas-legend .sw{width:28px;height:3px;border-radius:2px;box-shadow:0 0 6px currentColor}
+.atlas-detail{position:absolute;border-radius:11px;border:1px solid var(--br);text-align:center;
+  background:linear-gradient(180deg,rgba(22,19,14,.72),rgba(11,9,7,.72));backdrop-filter:blur(2px);
+  display:flex;align-items:center;justify-content:center;padding:12px 26px;font-size:15px;color:var(--pa);
+  line-height:1.7;box-shadow:0 6px 22px rgba(0,0,0,.4)}
 /* 稱號佩印 */
 .tchip-row{display:flex;flex-wrap:wrap;gap:8px;padding:4px 0 8px}
 .tchip{background:rgba(20,17,14,.7);border:1px solid var(--br);color:var(--pa2);font-family:inherit;font-size:.88rem;
