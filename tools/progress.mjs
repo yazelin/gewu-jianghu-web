@@ -91,7 +91,24 @@ await page.evaluate((k) => {
   s.seen_normal = []; s.seen_finale = []; localStorage.setItem(k, JSON.stringify(s));
 }, SAVE);
 await page.reload({ waitUntil: 'load' }); await page.waitForTimeout(1000);
-ok('沒通關過時「選章」是停用的', await page.locator('button.btn', { hasText: '選章' }).first().isDisabled());
+// 按不動時不能是「灰掉不講原因」——要說得出為什麼
+await page.locator('button.btn', { hasText: '選章' }).first().click();
+await page.waitForTimeout(400);
+const gate1 = await page.evaluate(() => document.querySelector('.modal .sheet')?.innerText || '');
+ok('沒通關過時,選章會說明原因而不是灰掉', /通關一次/.test(gate1), gate1.split('\n')[0] || '沒有視窗');
+await page.evaluate(() => document.querySelectorAll('.modal').forEach(m => m.remove()));
+
+// 通關過但存檔沒有快照(更新前就存在的舊存檔)→ 要講清楚怎麼辦,不能只是按不動
+await page.evaluate((k) => {
+  const s = JSON.parse(localStorage.getItem(k)); s.seen_normal = ['people_witness']; delete s.checkpoints;
+  localStorage.setItem(k, JSON.stringify(s));
+}, SAVE);
+await page.reload({ waitUntil: 'load' }); await page.waitForTimeout(1000);
+await page.locator('button.btn', { hasText: '選章' }).first().click();
+await page.waitForTimeout(400);
+const gate2 = await page.evaluate(() => document.querySelector('.modal .sheet')?.innerText || '');
+ok('舊存檔(無快照)會解釋原因並給出路', /沒有章節快照/.test(gate2) && /重來本章/.test(gate2), gate2.split('\n')[0] || '沒有視窗');
+await page.evaluate(() => document.querySelectorAll('.modal').forEach(m => m.remove()));
 
 // ---- 5) 通關過 + 有快照 → 選章回到該章當時的好感 ----
 await page.evaluate(({ save, codex }) => {

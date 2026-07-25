@@ -529,10 +529,10 @@ function confirmModal(title, body, note, okLabel, onOk) {
   const sheet = m.querySelector('.sheet');
   const row = el(`<div style="display:flex;gap:.6rem;justify-content:center"></div>`);
   const ok = el(`<button class="btn">${esc(okLabel)}</button>`);
-  ok.onclick = () => { m.remove(); onOk(); };
-  const no = el(`<button class="btn ghost">取消</button>`);
-  no.onclick = () => m.remove();
-  row.append(ok, no); sheet.appendChild(row);
+  ok.onclick = () => { m.remove(); if (onOk) onOk(); };
+  row.append(ok);
+  if (onOk) { const no = el(`<button class="btn ghost">取消</button>`); no.onclick = () => m.remove(); row.append(no); }   // onOk 為空 = 純告知,不需要取消
+  sheet.appendChild(row);
   m.onclick = (e) => { if (e.target === m) m.remove(); };
   stage.appendChild(m);
 }
@@ -651,8 +651,19 @@ function sTitle() {
   // 這是收集全成就的正路——不必新案,結局才會累加。
   const chapters = Object.keys((loadSave() || {}).checkpoints || {}).map(Number).sort((a, b) => a - b);
   const bSel = el(`<button class="btn ghost">選章</button>`);
-  bSel.disabled = !(clearedOnce() && chapters.length > 1);
-  bSel.onclick = () => chapterSelect();
+  // 不做「灰掉但不講原因」的按鈕——按不動的時候要說得出為什麼、以及怎麼辦
+  bSel.onclick = () => {
+    if (!hasSave())
+      return confirmModal('選章', '還沒有存檔。', '先開一局吧。', '知道了', null);
+    if (!clearedOnce())
+      return confirmModal('選章尚未開放', '通關一次（看到任一結局）之後才會開放選章。', '第一輪請照順序走完。', '知道了', null);
+    if (!chapters.length)
+      return confirmModal('這份存檔沒有章節快照',
+        '選章是回到「該章開始時」的完整狀態——好感、旗標、已收證據都照當時。這份存檔是在選章功能加進來之前建立的，那些狀態沒有被記錄下來，沒辦法回頭補。',
+        '從下一次進入新章節開始就會自動記錄。想馬上用的話可以直接開新局——成就與結局圖鑑現在不會被清掉，重跑一輪不會損失任何收集進度。想重玩目前這一章，用遊戲中選單的「重來本章」。',
+        '知道了', null);
+    chapterSelect();
+  };
   const right = el(`<div class="t-right"></div>`);
   right.append(bNew, bSel, bCont);
   bg.append(kicker, top, bottom, diffWrap, right);   // 心法 diffWrap 置頂端右側(t-diff)
