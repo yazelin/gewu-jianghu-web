@@ -1097,11 +1097,17 @@ function endingGallery() {
   board.appendChild(pBtn('收起圖鑑', 440, 596, 220, 40, true, close));
 }
 
-// ---------- 素材與製作名錄(還原原作 _show_credits)----------
-// ---------- 素材與製作名錄：電影式滾動片尾(有梗也實在;特別感謝格物先賢,動態帶入)----------
+// ---------- 素材與製作名錄:電影式滾動片尾(片尾曲清單循環 + 幕後花絮膠捲 + 可暫停/前後翻)----------
 function creditsPanel() {
   sfx('paper', 1.0, 0.5);
   const reduced = isReduced();
+  // 片尾曲清單:結局曲起頭,循環播(換曲靠監聽 ended,關閉時還原)
+  const PLAYLIST = ['chapter9_ending', 'chapter6_observatory', 'oriental_calm'];
+  let pIdx = 0;
+  const playNext = () => { playMusic(PLAYLIST[pIdx % PLAYLIST.length]); pIdx++; };
+  const onEnded = () => playNext();
+  playNext();
+  if (_audio) { _audio.loop = false; _audio.addEventListener('ended', onEnded); }
   const ov = el(`<div class="roll-ov"></div>`);
   const track = el(`<div class="roll-track"></div>`);
   // 特別感謝的先賢:由 scientists 資料依年代帶入(名字＋領域),與先賢譜同源
@@ -1109,7 +1115,7 @@ function creditsPanel() {
     const n = G.scientists.nodes[id], dom = (n.chapter.split('｜')[1] || n.chapter).trim();
     return `<div class="roll-sci"><span class="s-nm">${esc(n.name)}</span><span class="s-dm">${esc(dom)}</span></div>`;
   }).join('');
-  const html = [
+  track.innerHTML = [
     `<div class="roll-film-title">格物江湖錄</div>`,
     `<div class="roll-film-sub">天 理 殘 卷　・　網頁離線版</div>`,
     `<div class="roll-role">原著・劇情・原始程式</div><div class="roll-name">@changyi123456<small>概念與整套物理謎題的源頭</small></div>`,
@@ -1133,22 +1139,67 @@ function creditsPanel() {
     `<div class="roll-quip">感謝雨，從序章到片尾都沒停過<br>感謝那口鐘，願意被算進一道題<br>感謝每一顆被當成誤差的螺絲<br>製作過程沒有動物受傷<br>但有幾個 bug 英勇犧牲</div>`,
     `<div class="roll-role">致</div><div class="roll-name">每一位願意追問<br>「這到底是怎麼運作的」的人</div>`,
     `<div class="roll-quip" style="margin-top:42px">完整作者、原始網址、逐檔雜湊與授權<br>見 provenance／asset-ledger.csv</div>`,
-  ];
-  if (reduced) html.push(`<div class="roll-epi" style="margin-top:64px">看懂世界如何運作，<br>才有資格改變命運。</div>`);
-  track.innerHTML = html.join('');
+    `<div class="roll-epi" style="margin-top:76px">看懂世界如何運作，<br>才有資格改變命運。</div>`,
+    `<div class="roll-quip" style="margin-top:8px">——　敬　每一位願意追問的人</div>`,
+  ].join('');
   ov.appendChild(track);
-  if (!reduced) {                                    // 動畫版:捲完淡入定格結語
-    const finalEl = el(`<div class="roll-final"><div class="roll-epi">看懂世界如何運作，<br>才有資格改變命運。</div><div class="roll-quip">——　敬　每一位願意追問的人</div></div>`);
-    ov.appendChild(finalEl);
-    track.addEventListener('animationend', () => finalEl.classList.add('show'));
-  }
+  // 幕後花絮膠捲(左側 PiP,輪播場景/角色/結局/格物證物 + NG 字幕)
+  const imgs = [...new Set([].concat(
+    G.story_intro.map(s => s.image), G.chapters.map(c => c.background),
+    Object.values(G.portraits || {}), Object.values(G.endings_finale).map(e => e.image),
+    Object.values(G.endings_ch9).map(e => e.image), [G.prologue.background],
+    G.prologue.hotspots.map(h => h.cell)))].filter(Boolean);
+  const caps = ['幕後花絮 · 這顆鏡拍了很多次', 'NG · 雨一直下，收音組崩潰', 'NG · 這口鐘，比想像中重很多', '花絮 · 臨演三千人，便當訂到手軟', 'NG · 主角堅持親自翻書', '花絮 · 這道題，作者自己也算了兩遍', 'NG · 燈籠又被風吹熄', '幕後 · 證物道具組加班中', '花絮 · 導演說，再下大一點的雨'];
+  const reel = el(`<div class="roll-reel"><div class="roll-reel-frame"><div class="rr-imgs"><img class="rr-a"><img class="rr-b"><div class="rr-badge">● 幕後花絮</div><div class="rr-take">TAKE 01</div></div></div><div class="rr-cap"></div></div>`);
+  const imA = reel.querySelector('.rr-a'), imB = reel.querySelector('.rr-b'), take = reel.querySelector('.rr-take'), cap = reel.querySelector('.rr-cap');
+  let ri = 0, front = imA;
+  imA.src = imgs[0]; imA.style.opacity = 1; cap.textContent = caps[0];
+  const advanceReel = () => {
+    ri = (ri + 1) % imgs.length;
+    const back = front === imA ? imB : imA;
+    back.src = imgs[ri]; back.style.opacity = 1; front.style.opacity = 0; front = back;
+    take.textContent = 'TAKE ' + String((ri % 24) + 1).padStart(2, '0');
+    cap.textContent = caps[ri % caps.length];
+  };
+  ov.appendChild(reel);
+  // 控制列(暫停/播放)+ 關閉
+  const ctrl = el(`<div class="roll-ctrl"></div>`);
+  const btnPause = el(`<button class="roll-btn">${reduced ? '播放' : '暫停'}</button>`);
+  ctrl.append(btnPause, el(`<span class="roll-hint">滾輪或拖曳可前後翻閱</span>`));
+  ov.appendChild(ctrl);
   const closeBtn = el(`<button class="roll-close">關閉</button>`);
-  const close = () => ov.remove();
-  closeBtn.onclick = close;
   ov.appendChild(closeBtn);
-  ov.addEventListener('click', (e) => { if (e.target === ov) close(); });   // 點背景收起
   stage.appendChild(ov);
-  if (!reduced) requestAnimationFrame(() => track.classList.add('rolling'));
+  // 可控捲動:pos 由 -730(片頭在畫面下方)捲到 maxPos(結語近中央);reduced 預設暫停
+  let pos = -730, paused = reduced, raf = 0, lastT = 0, reelAcc = 0, dragY = null;
+  const H = () => track.scrollHeight;
+  const apply = () => { track.style.transform = `translateY(${-pos}px)`; };
+  const clampPos = () => { pos = Math.max(-760, Math.min(H() - 420, pos)); };
+  apply();
+  btnPause.onclick = () => { paused = !paused; btnPause.textContent = paused ? '播放' : '暫停'; sfx('paper', 1.05, 0.25); };
+  ov.addEventListener('wheel', (e) => { pos += e.deltaY * 0.6; clampPos(); apply(); }, { passive: true });
+  ov.addEventListener('pointerdown', (e) => { if (e.target.closest('.roll-btn,.roll-close')) return; dragY = e.clientY; });
+  const onMove = (e) => { if (dragY == null) return; pos -= (e.clientY - dragY); dragY = e.clientY; clampPos(); apply(); };
+  const onUp = () => { dragY = null; };
+  addEventListener('pointermove', onMove); addEventListener('pointerup', onUp);
+  const frame = (t) => {
+    raf = requestAnimationFrame(frame);
+    const dt = lastT ? Math.min((t - lastT) / 1000, 0.05) : 0; lastT = t;
+    if (!paused && dragY == null) {
+      pos += 52 * dt; const mx = H() - 420; if (pos > mx) pos = mx;
+      reelAcc += dt; if (reelAcc >= 4) { reelAcc = 0; advanceReel(); }
+    }
+    apply();
+  };
+  raf = requestAnimationFrame(frame);
+  const close = () => {
+    cancelAnimationFrame(raf);
+    removeEventListener('pointermove', onMove); removeEventListener('pointerup', onUp);
+    if (_audio) { _audio.removeEventListener('ended', onEnded); _audio.loop = true; }
+    playMusic(MUSIC.ambient);                        // 還原題名背景樂
+    ov.remove();
+  };
+  closeBtn.onclick = close;
 }
 
 // ================= 破局戰(氣勢答題) =================
