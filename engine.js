@@ -23,6 +23,8 @@ const newState = () => ({
   inventory: { ...(G.logic.start_inventory) }, choices: {}, cleared: [], intro_seen: false,
   flags: {}, rewarded: {}, normal_ending: '', finale_ending: '', romance: '', achievements: {},
   difficulty: '行俠', perfect: {}, grandmaster: {}, seen_normal: [], seen_finale: [],
+  checkpoints: {},                 // 各章入口快照,供通關後選章回頭
+  ...codexSeed(),                  // 成就/結局圖鑑/難度紀錄跨周目保留(新案不清)
 });
 
 // ---------- 音樂(按需 lazy 載入,缺檔靜音) ----------
@@ -365,9 +367,40 @@ function grantChapterRewards(secured) {
   if (secured >= 6) { if (S.qishi_max < G.max_qishi) S.qishi_max++; give(r.ev6); }
   return got;
 }
-const save = () => localStorage.setItem(SAVE_KEY, JSON.stringify(S));
+// ---------- 收藏庫:屬於「玩家」而非「這一局」的紀錄,新案入局不清 ----------
+// 沒有這層的話,集滿型成就永遠拿不到:ending_all_normal 要同一份存檔裡累積 4 個普通結局,
+// 但結局由第 1~9 章累積的好感決定,唯一能改前面章節的方法(新案)剛好把 seen_normal 清成 []。
+// rewarded 不放進來——那是「本章獎勵已發過」的本局狀態,重來本章要能重發。
+const CODEX_KEY = 'gewu_codex_v1';
+const CODEX_FIELDS = ['achievements', 'rewarded_titles', 'seen_normal', 'seen_finale', 'perfect', 'grandmaster'];
+const loadCodex = () => { try { return JSON.parse(localStorage.getItem(CODEX_KEY)) || {}; } catch { return {}; } };
+const mergeCodex = (src) => {                       // 只進不出:旗標 OR、清單聯集
+  if (!src) return;
+  const c = loadCodex();
+  for (const f of CODEX_FIELDS) {
+    const v = src[f]; if (!v) continue;
+    if (Array.isArray(v)) c[f] = [...new Set([...(c[f] || []), ...v])];
+    else if (typeof v === 'object') c[f] = { ...(c[f] || {}), ...v };
+  }
+  if (src.equipped_title) c.equipped_title = src.equipped_title;
+  try { localStorage.setItem(CODEX_KEY, JSON.stringify(c)); } catch { }
+};
+const codexSeed = () => {                           // 開新局時把收藏庫倒回 S,成就譜/結局圖鑑才跨周目連續
+  const c = loadCodex(), out = {};
+  for (const f of CODEX_FIELDS) if (c[f]) out[f] = Array.isArray(c[f]) ? [...c[f]] : { ...c[f] };
+  if (c.equipped_title) out.equipped_title = c.equipped_title;
+  return out;
+};
+const clearedOnce = () => { const c = loadCodex(); return (c.seen_normal || []).length > 0 || (c.seen_finale || []).length > 0; };
+
+const save = () => { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); mergeCodex(S); };
 const loadSave = () => { try { return JSON.parse(localStorage.getItem(SAVE_KEY)); } catch { return null; } };
 const hasSave = () => !!localStorage.getItem(SAVE_KEY);
+// 進章當下的快照:選章就是回到這個點,好感/旗標/證據都照當時,結局判定才不會算出亂七八糟的結果
+function checkpoint() {
+  const snap = { ...S }; delete snap.checkpoints;
+  S.checkpoints = { ...(S.checkpoints || {}), [S.chapter]: snap };
+}
 
 // ---------- 工具 ----------
 const el = (html) => { const d = document.createElement('div'); d.innerHTML = html.trim(); return d.firstElementChild; };
@@ -423,7 +456,7 @@ async function shareContent(text, imageUrl) {
   const prof = { title: DEFAULT_TITLE, achN: Object.values(sv.achievements || {}).filter(Boolean).length, endN: (sv.seen_normal || []).length + (sv.seen_finale || []).length };
   let curTitle = titles.includes(sv.equipped_title) ? sv.equipped_title : DEFAULT_TITLE;
   let blob = null, cardUrl = imageUrl, fullText = '';
-  const setEquipped = (name) => { const s = loadSave(); if (s) { s.equipped_title = name; localStorage.setItem(SAVE_KEY, JSON.stringify(s)); } S.equipped_title = name; };   // 只改稱號欄,保留其餘存檔
+  const setEquipped = (name) => { const s = loadSave(); if (s) { s.equipped_title = name; localStorage.setItem(SAVE_KEY, JSON.stringify(s)); } S.equipped_title = name; mergeCodex({ equipped_title: name }); };   // 只改稱號欄,保留其餘存檔
   const { ov, board, close } = boardOverlay(300, 48, 680, 618, 120, () => done());
   const done = () => { if (blob) URL.revokeObjectURL(cardUrl); close(); };
   const box = el(`<div class="share-box">
@@ -486,6 +519,54 @@ function render() {
   }[S.scene] || sTitle)();
 }
 
+// 通用確認視窗(沿用選單的 .modal/.sheet 排版)
+function confirmModal(title, body, note, okLabel, onOk) {
+  const m = el(`<div class="modal"><div class="sheet" style="max-width:460px;text-align:center">
+    <h2 style="border:0">${esc(title)}</h2>
+    <div style="color:var(--pa);margin:.2rem 0 .8rem;line-height:1.8">${esc(body)}</div>
+    ${note ? `<div style="color:var(--pa2);font-size:.9rem;margin-bottom:1rem;line-height:1.7">${esc(note)}</div>` : ''}
+  </div></div>`);
+  const sheet = m.querySelector('.sheet');
+  const row = el(`<div style="display:flex;gap:.6rem;justify-content:center"></div>`);
+  const ok = el(`<button class="btn">${esc(okLabel)}</button>`);
+  ok.onclick = () => { m.remove(); onOk(); };
+  const no = el(`<button class="btn ghost">取消</button>`);
+  no.onclick = () => m.remove();
+  row.append(ok, no); sheet.appendChild(row);
+  m.onclick = (e) => { if (e.target === m) m.remove(); };
+  stage.appendChild(m);
+}
+// 選章重走:回到該章入口快照。好感/旗標/證據都回到當時,結局判定才算得對
+// (第 9 章結局是第 1~9 章好感的總和,拿預設值跳章會算出亂七八糟的結果)。
+function chapterSelect() {
+  const sv = loadSave(); if (!sv) return;
+  const cps = sv.checkpoints || {};
+  const ids = Object.keys(cps).map(Number).sort((a, b) => a - b);
+  if (!ids.length) return;
+  const m = el(`<div class="modal"><div class="sheet" style="max-width:560px">
+    <h2>選章重走</h2>
+    <div style="color:var(--pa2);font-size:.9rem;margin:0 0 1rem;line-height:1.8">回到該章開始時的狀態（好感、旗標、已收證據都照當時）。之後的進度會被覆蓋，但成就與結局圖鑑只累加、不會減少——想收齊多重結局走這裡，不要按新案。</div>
+  </div></div>`);
+  const sheet = m.querySelector('.sheet');
+  const grid = el(`<div style="display:flex;flex-wrap:wrap;gap:.5rem;justify-content:center"></div>`);
+  ids.forEach(n => {
+    const c = chById(n);
+    const b = el(`<button class="btn sm">第 ${n} 章｜${esc(c ? c.title : '')}</button>`);
+    b.onclick = () => {
+      m.remove();
+      S = { ...cps[n], checkpoints: cps, ...codexSeed() };   // 回到快照,收藏庫用最新的
+      S.chapter = n; S.scene = 'chapter';
+      sfx('door'); save(); go('chapter');
+    };
+    grid.appendChild(b);
+  });
+  sheet.appendChild(grid);
+  const no = el(`<button class="btn ghost" style="margin-top:1.2rem">取消</button>`);
+  no.onclick = () => m.remove();
+  sheet.appendChild(no);
+  m.onclick = (e) => { if (e.target === m) m.remove(); };
+  stage.appendChild(m);
+}
 // 遊戲中選單:回題名(進度保留)/ 重來本章
 function initMenu() {
   const b = document.getElementById('gmenu');
@@ -546,20 +627,34 @@ function sTitle() {
   dToggle.onclick = () => { const open = !dPop.classList.contains('open'); dPop.classList.toggle('open', open); dToggle.classList.toggle('open', open); if (open) sfx('paper', 1.0, 0.25); };
   diffWrap.append(dToggle, dPop);
   const bNew = el(`<button class="btn">新案入局</button>`);
-  bNew.onclick = () => { S = newState(); S.difficulty = diff.val; sfx('door'); go('intro'); };
+  const startNew = () => { S = newState(); S.difficulty = diff.val; sfx('door'); go('intro'); };
+  // 有存檔就先問:新案會覆蓋唯一的存檔槽(go() 進 intro 當下就 save()),沒得反悔
+  bNew.onclick = () => {
+    const sv = loadSave();
+    if (!sv || (!sv.intro_seen && !(sv.cleared || []).length)) return startNew();   // 沒有實質進度就別煩
+    const ch = sv.chapter || 1, done = (sv.cleared || []).length;
+    confirmModal('新案入局？', `目前存檔在第 ${ch} 章（已通關 ${done} 章）。開新局會覆蓋掉這份進度，無法復原。`,
+      '成就、結局圖鑑與佩印稱號會保留，不受影響。', '開新局', startNew);
+  };
   // 下左:只留氛圍文案(標語 + 路線)
   const bottom = el(`<div class="t-bottom"></div>`);
   bottom.append(
     el(`<div class="ttag">看懂世界如何運作，才有資格改變命運。</div>`),
     el(`<div class="troute">十一章懸案｜雙走向承接｜多重結局｜三線情緣</div>`));
-  const savedTitle = (loadSave() || {}).equipped_title || DEFAULT_TITLE;   // 佩印稱號(讀存檔;預設也固定顯示)
+  const savedTitle = (loadSave() || {}).equipped_title || loadCodex().equipped_title || DEFAULT_TITLE;   // 佩印稱號(讀存檔;預設也固定顯示)
   bottom.append(el(`<div class="ttitle">佩印稱號｜${esc(savedTitle)}</div>`));
   // 右下角:只放新案入局 + 繼續
   const bCont = el(`<button class="btn ghost">繼續</button>`);
   bCont.disabled = !hasSave();
   bCont.onclick = () => { S = loadSave() || newState(); render(); };
+  // 通關過一次就開放選章:回到任一已抵達章節的入口快照,換不同選擇走別的結局。
+  // 這是收集全成就的正路——不必新案,結局才會累加。
+  const chapters = Object.keys((loadSave() || {}).checkpoints || {}).map(Number).sort((a, b) => a - b);
+  const bSel = el(`<button class="btn ghost">選章</button>`);
+  bSel.disabled = !(clearedOnce() && chapters.length > 1);
+  bSel.onclick = () => chapterSelect();
   const right = el(`<div class="t-right"></div>`);
-  right.append(bNew, bCont);
+  right.append(bNew, bSel, bCont);
   bg.append(kicker, top, bottom, diffWrap, right);   // 心法 diffWrap 置頂端右側(t-diff)
   bg.addEventListener('click', (ev) => { if (!diffWrap.contains(ev.target)) closeDiff(); });   // 點空白處收合心法
   // 次要選項:退為畫面底部一列低調文字連結,保留電影感(不佔主畫面按鈕堆)
@@ -813,7 +908,7 @@ function prologueEnding(ending, lizheng, insight) {
   const row = el(`<div style="position:absolute;right:60px;bottom:48px;display:flex;gap:12px;align-items:center"></div>`);
   row.appendChild(shareBtn('分享', `我在《格物江湖錄:天理殘卷》序章走到了「${e.title}」`, G.prologue.background));
   const cont = el(`<button class="btn">進入第一章・殘軸工坊 ▸</button>`);
-  cont.onclick = () => { sfx('door'); go('chapter'); };
+  cont.onclick = () => { sfx('door'); checkpoint(); save(); go('chapter'); };   // 序章結束→第一章:記下第 1 章入口快照
   row.appendChild(cont); lay.appendChild(row); stage.appendChild(lay);
 }
 
@@ -1552,7 +1647,7 @@ function chapterClearScreen(c) {
   const row = el(`<div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap"></div>`);
   row.appendChild(shareBtn('分享通關', `我通關了《格物江湖錄:天理殘卷》${c.title}${perfect ? '（格物無漏！)' : ''}`, c.background));
   const cont = el(`<button class="btn">繼續 ▸</button>`);
-  cont.onclick = () => { S.chapter = c.id + 1; save(); go('chapter'); };
+  cont.onclick = () => { S.chapter = c.id + 1; checkpoint(); save(); go('chapter'); };
   row.append(cont);
   box.appendChild(row);
   lay.querySelector('.scrim').after(box);
@@ -1622,6 +1717,7 @@ function reconcile() {
   const newly = [];
   for (const id of G.achievements.ordered)
     if (!S.achievements[id] && cond[id] && cond[id]()) { S.achievements[id] = true; newly.push(id); }
+  if (newly.length) save();                       // 解鎖當下就寫進存檔與收藏庫,別等下一次順手存
   newly.forEach((id, i) => setTimeout(() => toast('成就解鎖：' + G.achievements.items[id].title), 400 + i * 1400));
   return newly;
 }
@@ -1738,7 +1834,7 @@ function chapter9Endings(c) {
   showEnding(e, unlocked ? () => {
     sfx('door', 0.9, 0.62);         // 穿過隱藏門扉:開門聲(原版 play_sfx 'door'）
     toast('無名度量院的門扉在你身後開啟');
-    S.chapter = 10; save(); go('chapter');
+    S.chapter = 10; checkpoint(); save(); go('chapter');
   } : null, '普通結局', unlocked ? '穿過隱藏門扉 ▸' : '回題名');
 }
 
@@ -1795,6 +1891,7 @@ function showEnding(e, next, badge, label) {
 fetch('data/game.json').then(r => r.json()).then(data => {
   G = data;
   S = loadSave() || newState();
+  mergeCodex(S); Object.assign(S, codexSeed());   // 舊存檔的成就/結局搬進收藏庫,再把收藏庫倒回本局
   S.scene = 'title';                 // 一律回題名;存檔進度保留,按「繼續」才載入
   syncReduced();
   initWeather();
