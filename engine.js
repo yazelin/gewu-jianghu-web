@@ -574,6 +574,23 @@ function chapterSelect() {
   m.onclick = (e) => { if (e.target === m) m.remove(); };
   stage.appendChild(m);
 }
+// ESC = 關掉最上層的視窗,反應與按該視窗的 X 完全一致。
+// 關鍵是「走各視窗自己的關閉路徑」而不是直接 remove():boardOverlay 的 X 走的是
+// onOutside || close,分享視窗、好感面板等靠 onOutside 做收尾,繞過去會漏掉。
+function initEscClose() {
+  addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    const wins = [...stage.querySelectorAll('.povl, .modal, .roll-ov')];   // 全站就這三種視窗家族
+    if (!wins.length) return;
+    // 疊在最上面的那個:先比 z-index,同層再看 DOM 順序(後加的在上)
+    const top = wins.reduce((a, b) =>
+      (+getComputedStyle(b).zIndex || 0) >= (+getComputedStyle(a).zIndex || 0) ? b : a);
+    e.preventDefault();
+    const x = top.querySelector('.pclose, .roll-close');
+    if (x) x.click();          // .povl / .roll-ov:等同按該視窗自己的關閉鈕(含 onOutside、還原配樂等收尾)
+    else top.remove();         // .modal:沒有 X,等同點背景關掉
+  });
+}
 // 遊戲中選單:回題名(進度保留)/ 重來本章
 function initMenu() {
   const b = document.getElementById('gmenu');
@@ -606,7 +623,7 @@ function sTitle() {
   // 上左:標題組(整體偏上)
   const top = el(`<div class="t-top">
     <img class="tlockup" src="assets/img/title_lockup_v1.webp" alt="格物江湖錄:天理殘卷" decoding="async">
-    <div class="tomen">巨鐘未落，真相已先被定罪。</div>
+    <div class="tomen">巨鐘未落，真相已先被定罪。<img class="tseal" src="assets/seal.svg" alt="" aria-hidden="true"></div>
   </div>`);
   // 心法(難度):三檔以提示詳略區分,用武俠語言(還原原作三心法:說書/行俠/宗師)
   // 心法(難度):平時收合成一顆 chip(與安裝同大小),點擊才展開三檔切換;說明只在展開時出現(全形標點)
@@ -1916,6 +1933,7 @@ fetch('data/game.json').then(r => r.json()).then(data => {
   initPWAInstall();
   initAmbient();
   initMenu();
+  initEscClose();
   initAudioUnlock();
   fit();
   render();

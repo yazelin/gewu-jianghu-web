@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120" role="img" aria-label="格物天理 印">
+  <!-- 白文印:朱紅石面,四字鑿空。上排 格物、下排 天理 -->
+  <defs>
+    <mask id="cut">
+      <rect width="120" height="120" fill="#fff"/>
+      <g fill="#000" font-family="Noto Serif TC, Songti TC, PingFang TC, serif" font-weight="700"
+         text-anchor="middle" dominant-baseline="central">
+        <text x="34" y="37" font-size="40">格</text>
+        <text x="86" y="37" font-size="40">物</text>
+        <text x="34" y="86" font-size="40">天</text>
+        <text x="86" y="86" font-size="40">理</text>
+      </g>
+      <!-- 中央十字界格:讓四字分區,像真印的田字格 -->
+      <rect x="59" y="14" width="2" height="92" fill="#000"/>
+      <rect x="14" y="59" width="92" height="2" fill="#000"/>
+    </mask>
+  </defs>
+  <!-- 石面:邊角略帶缺損,避免死板的正方形 -->
+  <path d="M7 5 L114 7 L113 114 L6 112 Z" fill="#a8322a" mask="url(#cut)"/>
+</svg>

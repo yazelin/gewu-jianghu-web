@@ -145,6 +145,21 @@ ok('江湖成就譜(徽記+篩選+進度)', await page.evaluate(() => !!document
 await page.evaluate(() => document.querySelector('.povl')?.remove());
 ok('公式站 design.html', (await page.evaluate(async () => (await fetch('design.html')).status)) === 200);
 
+// ---- 4b) ESC 關窗:三種視窗家族(.povl / .modal / .roll-ov)反應要與按 X 一致 ----
+const escClose = async (openLabel) => {
+  await page.evaluate((l) => [...document.querySelectorAll('.tmenu button')].find(x => x.textContent.includes(l))?.click(), openLabel);
+  await page.waitForTimeout(900);
+  const before = await page.evaluate(() => document.querySelectorAll('.povl,.modal,.roll-ov').length);
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(600);
+  const after = await page.evaluate(() => document.querySelectorAll('.povl,.modal,.roll-ov').length);
+  await page.evaluate(() => document.querySelectorAll('.povl,.modal,.roll-ov').forEach(x => x.remove()));
+  return before > 0 && after === before - 1;
+};
+await page.evaluate(() => go('title')); await page.waitForTimeout(900);
+ok('ESC 關掉成就譜(.povl)', await escClose('江湖成就譜'));
+ok('ESC 關掉殺青片尾(.roll-ov)', await escClose('殺青片尾'));
+
 // ---- 5) 離線:Service Worker 全量 precache + 斷網重載 + 未播音檔命中 ----
 await page.waitForFunction(() => navigator.serviceWorker.controller !== null, { timeout: 15000 }).catch(() => {});
 await page.waitForFunction(() => window.__offlineSettled === true, { timeout: 90000 }).catch(() => {});   // 等背景暖快取收斂(完整與否都會設)
