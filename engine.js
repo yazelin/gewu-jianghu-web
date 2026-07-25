@@ -372,7 +372,7 @@ function grantChapterRewards(secured) {
 // 但結局由第 1~9 章累積的好感決定,唯一能改前面章節的方法(新案)剛好把 seen_normal 清成 []。
 // rewarded 不放進來——那是「本章獎勵已發過」的本局狀態,重來本章要能重發。
 const CODEX_KEY = 'gewu_codex_v1';
-const CODEX_FIELDS = ['achievements', 'rewarded_titles', 'seen_normal', 'seen_finale', 'perfect', 'grandmaster'];
+const CODEX_FIELDS = ['achievements', 'seen_normal', 'seen_finale', 'perfect', 'grandmaster'];   // 稱號由成就推導(earnedTitles),不必另存
 const loadCodex = () => { try { return JSON.parse(localStorage.getItem(CODEX_KEY)) || {}; } catch { return {}; } };
 const mergeCodex = (src) => {                       // 只進不出:旗標 OR、清單聯集
   if (!src) return;

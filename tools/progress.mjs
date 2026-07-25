@@ -84,6 +84,38 @@ ok('新案後成就仍在(這是收集全成就的關鍵)', !!after && Object.ke
 ok('新案後結局圖鑑仍在', !!after && (after.seen_normal || []).includes('people_witness'));
 ok('新案後 rewarded 有歸零(那是本局狀態,不該跨局)', !!after && Object.keys(after.rewarded || {}).length === 0);
 
+// ---- 3b) 全面盤點:每一種「可收集」的東西都要活過新案 ----
+// 這一項是規格,不是抽查:凡是玩家收集得到的,除非他自己清掉本機儲存,都不該因為開新局而消失。
+await page.evaluate(({ save, codex }) => {
+  localStorage.removeItem(codex);
+  localStorage.setItem(save, JSON.stringify({
+    schema: 1, scene: 'chapter', chapter: 9, route: 'A', qishi: 1, qishi_max: 1,
+    affinity: { 柳照微: 4 }, evidence: {}, lost: {}, secured_order: {}, inventory: {}, choices: {},
+    cleared: [1, 2, 3], intro_seen: true, flags: {}, rewarded: { reward_ch3: true },
+    normal_ending: 'people_witness', finale_ending: '', romance: '柳照微',
+    achievements: { story_00_bell: true, story_05_thunder: true, ending_all_normal: true, mastery_perfect_chapter: true },
+    difficulty: '宗師', perfect: { 1: true, 2: true }, grandmaster: { 11: true },
+    seen_normal: ['people_witness', 'archive_sealed'], seen_finale: ['heaven_earth_shared'],
+    equipped_title: '星下校時',
+  }));
+}, { save: SAVE, codex: CODEX });
+await page.reload({ waitUntil: 'load' }); await page.waitForTimeout(1200);
+const before = await read(SAVE);
+await page.locator('button.btn', { hasText: '新案入局' }).first().click();
+await page.waitForTimeout(400);
+await page.evaluate(() => [...document.querySelectorAll('.modal .btn')].find(b => b.textContent.includes('開新局'))?.click());
+await page.waitForTimeout(1500);
+const kept = await read(SAVE);
+const same = (f) => JSON.stringify((kept || {})[f]) === JSON.stringify((before || {})[f]);
+[['achievements', '成就 30 條'], ['seen_normal', '結局圖鑑(普通)'], ['seen_finale', '結局圖鑑(完整版)'],
+ ['perfect', '格物無漏紀錄'], ['grandmaster', '宗師難度紀錄'], ['equipped_title', '已佩用稱號']]
+  .forEach(([f, label]) => ok(`新案後保留:${label}`, same(f), JSON.stringify((kept || {})[f])));
+// 配樂沒有自己的解鎖紀錄,整個掛在成就上 —— 成就活著它就活著
+ok('新案後保留:配樂解鎖(綁成就)', !!(kept && kept.achievements && kept.achievements.story_05_thunder));
+// 反面:本局狀態該歸零,別把進度也一起留下來
+[['cleared', '已通關章節'], ['rewarded', '本章獎勵已發'], ['affinity', '好感'], ['romance', '情緣']]
+  .forEach(([f, label]) => ok(`新案後歸零:${label}`, !same(f), JSON.stringify((kept || {})[f])));
+
 // ---- 4) 選章:沒通關過不給選 ----
 await page.evaluate((k) => localStorage.removeItem(k), CODEX);
 await page.evaluate((k) => {
