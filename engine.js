@@ -247,7 +247,7 @@ function musicGallery() {
   const tabs = el(`<div class="mp-tabs"><button class="mp-tab on" data-f="all">全部</button><button class="mp-tab" data-f="fav">收藏</button></div>`);
   const listCol = el(`<div class="mp-list"></div>`); listCol.append(tabs, rows);
   const wrap = el(`<div class="mp-wrap"></div>`); wrap.append(now, listCol);
-  board.append(wrap, pBtn('關閉', 440, 596, 220, 40, true, () => done()));
+  board.append(wrap);                                          // 關閉改用右上角 X
 
   const playable = () => tracks.filter(m => unlockedOf(m) && (filter === 'all' || fav.has(m.id)));
   const isPlaying = () => !!(_audio && !_audio.paused && curId && _curTrack === GALLERY_FILE[curId]);
@@ -459,8 +459,7 @@ async function shareContent(text, imageUrl) {
       await navigator.share(data);
     } catch (e) { }
   });
-  mk('關閉', done);
-  board.appendChild(box);
+  board.appendChild(box);                                      // 關閉改用右上角 X
   await render();
 }
 function shareBtn(label, text, imageUrl) {
@@ -1050,8 +1049,11 @@ function investigate({ key, background, title, clues, min, onDone, failable, onF
 function boardOverlay(x, y, w, h, z, onOutside) {
   const ov = el(`<div class="povl" style="z-index:${z}"></div>`);
   const board = el(`<div class="pboard" style="left:${x}px;top:${y}px;width:${w}px;height:${h}px"></div>`);
-  ov.appendChild(board);
   const close = () => ov.remove();
+  const xBtn = el(`<button class="pclose" title="關閉">✕</button>`);   // 右上角 X:與遊戲內視窗統一;wired 到 onOutside(保留各視窗 cleanup)
+  xBtn.onclick = () => (onOutside || close)();
+  board.appendChild(xBtn);
+  ov.appendChild(board);
   ov.addEventListener('click', e => { if (e.target === ov) (onOutside || close)(); });
   stage.appendChild(ov);
   return { ov, board, close };
@@ -1072,8 +1074,8 @@ function boardScroll(w, h, title, sub) {
   board.append(pLbl(esc(title), 40, 24, w - 80, 27, 'var(--br)', { bold: true, align: 'center' }));
   if (sub) board.append(pLbl(esc(sub), 40, 60, w - 80, 13, 'var(--pa2)', { align: 'center' }));
   board.append(pRule(40, sub ? 84 : 68, w - 80));
-  const content = el(`<div class="pscroll" style="left:34px;right:22px;top:${sub ? 98 : 82}px;bottom:74px"></div>`);
-  board.append(content, pBtn('關閉', (w - 200) / 2, h - 56, 200, 40, true, close));
+  const content = el(`<div class="pscroll" style="left:34px;right:22px;top:${sub ? 98 : 82}px;bottom:24px"></div>`);
+  board.append(content);                                        // 關閉改用右上角 X(boardOverlay 已加)
   return { board, content, close };
 }
 const relColor = v => v > 0 ? 'var(--jade)' : v < 0 ? 'var(--danger)' : 'var(--pa2)';
@@ -1117,7 +1119,7 @@ function evidenceModal(key, clues) {
       pLbl(esc(c.note || c.concept || ''), 18, 45, 425, 14, 'var(--pa)', { wrap: true }));
     board.appendChild(cd);
   });
-  board.appendChild(pBtn('收卷', 835, 546, 160, 38, true, close));
+  // 關閉改用右上角 X(仍可點空白處收卷)
 }
 
 // ---------- 好感面板(還原原作 toggle_affinity_board:3×3 網格 + 三印列)----------
@@ -1153,8 +1155,7 @@ function affinityBoard() {
   const s = sealSnapshot(), sm = k => s[k] ? '◆' : '◇';
   board.append(
     pLbl(`折衡匣三印｜人和 ${sm('people')}　理證 ${sm('evidence')}　殘卷 ${sm('fragment')}　（${s.count}／3）`, 80, 468, 840, 15, 'var(--br)', { align: 'center', bold: true }),
-    pLbl('僅柳照微、江濯月、蘇檀可發展情緣：+2 可於第九章確認，舊約可延續至第十一章，或以 +4 深交在終章選擇。其他人物維持同伴／師徒線。', 70, 496, 860, 13, 'var(--pa2)', { align: 'center', wrap: true }),
-    pBtn('收起人物關係', 390, 542, 220, 42, true, close));
+    pLbl('僅柳照微、江濯月、蘇檀可發展情緣：+2 可於第九章確認，舊約可延續至第十一章，或以 +4 深交在終章選擇。其他人物維持同伴／師徒線。', 70, 496, 860, 13, 'var(--pa2)', { align: 'center', wrap: true }));   // 關閉改用右上角 X
 }
 
 // ---------- 行囊(還原原作 toggle_inventory:道具卡列 + 關鍵物彙整)----------
@@ -1193,8 +1194,7 @@ function inventoryModal(onChange) {
     board.appendChild(cd);
   });
   board.append(
-    pLbl('關鍵物｜' + esc(keyItemSummary()), 45, 528, 710, 13, 'var(--pa2)', { wrap: true }),
-    pBtn('收起行囊', 795, 530, 220, 40, true, done));
+    pLbl('關鍵物｜' + esc(keyItemSummary()), 45, 528, 710, 13, 'var(--pa2)', { wrap: true }));   // 關閉改用右上角 X
 }
 
 // ---------- 格物先賢譜(還原原作 _show_scientist_atlas:科學家關係圖)----------
@@ -1250,7 +1250,7 @@ function scientistAtlas() {
     };
     graph.appendChild(btn);
   }
-  board.append(graph, detail, pBtn('收起先賢譜', 455, 565, 220, 44, true, close));
+  board.append(graph, detail);                                 // 關閉改用右上角 X
 }
 
 // ---------- 結局圖鑑(還原原作 show_ending_gallery / show_full_ending_gallery)----------
@@ -1273,7 +1273,7 @@ function endingGallery() {
       board.appendChild(card);
     });
   });
-  board.appendChild(pBtn('收起圖鑑', 440, 596, 220, 40, true, close));
+  // 關閉改用右上角 X
 }
 
 // ---------- 殺青片尾:電影式滾動片尾(片尾曲清單循環 + 劇照散落隨捲 + 片尾合照 + 可暫停/前後翻)----------
