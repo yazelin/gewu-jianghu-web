@@ -194,6 +194,34 @@ const bigTrack = await page.evaluate(async () => {
   return v;
 });
 ok('斷網後大音檔真的能解碼播放(1.1MB,Range→206)', bigTrack.startsWith('ok:'), bigTrack);
+// ---- 手機:殺青片尾要滑得動 ----
+// touch-action 預設 auto 時,瀏覽器會把滑動當頁面平移接管、發 pointercancel,
+// 180px 的滑動只會動 18px——看起來就是「滑不動」。這條擋它回歸。
+{
+  const mctx = await browser.newContext({ viewport: { width: 844, height: 390 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
+  const mp = await mctx.newPage(); const mcdp = await mctx.newCDPSession(mp);
+  await mp.goto(BASE, { waitUntil: 'load' }); await mp.waitForTimeout(1500);
+  await mp.evaluate(() => localStorage.setItem('gewu_save_v1', JSON.stringify({ schema: 1, scene: 'chapter', chapter: 2,
+    affinity: {}, evidence: {}, lost: {}, secured_order: {}, inventory: {}, choices: {}, cleared: [1], intro_seen: true,
+    flags: {}, rewarded: {}, achievements: {}, seen_normal: [], seen_finale: [], perfect: {}, grandmaster: {}, difficulty: '行俠', checkpoints: {} })));
+  await mp.reload({ waitUntil: 'load' }); await mp.waitForTimeout(2200);
+  await mp.evaluate(() => [...document.querySelectorAll('.tmenu button')].find(x => x.textContent.includes('殺青片尾'))?.click());
+  await mp.waitForTimeout(1600);
+  await mp.evaluate(() => [...document.querySelectorAll('.roll-btn')].find(x => /暫停|停/.test(x.textContent))?.click());
+  await mp.waitForTimeout(500);
+  const posOf = () => mp.evaluate(() => { const t = document.querySelector('.roll-track'); return t ? Math.round(new DOMMatrix(getComputedStyle(t).transform).f) : null; });
+  const p0 = await posOf();
+  await mcdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: 422, y: 250 }] });
+  for (let i = 1; i <= 10; i++) { await mcdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: 422, y: 250 - i * 18 }] }); await mp.waitForTimeout(15); }
+  await mcdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await mp.waitForTimeout(400);
+  const p1 = await posOf();
+  const moved = Math.abs((p1 ?? 0) - (p0 ?? 0));
+  ok('手機:殺青片尾滑得動(180px 滑動要真的走 180px)', moved > 140, `實際移動 ${moved}px`);
+  ok('手機:片尾關閉鈕是統一的 ✕', (await mp.evaluate(() => document.querySelector('.roll-ov .pclose')?.textContent)) === '✕');
+  await mctx.close();
+}
+
 const dp = await ctx.newPage();   // 缺 ignoreSearch 的話,這頁斷網會開成遊戲
 await dp.goto(BASE + 'design.html?utm_source=fb', { waitUntil: 'domcontentloaded' }).catch(() => {});
 ok('斷網開 design.html?utm_source=fb 不會開成遊戲', (await dp.title()).includes('設計與公式站'));

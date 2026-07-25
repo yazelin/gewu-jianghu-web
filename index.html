@@ -191,7 +191,8 @@ body.reduced .tstorm.flash{animation:none}
   display:flex;align-items:center;justify-content:center;padding:12px 26px;font-size:15px;color:var(--pa);
   line-height:1.7;box-shadow:0 6px 22px rgba(0,0,0,.4)}
 /* 電影式滾動片尾:JS 驅動可控捲動(暫停/滾輪/拖曳前後翻)+ 左側幕後花絮膠捲 + 片尾曲清單 */
-.roll-ov{position:absolute;inset:0;z-index:70;overflow:hidden;user-select:none;
+.roll-ov{position:absolute;inset:0;z-index:70;overflow:hidden;user-select:none;touch-action:none;   /* touch-action:none 是手機滑得動的關鍵:預設 auto 時瀏覽器會把滑動當成頁面平移手勢接管,
+      第一個 pointermove 之後就發 pointercancel,180px 的滑動只會動到 18px */
   background:radial-gradient(120% 90% at 50% 30%,rgba(16,13,10,.97),#050403 75%);animation:fadeIn .45s ease}
 .roll-track{position:absolute;left:0;right:0;top:0;display:flex;flex-direction:column;align-items:center;
   text-align:center;padding:0 60px 200px;will-change:transform}
@@ -206,9 +207,6 @@ body.reduced .tstorm.flash{animation:none}
 .roll-sci .s-dm{color:var(--steel);width:170px;text-align:left;font-size:.94rem}
 .roll-quip{color:var(--pa2);font-size:1rem;letter-spacing:.04em;margin-top:14px;line-height:1.9}
 .roll-epi{font-size:1.5rem;letter-spacing:.14em;color:var(--tx-hi);line-height:1.95;margin-top:24px}
-.roll-close{position:absolute;top:16px;right:20px;z-index:6;background:rgba(20,17,14,.72);border:1px solid var(--br);
-  color:var(--pa);font-family:inherit;font-size:.9rem;letter-spacing:.12em;padding:8px 18px;border-radius:20px;cursor:pointer;backdrop-filter:blur(2px)}
-.roll-close:hover{border-color:var(--gold);color:#f3ead6}
 .roll-ctrl{position:absolute;left:0;right:0;bottom:20px;z-index:6;display:flex;gap:14px;align-items:center;justify-content:center}
 .roll-btn{background:rgba(20,17,14,.78);border:1px solid var(--br);color:var(--pa);font-family:inherit;font-size:.9rem;letter-spacing:.1em;padding:8px 22px;border-radius:20px;cursor:pointer;backdrop-filter:blur(2px);min-width:96px}
 .roll-btn:hover{border-color:var(--gold);color:#f3ead6}

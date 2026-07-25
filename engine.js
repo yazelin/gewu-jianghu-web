@@ -575,8 +575,8 @@ function initEscClose() {
     const top = wins.reduce((a, b) =>
       (+getComputedStyle(b).zIndex || 0) >= (+getComputedStyle(a).zIndex || 0) ? b : a);
     e.preventDefault();
-    const x = top.querySelector('.pclose, .roll-close');
-    if (x) x.click();          // .povl / .roll-ov:等同按該視窗自己的關閉鈕(含 onOutside、還原配樂等收尾)
+    const x = top.querySelector('.pclose');
+    if (x) x.click();          // .povl / .roll-ov:等同按該視窗自己的 ✕(含 onOutside、還原配樂等收尾)
     else top.remove();         // .modal:沒有 X,等同點背景關掉
   });
 }
@@ -1491,9 +1491,9 @@ function creditsPanel() {
   // 控制列(暫停/播放)+ 關閉
   const ctrl = el(`<div class="roll-ctrl"></div>`);
   const btnPause = el(`<button class="roll-btn">${reduced ? '播放' : '暫停'}</button>`);
-  ctrl.append(btnPause, el(`<span class="roll-hint">滾輪或拖曳可前後翻閱</span>`));
+  ctrl.append(btnPause, el(`<span class="roll-hint">${matchMedia("(hover:none)").matches ? "上下滑動" : "滾輪或拖曳"}可前後翻閱</span>`));
   ov.appendChild(ctrl);
-  const closeBtn = el(`<button class="roll-close">關閉</button>`);
+  const closeBtn = el(`<button class="pclose" title="關閉">✕</button>`);   // 與其他視窗統一(原本是文字「關閉」)
   ov.appendChild(closeBtn);
   stage.appendChild(ov);
   // 可控捲動:pos 由 -730(片頭在畫面下方)捲到 maxPos(片尾合照近中央);reduced 預設暫停
@@ -1505,10 +1505,15 @@ function creditsPanel() {
   apply();
   btnPause.onclick = () => { paused = !paused; btnPause.textContent = paused ? '播放' : '暫停'; sfx('paper', 1.05, 0.25); };
   ov.addEventListener('wheel', (e) => { pos += e.deltaY * 0.6; clampPos(); apply(); }, { passive: true });
-  ov.addEventListener('pointerdown', (e) => { if (e.target.closest('.roll-btn,.roll-close')) return; dragY = e.clientY; });
+  ov.addEventListener('pointerdown', (e) => {
+    if (e.target.closest('.roll-btn,.pclose')) return;
+    dragY = e.clientY;
+    try { ov.setPointerCapture(e.pointerId); } catch { }   // 捕捉住,手指滑出元素也還追得到
+  });
   const onMove = (e) => { if (dragY == null) return; pos -= (e.clientY - dragY); dragY = e.clientY; clampPos(); apply(); };
   const onUp = () => { dragY = null; };
   addEventListener('pointermove', onMove); addEventListener('pointerup', onUp);
+  addEventListener('pointercancel', onUp);   // 被瀏覽器手勢搶走時也要收乾淨,否則卡在拖曳中
   const frame = (t) => {
     raf = requestAnimationFrame(frame);
     const dt = lastT ? Math.min((t - lastT) / 1000, 0.05) : 0; lastT = t;
@@ -1518,7 +1523,7 @@ function creditsPanel() {
   raf = requestAnimationFrame(frame);
   const close = () => {
     cancelAnimationFrame(raf);
-    removeEventListener('pointermove', onMove); removeEventListener('pointerup', onUp);
+    removeEventListener('pointermove', onMove); removeEventListener('pointerup', onUp); removeEventListener('pointercancel', onUp);
     if (_audio) { _audio.removeEventListener('ended', onEnded); _audio.loop = true; }
     playMusic(MUSIC.ambient);                        // 還原題名背景樂
     ov.remove();
