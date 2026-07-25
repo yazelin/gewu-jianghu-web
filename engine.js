@@ -1150,16 +1150,16 @@ function creditsPanel() {
     P('right', chScene, 'scene', 'NG · 雨一直下，收音組崩潰', '14'),
     `<div class="roll-h">也一併感謝</div>`,
     `<div class="roll-quip">感謝雨，從序章到片尾都沒停過<br>感謝那口鐘，願意被算進一道題<br>感謝每一顆被當成誤差的螺絲<br>製作過程沒有動物受傷<br>但有幾個 bug 英勇犧牲</div>`,
-    P('left', port['柳照微'], 'char', 'NG · 台詞卡在「格物」兩字', '18'),
+    `<div class="roll-photo wide"><div class="rp-frame"><div class="rp-img"><img src="assets/img/credits_cast_crew.webp"><span class="rr-badge">● 全體卡司</span><span class="rr-take">B-ROLL</span></div></div><div class="rr-cap">殺青這天，雨還是沒停</div></div>`,
     `<div class="roll-role">致</div><div class="roll-name">每一位願意追問<br>「這到底是怎麼運作的」的人</div>`,
     `<div class="roll-quip" style="margin-top:42px">完整作者、原始網址、逐檔雜湊與授權<br>見 provenance／asset-ledger.csv</div>`,
     `<div class="roll-epi" style="margin-top:76px">看懂世界如何運作，<br>才有資格改變命運。</div>`,
     `<div class="roll-quip" style="margin-top:8px">——　敬　每一位願意追問的人</div>`,
     // 片尾正下方:主角合照大圖
-    `<div class="roll-photo hero"><div class="rp-frame"><div class="rp-img"><img src="${G.title_keyart}"><span class="rr-badge">● 殺青合照</span><span class="rr-take">FIN</span></div></div><div class="rr-cap">辛苦了，各位　·　我們，下個案子見</div></div>`,
+    `<div class="roll-photo hero"><div class="rp-frame"><div class="rp-img"><img src="assets/img/credits_cast_main.webp"><span class="rr-badge">● 殺青合照</span><span class="rr-take">FIN</span></div></div><div class="rr-cap">辛苦了，各位　·　我們，下個案子見</div></div>`,
   ].join('');
   ov.appendChild(track);
-  preload([G.prologue.background, cell0, chScene, G.title_keyart, ...Object.values(port)].filter(Boolean));   // 預載劇照與演員表立繪
+  preload([G.prologue.background, cell0, chScene, 'assets/img/credits_cast_main.webp', 'assets/img/credits_cast_crew.webp', ...Object.values(port)].filter(Boolean));   // 預載劇照(含 AI 殺青合照)與演員表立繪
   // 控制列(暫停/播放)+ 關閉
   const ctrl = el(`<div class="roll-ctrl"></div>`);
   const btnPause = el(`<button class="roll-btn">${reduced ? '播放' : '暫停'}</button>`);
