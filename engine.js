@@ -1805,4 +1805,5 @@ fetch('data/game.json').then(r => r.json()).then(data => {
   initAudioUnlock();
   fit();
   render();
+  document.getElementById('loadbar')?.classList.add('done');   // 遊戲就緒 → 收起載入條(若稍後偵測到新版會再顯示)
 }).catch(e => { stage.innerHTML = `<div class="loading">載入失敗：${esc(e.message)}</div>`; });
