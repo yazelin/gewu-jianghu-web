@@ -605,8 +605,7 @@ function sTitle() {
   const kicker = el(`<div class="t-kicker">原創武俠物理解謎 RPG</div>`);
   // 上左:標題組(整體偏上)
   const top = el(`<div class="t-top">
-    <div class="gtitle">格物江湖錄</div>
-    <div class="gsub">天 理 殘 卷</div>
+    <img class="tlockup" src="assets/img/title_lockup_v1.webp" alt="格物江湖錄:天理殘卷" decoding="async">
     <div class="tomen">巨鐘未落，真相已先被定罪。</div>
   </div>`);
   // 心法(難度):三檔以提示詳略區分,用武俠語言(還原原作三心法:說書/行俠/宗師)

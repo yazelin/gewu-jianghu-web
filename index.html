@@ -70,7 +70,7 @@ html,body{height:100%;background:#000;overflow:hidden;
 @keyframes slideIn{from{opacity:0;transform:translateX(-18px)}to{opacity:1;transform:none}}
 .slide-in{animation:slideIn .55s cubic-bezier(.2,.7,.2,1) both}
 /* 減少動態:停止推鏡與裝飾動畫,保留靜態構圖(還原原作 reduced_motion) */
-body.reduced .bg,body.reduced .slide-in,body.reduced #lamp,body.reduced #book,body.reduced .gtitle,body.reduced .atlas-node.on{animation:none!important}
+body.reduced .bg,body.reduced .slide-in,body.reduced #lamp,body.reduced #book,body.reduced .gtitle,body.reduced .tlockup,body.reduced .atlas-node.on{animation:none!important}
 body.reduced #rain{display:none}
 /* 燈火呼吸(暖光脈動,覆於題名雨夜構圖)*/
 #lamp{position:absolute;inset:0;z-index:7;pointer-events:none;opacity:0;transition:opacity .6s;
@@ -345,6 +345,12 @@ body.reduced .m-eq span{animation:none;height:11px}
 .t-diff .tseg-btn{padding:8px 24px;font-size:1rem;letter-spacing:.18em;white-space:nowrap;flex:none}
 .t-diff .tseg-desc{font-size:.82rem;letter-spacing:.04em;white-space:nowrap;text-align:right}
 .gtitle{font-size:4.2rem;letter-spacing:.3em;color:#f3ead6;text-shadow:0 4px 30px #000,0 0 8px rgba(168,50,42,.4);animation:titleGlow 7.5s ease-in-out infinite}
+/* 題名毛筆字改用圖(字型排不出這個筆觸);光暈改 drop-shadow,text-shadow 對 img 無效 */
+.tlockup{width:30rem;max-width:100%;height:auto;display:block;
+  filter:drop-shadow(0 4px 30px #000) drop-shadow(0 0 8px rgba(168,50,42,.4));
+  animation:lockupGlow 7.5s ease-in-out infinite}
+@keyframes lockupGlow{0%,100%{filter:drop-shadow(0 4px 30px #000) drop-shadow(0 0 8px rgba(168,50,42,.4))}
+  50%{filter:drop-shadow(0 4px 34px #000) drop-shadow(0 0 17px rgba(201,162,75,.5))}}
 @keyframes titleGlow{0%,100%{text-shadow:0 4px 30px #000,0 0 8px rgba(168,50,42,.4)}50%{text-shadow:0 4px 34px #000,0 0 17px rgba(201,162,75,.5)}}
 .gsub{font-size:1.4rem;letter-spacing:.5em;color:var(--pa2)}
 .tkicker{font-size:.95rem;letter-spacing:.35em;color:var(--br);margin-bottom:-.4rem}

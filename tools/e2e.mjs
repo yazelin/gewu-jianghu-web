@@ -97,7 +97,7 @@ await page.goto(BASE, { waitUntil: 'networkidle', timeout: 30000 });
 await page.evaluate(() => localStorage.clear());
 await page.reload({ waitUntil: 'networkidle' });
 await page.waitForTimeout(1200);
-ok('題名載入', await page.evaluate(() => !!document.querySelector('.gtitle')));
+ok('題名載入(毛筆題字圖已解碼)', await page.evaluate(() => { const i = document.querySelector('.tlockup'); return !!i && i.complete && i.naturalWidth > 0; }));
 const aline = await AUTOPLAY(page);
 ok('A 線自動全破到普通結局', aline.done && (aline.save.cleared || []).includes(9),
   `結局「${aline.ending}」 cleared=[${(aline.save.cleared || []).join(',')}]`);
@@ -161,7 +161,7 @@ ok(`殼與資產分屬兩個快取(${SHELL_CACHE} / ${ASSET_CACHE})`, counts.she
 ok('音檔全數在快取裡(音樂斷網不能播的回歸擋板)', counts.audio === AUDIO_N, `${counts.audio}/${AUDIO_N}`);
 await ctx.setOffline(true);
 await page.reload({ waitUntil: 'domcontentloaded' }); await page.waitForTimeout(1500);
-ok('斷網後題名仍可載入', await page.evaluate(() => !!document.querySelector('.gtitle')));
+ok('斷網後題名仍可載入(含題字圖)', await page.evaluate(() => { const i = document.querySelector('.tlockup'); return !!i && i.complete && i.naturalWidth > 0; }));
 ok('斷網後未播過的章末音檔命中快取', (await page.evaluate(async () => { try { return (await fetch('assets/audio/chapter11_heaven_earth.ogg')).status; } catch { return 0; } })) === 200);
 // 命中快取 ≠ 播得出來:大音檔 Chrome 一律用 Range 抓,SW 沒合成 206 就會 Format error。
 // 這一項只有在真的送出 Range 的環境(線上 Pages)才有鑑別力,--live 是真正的關卡。
