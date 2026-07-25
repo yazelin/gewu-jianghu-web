@@ -537,6 +537,12 @@ body.reduced .cine-nav{transition:none;opacity:1}
 @keyframes loadbar{0%{left:-38%}100%{left:100%}}
 #loadbar.done{opacity:0;pointer-events:none}
 body.reduced #loadbar::before{animation:none;left:0;width:100%;opacity:.5}
+#offbadge{position:fixed;right:12px;bottom:12px;z-index:9997;display:none;align-items:center;gap:.5em;padding:.32em .72em;border-radius:999px;background:rgba(20,16,10,.82);border:1px solid rgba(138,107,58,.5);color:var(--pa2);font-size:.72rem;letter-spacing:.05em;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);transition:opacity .6s ease;pointer-events:none}
+#offbadge.show{display:flex}
+#offbadge.gone{opacity:0}
+#offbadge .dot{width:6px;height:6px;border-radius:50%;background:var(--gold);box-shadow:0 0 6px var(--gold);animation:offpulse 1.1s ease-in-out infinite}
+#offbadge.ready .dot{background:#7bbf6a;box-shadow:0 0 6px #7bbf6a;animation:none}
+@keyframes offpulse{0%,100%{opacity:.45}50%{opacity:1}}
 /* 全域 chrome 層:在舞台座標系內,跟畫面一起縮放,clear() 不清掉 —— 統一 UI 層級 */
 #chrome{position:absolute;inset:0;z-index:40;pointer-events:none}
 #chrome-r{position:absolute;top:14px;right:14px;display:flex;gap:10px;align-items:center}
@@ -583,9 +589,26 @@ body.reduced #loadbar::before{animation:none;left:0;width:100%;opacity:.5}
   <div class="loading">載入中…</div>
 </div></div>
 <div id="loadbar" aria-hidden="true"></div>
+<div id="offbadge" aria-live="polite"><span class="dot"></span><span class="txt"></span></div>
 <script>
 if ('serviceWorker' in navigator) {
-  let updated = false, refreshing = false;
+  let updated = false, refreshing = false, packing = false;
+  // 背景離線打包的低調進度徽章(仿客語 repo「畫面持續顯示真實進度」)
+  const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+  const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
+  function showOffline(done, total, ready, ver) {
+    const b = document.getElementById('offbadge'); if (!b) return;
+    const t = b.querySelector('.txt');
+    if (!ready) { packing = true; b.classList.add('show'); b.classList.remove('gone', 'ready'); t.textContent = `離線打包中 ${Math.round(done / total * 100)}%`; return; }
+    if (packing || lsGet('gewu_offline_ready') !== ver) {   // 這次真的有打包、或這版第一次就緒 → 報一次「已可離線」
+      lsSet('gewu_offline_ready', ver);
+      b.classList.add('show', 'ready'); b.classList.remove('gone'); t.textContent = '已可離線遊玩';
+      setTimeout(() => b.classList.add('gone'), 1800);
+      setTimeout(() => { b.classList.remove('show', 'gone', 'ready'); packing = false; }, 2600);
+    }
+  }
+  navigator.serviceWorker.addEventListener('message', e => { if (e.data && e.data.type === 'offline') showOffline(e.data.done, e.data.total, e.data.ready, e.data.ver); });
+  navigator.serviceWorker.ready.then(reg => { (navigator.serviceWorker.controller || reg.active)?.postMessage({ type: 'offline-status' }); });
   // 只在「已有舊 SW 在控制時偵測到新版」才算更新(首次造訪的初次接管不重載)
   navigator.serviceWorker.addEventListener('controllerchange', () => {
     if (updated && !refreshing) { refreshing = true; location.reload(); }   // 新 SW 真正接管才重載 → 拿到新快取的新圖
