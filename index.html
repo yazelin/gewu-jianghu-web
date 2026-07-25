@@ -273,6 +273,7 @@ body.reduced #rain{display:none}
 .cine .vig{position:absolute;inset:0;background:radial-gradient(125% 88% at 50% 44%,transparent 50%,rgba(0,0,0,.62))}
 .cine-nav{position:absolute;right:60px;bottom:52px;z-index:40;display:flex;gap:14px;opacity:0;transition:opacity .8s ease .4s}
 .cine-nav.in{opacity:1}
+.cine-nav.out{opacity:0;pointer-events:none}   /* 溶接淡出的舊 nav 立即不可點,避免殘留按鈕被誤觸 */
 body.reduced .cine-scene .bg{animation:none;transform:scale(1.08)}
 body.reduced .cine-scene{transition:none}
 body.reduced .ci-a,body.reduced .ci-b,body.reduced .ci-c{animation:none;opacity:1;transform:none}

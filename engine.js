@@ -419,10 +419,13 @@ function sTitle() {
 let introReplay = false;                          // 從題名「重看序引」進入 → 播完回題名,不開局
 function replayIntro() { introReplay = true; sIntro(); }
 function sIntro() {
-  let i = 0;
+  let i = 0, done = false;                          // done:一次性防重入,避免過渡期二次觸發 finish
   const pages = G.story_intro;
   const KB = ['kbA', 'kbB', 'kbC', 'kbD'];         // 每幕不同景深運鏡
-  const finish = () => { if (introReplay) { introReplay = false; go('title'); } else { S.intro_seen = true; go('prologue'); } };
+  const finish = () => {                            // 只跑一次:否則「回題名/略過」在 go 過渡期被重按 → introReplay 已 false → 誤落序章
+    if (done) return; done = true;
+    if (introReplay) { introReplay = false; go('title'); } else { S.intro_seen = true; go('prologue'); }
+  };
   const show = () => {
     const p = pages[i];
     // 每幕:Ken Burns 背景 + 字幕分層進場;交叉溶接(不 clear,舊幕淡出移除)
