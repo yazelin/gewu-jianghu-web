@@ -140,8 +140,15 @@ body.reduced #rain{display:none}
   color:var(--br);font-size:.95rem;letter-spacing:.35em}
 .t-top{position:absolute;left:8.5%;top:6%;max-width:60%;text-align:left;display:flex;flex-direction:column;align-items:flex-start;gap:.6rem}
 .t-bottom{position:absolute;left:8.5%;bottom:11%;max-width:56%;text-align:left;display:flex;flex-direction:column;align-items:flex-start;gap:.95rem}
-/* 右下角:只放新案入局 + 繼續 */
-.t-right{position:absolute;right:7%;bottom:11%;display:flex;flex-direction:column;align-items:flex-end;gap:.9rem;max-width:40%}
+/* 右下角:新案入局 + 繼續 同一排,細金框直角,電影海報 CTA 感 */
+.t-right{position:absolute;right:7%;bottom:12%;display:flex;flex-direction:row;align-items:center;gap:1.4rem;max-width:44%}
+.t-right .btn{padding:10px 34px;font-size:1.02rem;letter-spacing:.3em;border-radius:2px;
+  border-color:var(--gold);background:rgba(18,15,12,.5)}
+.t-right .btn:hover{background:var(--cin);border-color:var(--cin)}
+.t-right .btn.ghost{border-color:transparent;background:none;color:var(--br);
+  letter-spacing:.24em;padding:10px 6px;opacity:.82}
+.t-right .btn.ghost:hover{background:none;color:var(--gold);opacity:1;text-decoration:underline;text-underline-offset:6px}
+.t-right .btn.ghost:disabled{opacity:.3;text-decoration:none}
 /* 心法:置頂端右側,與安裝/♪ 同排同高;隱藏標籤,pills 較小 */
 .t-diff{position:absolute;top:14px;right:150px;z-index:25;align-items:flex-end;gap:5px}
 .t-diff .tseg-label{display:none}
