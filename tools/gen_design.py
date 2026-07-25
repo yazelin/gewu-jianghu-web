@@ -187,7 +187,7 @@ for ck, cat in ac['categories'].items():
 out.append('</section>')
 
 CSS = '''
-:root{--ink:#14110e;--pa:#e8dfcd;--pa2:#c9bda3;--cin:#a8322a;--br:#8a6b3a;--jade:#5fa383;--danger:#c0564c;--steel:#7f9cc0;--gold:#c9a24b}
+@font-face{font-family:"Noto Sans TC";src:url("assets/fonts/notosanstc.woff2") format("woff2");font-weight:100 900;font-display:swap}\n:root{--ink:#14110e;--pa:#e8dfcd;--pa2:#c9bda3;--cin:#a8322a;--br:#8a6b3a;--jade:#5fa383;--danger:#c0564c;--steel:#7f9cc0;--gold:#c9a24b}
 *{box-sizing:border-box}body{margin:0;padding:2rem clamp(1rem,4vw,4rem);background:var(--ink);color:var(--pa);
 font:16px/1.75 "Noto Sans TC","PingFang TC",system-ui,sans-serif;max-width:1500px;margin-inline:auto}
 a{color:var(--br)}a:hover{color:var(--cin)}

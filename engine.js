@@ -1040,7 +1040,7 @@ function creditsPanel() {
   const { board, close } = boardOverlay(210, 78, 860, 570, 110);
   board.appendChild(pLbl('素材與製作名錄', 40, 28, 780, 31, 'var(--br)', { align: 'center', bold: true }));
   const credits =
-    '概念、劇情與原始程式｜原作者 @changyi123456（物理教師）\n' +
+    '概念、劇情與原始程式｜原作者 @changyi123456\n' +
     '網頁離線版改作｜yazelin，經原作者授權（見 SOURCE.md）\n\n' +
     '場景、證物、角色與結局圖｜OpenAI image generation，依原專案提示與物理校正產生\n\n' +
     '配樂（CC0）\n・Oriental／Oriented／Asianoriental 系列\n・Night of the Streets — nene\n・Factory／Dungeon Ambience — yd\n・Fast Fight — Ville Nousiainen\n・Ancient Temple — Umplix\n・Ending Scene — nene\n\n' +
