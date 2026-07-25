@@ -162,7 +162,9 @@ ok('ESC 關掉殺青片尾(.roll-ov)', await escClose('殺青片尾'));
 
 // ---- 5) 離線:Service Worker 全量 precache + 斷網重載 + 未播音檔命中 ----
 await page.waitForFunction(() => navigator.serviceWorker.controller !== null, { timeout: 15000 }).catch(() => {});
-await page.waitForFunction(() => window.__offlineSettled === true, { timeout: 90000 }).catch(() => {});   // 等背景暖快取收斂(完整與否都會設)
+// 等背景暖快取收斂。線上剛部署完 Fastly 邊緣是冷的,28MB 抓不完 90 秒——這是測試等太短,
+// 不是產品問題(實測伺服器端全 200、資產數會一路長)。--live 放寬到 4 分鐘。
+await page.waitForFunction(() => window.__offlineSettled === true, { timeout: LIVE ? 240000 : 90000 }).catch(() => {});
 await page.waitForTimeout(500);
 const stat = await page.evaluate(() => window.__offlineStat);
 ok('離線包完整(SW 實查快取,不是數 fetch 成功次數)',
