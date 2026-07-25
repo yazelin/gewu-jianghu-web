@@ -350,7 +350,7 @@ function sTitle() {
   // 心法(難度):三檔以提示詳略區分,用武俠語言(還原原作三心法:說書/行俠/宗師)
   const DIFFS = [['說書', '說書人循循道來,提示最詳盡'], ['行俠', '行俠仗劍,提示適中,可隨時翻閱格物卷'], ['宗師', '宗師只點模型與方向,獨闖險關']];
   const diff = { val: '行俠' };
-  const diffWrap = el(`<div class="tseg-wrap"></div>`);
+  const diffWrap = el(`<div class="tseg-wrap t-diff"></div>`);   // 置頂端右側,與安裝/♪ 同排
   const seg = el(`<div class="tseg"></div>`);
   const desc = el(`<div class="tseg-desc">行俠仗劍,提示適中,可隨時翻閱格物卷</div>`);
   DIFFS.forEach(([v, d]) => {
@@ -359,7 +359,7 @@ function sTitle() {
     seg.appendChild(p);
   });
   diffWrap.append(el(`<div class="tseg-label">擇一心法</div>`), seg, desc);
-  const bNew = el(`<button class="btn">新案入局｜觀看劇情序引</button>`);
+  const bNew = el(`<button class="btn">新案入局</button>`);
   bNew.onclick = () => { S = newState(); S.difficulty = diff.val; sfx('door'); go('intro'); };
   // 下左:只留氛圍文案(標語 + 路線)
   const bottom = el(`<div class="t-bottom"></div>`);
@@ -368,13 +368,13 @@ function sTitle() {
     el(`<div class="troute">十一章懸案｜雙走向承接｜多重結局｜三線情緣</div>`));
   const savedTitle = (loadSave() || {}).equipped_title;      // 佩印稱號(讀存檔)
   if (savedTitle && savedTitle !== DEFAULT_TITLE) bottom.append(el(`<div class="ttitle">佩印稱號｜${esc(savedTitle)}</div>`));
-  // 右:互動控制整組(擇一心法 + 新案入局 + 繼續),讓出中央角色與場景
+  // 右下角:只放新案入局 + 繼續
   const bCont = el(`<button class="btn ghost">繼續</button>`);
   bCont.disabled = !hasSave();
   bCont.onclick = () => { S = loadSave() || newState(); render(); };
   const right = el(`<div class="t-right"></div>`);
-  right.append(diffWrap, bNew, bCont);
-  bg.append(kicker, top, bottom, right);
+  right.append(bNew, bCont);
+  bg.append(kicker, top, bottom, diffWrap, right);   // 心法 diffWrap 置頂端右側(t-diff)
   // 次要選項:退為畫面底部一列低調文字連結,保留電影感(不佔主畫面按鈕堆)
   const withSave = (fn) => { const prev = S; S = loadSave() || newState(); fn(); S = prev; };
   const menu = el(`<div class="tmenu"></div>`);
@@ -392,7 +392,7 @@ function sTitle() {
   bg.appendChild(menu);
   stage.appendChild(bg);
   document.getElementById('lamp')?.classList.add('on');           // 雨夜鐘樓燈火呼吸
-  [kicker, ...top.children, ...bottom.children, ...right.children].forEach((n, i) => { n.classList.add('slide-in'); n.style.animationDelay = (0.05 + i * 0.08) + 's'; });   // 進場動畫
+  [kicker, ...top.children, ...bottom.children, diffWrap, ...right.children].forEach((n, i) => { n.classList.add('slide-in'); n.style.animationDelay = (0.05 + i * 0.08) + 's'; });   // 進場動畫
 }
 
 
