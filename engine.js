@@ -1120,6 +1120,9 @@ function creditsPanel() {
   const P = (side, img, cat, cap, take) => img
     ? `<div class="roll-photo ${side}"><div class="rp-frame"><div class="rp-img"><img src="${img}" style="object-position:${cat === 'char' ? 'top center' : 'center'}"><span class="rr-badge">● 花絮</span><span class="rr-take">TAKE ${take}</span></div></div><div class="rr-cap">${cap}</div></div>`
     : '';
+  // 登場人物(演員表):10 位有立繪的角色全上
+  const cast = Object.entries(port).map(([nm, img]) =>
+    `<div class="rc-card"><div class="rc-pic"><img src="${img}"></div><div class="rc-nm">${esc(nm)}</div></div>`).join('');
   track.innerHTML = [
     `<div class="roll-film-title">格物江湖錄</div>`,
     `<div class="roll-film-sub">天 理 殘 卷　・　網頁離線版</div>`,
@@ -1127,7 +1130,8 @@ function creditsPanel() {
     P('left', G.prologue.background, 'scene', 'NG · 這口鐘，比想像中重很多', '03'),
     `<div class="roll-role">網頁離線版改編・工程・重製</div><div class="roll-name">yazelin<small>經原作者授權，見 SOURCE.md</small></div>`,
     `<div class="roll-role">場景・證物・角色・結局圖</div><div class="roll-name">OpenAI image generation<small>依原專案提示與物理校正產生</small></div>`,
-    P('right', port['沈硯'], 'char', '花絮 · 這位演員，眼神一次到位', '07'),
+    `<div class="roll-h">登場人物</div>`,
+    `<div class="roll-cast">${cast}</div>`,
     `<div class="roll-h">配 樂（CC0）</div>`,
     `<div class="roll-name">Oriental／Oriented／Asianoriental 系列</div>`,
     `<div class="roll-name">Night of the Streets　—　nene</div>`,
@@ -1155,7 +1159,7 @@ function creditsPanel() {
     `<div class="roll-photo hero"><div class="rp-frame"><div class="rp-img"><img src="${G.title_keyart}"><span class="rr-badge">● 殺青合照</span><span class="rr-take">FIN</span></div></div><div class="rr-cap">辛苦了，各位　·　我們，下個案子見</div></div>`,
   ].join('');
   ov.appendChild(track);
-  preload([G.prologue.background, port['沈硯'], cell0, chScene, port['柳照微'], G.title_keyart].filter(Boolean));   // 預載劇照,捲到時已就緒
+  preload([G.prologue.background, cell0, chScene, G.title_keyart, ...Object.values(port)].filter(Boolean));   // 預載劇照與演員表立繪
   // 控制列(暫停/播放)+ 關閉
   const ctrl = el(`<div class="roll-ctrl"></div>`);
   const btnPause = el(`<button class="roll-btn">${reduced ? '播放' : '暫停'}</button>`);
