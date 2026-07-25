@@ -124,6 +124,12 @@ body.reduced .tstorm.flash{animation:none}
 .pbtn:hover{border-color:var(--cin);color:#fff}
 .pbtn.go{background:var(--cin);border-color:var(--cin);color:#fff}
 .pbtn.go:hover{filter:brightness(1.12)}
+/* 分享視窗:卡片預覽 + 文字 + 複製/下載/系統分享 */
+.share-box{position:absolute;inset:0;padding:22px 26px;display:flex;flex-direction:column;gap:13px}
+.share-h{text-align:center;color:var(--br);font-size:1.4rem;font-weight:700;letter-spacing:.12em}
+.share-card{width:100%;border-radius:8px;border:1px solid var(--br);display:block;box-shadow:0 8px 24px rgba(0,0,0,.5)}
+.share-text{background:rgba(20,17,14,.6);border:1px solid var(--line);border-radius:8px;padding:11px 14px;color:var(--pa);font-size:.9rem;line-height:1.6;white-space:pre-wrap;user-select:all;max-height:92px;overflow:auto}
+.share-btns{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:2px}
 .pbtn:disabled{opacity:.4;cursor:default}
 /* 統一清單面板(成就譜/配樂):同一外框 + 主題化捲動列 */
 .pscroll{position:absolute;overflow-y:auto;padding-right:12px}

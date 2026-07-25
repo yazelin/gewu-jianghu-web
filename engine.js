@@ -391,18 +391,61 @@ function toast(msg) {
 
 // ---------- 社群分享 ----------
 const SHARE_URL = 'https://yazelin.github.io/gewu-jianghu-web/';
-async function shareContent(text, imageUrl) {
-  const data = { title: '格物江湖錄:天理殘卷', text: text + '\n' + SHARE_URL, url: SHARE_URL };
+// 分享卡片:canvas 合成社群名片(主視覺 + 佩印稱號 + 進度 + 網址)
+async function makeShareCard(bgUrl, headline, prof) {
+  const W = 1200, H = 630, cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+  const ctx = cv.getContext('2d');
+  try { await document.fonts.ready; } catch (e) { }
   try {
-    if (imageUrl && navigator.canShare) {          // 優先連圖一起分享(手機原生分享單)
-      const blob = await (await fetch(imageUrl)).blob();
-      const file = new File([blob], 'gewu.webp', { type: blob.type });
-      if (navigator.canShare({ files: [file] })) { await navigator.share({ ...data, files: [file] }); return; }
-    }
-    if (navigator.share) { await navigator.share(data); return; }
-  } catch (e) { if (e && e.name === 'AbortError') return; }
-  try { await navigator.clipboard.writeText(text + '\n' + SHARE_URL); toast('已複製分享連結'); }
-  catch (e) { window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(SHARE_URL)}`, '_blank'); }
+    const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = bgUrl; });
+    const s = Math.max(W / img.width, H / img.height), dw = img.width * s, dh = img.height * s;
+    ctx.drawImage(img, (W - dw) / 2, (H - dh) / 2, dw, dh);
+  } catch (e) { ctx.fillStyle = '#14110e'; ctx.fillRect(0, 0, W, H); }
+  const g = ctx.createLinearGradient(0, 0, 0, H); g.addColorStop(0, 'rgba(8,6,5,.18)'); g.addColorStop(.5, 'rgba(8,6,5,.5)'); g.addColorStop(1, 'rgba(6,5,4,.92)');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = '#a8322a'; ctx.fillRect(0, 0, 9, H);
+  const F = (w, s) => `${w} ${s}px "Noto Sans TC","PingFang TC",sans-serif`;
+  const clip = (t, x, y, mw) => { let str = t; if (ctx.measureText(str).width > mw) { while (str.length > 1 && ctx.measureText(str + '…').width > mw) str = str.slice(0, -1); str += '…'; } ctx.fillText(str, x, y); };
+  ctx.fillStyle = '#f3ead6'; ctx.font = F(700, 46); ctx.fillText('格物江湖錄', 54, 84);
+  ctx.fillStyle = '#c9a24b'; ctx.font = F(400, 21); ctx.fillText('天 理 殘 卷 ・ 物 理 解 謎 RPG', 56, 116);
+  ctx.fillStyle = '#9a8f78'; ctx.font = F(400, 23); ctx.fillText('佩印稱號', 54, H - 210);
+  ctx.fillStyle = '#ffe6a6'; ctx.font = F(700, 60); clip(prof.title, 54, H - 148, W - 108);
+  ctx.fillStyle = '#e8dcc0'; ctx.font = F(400, 29); clip(headline || '', 54, H - 96, W - 108);
+  ctx.fillStyle = '#c9a24b'; ctx.font = F(400, 23); ctx.fillText(`成就 ${prof.achN}／30　·　結局 ${prof.endN}／8`, 54, H - 52);
+  ctx.fillStyle = '#9a8f78'; ctx.font = F(400, 20); ctx.fillText(SHARE_URL.replace(/^https?:\/\//, '') + '　·　可離線遊玩', 54, H - 22);
+  return new Promise(res => cv.toBlob(res, 'image/webp', .9));
+}
+// 分享視窗:卡片預覽 + 複製文字/連結 + 下載圖片 + (手機)系統分享
+async function shareContent(text, imageUrl) {
+  const sv = loadSave() || S;                                    // 稱號/進度以存檔為準(題名進來時 S 尚空)
+  const eqTitle = sv.equipped_title || DEFAULT_TITLE;
+  const prof = { title: eqTitle, achN: Object.values(sv.achievements || {}).filter(Boolean).length, endN: (sv.seen_normal || []).length + (sv.seen_finale || []).length };
+  const prefix = (eqTitle !== DEFAULT_TITLE) ? `以【${eqTitle}】之名，` : '';
+  const fullText = prefix + text + '\n' + SHARE_URL;
+  let blob = null; try { blob = await makeShareCard(imageUrl, text, prof); } catch (e) { }
+  const cardUrl = blob ? URL.createObjectURL(blob) : imageUrl;
+  const { ov, board, close } = boardOverlay(300, 58, 680, 600, 120, () => done());
+  const done = () => { if (blob) URL.revokeObjectURL(cardUrl); close(); };
+  const box = el(`<div class="share-box">
+    <div class="share-h">分享</div>
+    <img class="share-card" src="${cardUrl}" alt="分享卡片">
+    <div class="share-text">${esc(fullText)}</div>
+    <div class="share-btns"></div></div>`);
+  const btns = box.querySelector('.share-btns');
+  const mk = (label, fn) => { const b = el(`<button class="btn sm">${label}</button>`); b.onclick = fn; btns.appendChild(b); };
+  const copy = async (t, msg) => { try { await navigator.clipboard.writeText(t); toast(msg); } catch (e) { toast('複製失敗,請長按選取'); } };
+  mk('複製文字', () => copy(fullText, '已複製分享文字' + (prefix ? '(含稱號)' : '')));
+  mk('複製連結', () => copy(SHARE_URL, '已複製連結'));
+  if (blob) mk('下載圖片', () => { const a = document.createElement('a'); a.href = cardUrl; a.download = 'gewu-card.webp'; a.click(); toast('已下載分享圖'); });
+  if (navigator.share) mk('系統分享', async () => {
+    try {
+      const data = { title: '格物江湖錄:天理殘卷', text: fullText, url: SHARE_URL };
+      if (blob && navigator.canShare) { const f = new File([blob], 'gewu-card.webp', { type: 'image/webp' }); if (navigator.canShare({ files: [f] })) { await navigator.share({ ...data, files: [f] }); return; } }
+      await navigator.share(data);
+    } catch (e) { }
+  });
+  mk('關閉', done);
+  board.appendChild(box);
 }
 function shareBtn(label, text, imageUrl) {
   const b = el(`<button class="btn sm ghost">${esc(label)}</button>`);
