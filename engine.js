@@ -1023,7 +1023,7 @@ function scientistAtlas() {
   board.append(el(`<div class="atlas-legend" style="position:absolute;left:40px;top:62px;width:1050px">
     <span class="lg"><span class="sw" style="color:var(--jade);background:linear-gradient(90deg,var(--jade),#8fd4b4)"></span>概念承接</span>
     <span class="lg"><span class="sw" style="color:var(--cin);background:linear-gradient(90deg,var(--cin),#e07a5f)"></span>同期爭論／競逐</span>
-    <span class="lg" style="opacity:.72">點擊人物查看章回用途</span></div>`));
+    <span class="lg" style="opacity:.72">卡片標章回，點擊看生平與貢獻</span></div>`));
   const graph = el(`<div class="atlas-wrap" style="left:45px;top:100px;width:1040px;height:330px"></div>`);
   // 曲線發光連線 + 能量流動(端點沿用原作座標,錨在方框周邊;內容 1:1,只升級表現)
   const curve = (a, b) => {
