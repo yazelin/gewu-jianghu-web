@@ -368,7 +368,7 @@ function sTitle() {
       diff.val = v;
       seg.querySelectorAll('.tseg-btn').forEach(x => x.classList.remove('on')); p.classList.add('on');
       desc.textContent = d; dToggle.querySelector('b').textContent = v; sfx('paper', 1.1, 0.3);
-      closeDiff();                                   // 選完即收合
+      // 不立刻收合:讓玩家可切換各檔比較說明;點 chip 收合鈕或點空白處才收起
     };
     seg.appendChild(p);
   });
@@ -402,7 +402,7 @@ function sTitle() {
     mlink('結局圖鑑', () => withSave(endingGallery), true),
     mlink('配樂鑑賞', () => withSave(musicGallery), true),
     mlink('格物先賢譜', () => scientistAtlas()),
-    mlink('重看序引', () => replayIntro()),
+    mlink('劇情前導', () => replayIntro()),
     mlink('分享', () => shareContent('武俠懸疑包裝的物理解謎 RPG——《格物江湖錄:天理殘卷》，可離線遊玩。', G.title_keyart)),
     mlink('素材與製作名錄', () => creditsPanel()),      // 併入同一排(分享右邊),不再孤立於角落
   ];
@@ -527,8 +527,9 @@ function prologueBattle() {
     const renderQishi = () => { q.innerHTML = ''; for (let k = 0; k < S.qishi_max; k++) q.appendChild(el(`<div class="pip ${k < S.qishi ? 'on' : ''}"></div>`)); };
     renderQishi();
     const bInv = el(`<button class="util">行囊</button>`); bInv.onclick = () => inventoryModal(() => renderQishi());
+    const bScroll = el(`<button class="util">格物卷</button>`); bScroll.onclick = () => evidenceModal('prologue', p.hotspots);   // 答題時可翻閱已收錄證據(還原原作,兌現行俠/說書提示)
     const bar = el(`<div class="topbar"></div>`);
-    bar.append(el(`<div class="chip">破局 ${phase + 1}／${total}</div>`), el(`<div class="spacer"></div>`), bInv, el(`<div class="chip">氣勢</div>`), q);
+    bar.append(el(`<div class="chip">破局 ${phase + 1}／${total}</div>`), el(`<div class="spacer"></div>`), bScroll, bInv, el(`<div class="chip">氣勢</div>`), q);
     lay.appendChild(bar);
     const panel = el(`<div class="choicebox"></div>`);
     // 對/錯結算:氣勢扣減 → 定心符自動保命 → 潰散則失敗(還原 _apply_qishi_damage/_resolve_battle)
@@ -916,7 +917,7 @@ function romanceStatus(name, v) {           // 還原原作 _romance_status
 function evidenceModal(key, clues) {
   sfx('paper', 1.05, 0.55);
   const { board, close } = boardOverlay(120, 60, 1040, 600, 90);
-  const title = (chById(S.chapter) || {}).title || '鐘樓墜案';
+  const title = key === 'prologue' ? '序章・鐘樓墜案' : ((chById(S.chapter) || {}).title || '鐘樓墜案');
   board.append(
     pLbl('格物卷｜' + esc(title), 35, 25, 760, 28, 'var(--br)', { bold: true }),
     pLbl('點擊空白處收卷', 770, 33, 220, 14, 'var(--pa2)', { align: 'right' }),
@@ -1019,15 +1020,20 @@ function scientistAtlas() {
   const sc = G.scientists;
   const reduced = isReduced();
   board.append(pLbl('格物先賢譜｜物理科學家關係圖', 35, 20, 1060, 29, 'var(--br)', { align: 'center', bold: true }));
-  // 圖例:青線＝概念承接、朱線＝同期爭論/競逐
+  // 圖例:青線＝概念承接、朱線＝同期爭論/競逐;由左至右依年代;點擊看生平與章回應用
   board.append(el(`<div class="atlas-legend" style="position:absolute;left:40px;top:62px;width:1050px">
     <span class="lg"><span class="sw" style="color:var(--jade);background:linear-gradient(90deg,var(--jade),#8fd4b4)"></span>概念承接</span>
     <span class="lg"><span class="sw" style="color:var(--cin);background:linear-gradient(90deg,var(--cin),#e07a5f)"></span>同期爭論／競逐</span>
-    <span class="lg" style="opacity:.72">卡片標章回，點擊看生平與貢獻</span></div>`));
+    <span class="lg" style="opacity:.72">由左至右依年代先後</span>
+    <span class="lg" style="opacity:.72">點擊人物看生平與章回應用</span></div>`));
   const graph = el(`<div class="atlas-wrap" style="left:45px;top:100px;width:1040px;height:330px"></div>`);
-  // 曲線發光連線 + 能量流動(端點沿用原作座標,錨在方框周邊;內容 1:1,只升級表現)
+  // 由左到右依年代先後排列(墨家最早→馬克士威最晚),上下交錯避免擁擠;連線改由節點中心即時算
+  const CHRONO = sc.chrono || sc.order, STEP = 108.75;
+  const pos = {};
+  CHRONO.forEach((id, r) => { pos[id] = [Math.round(15 + r * STEP), r % 2 === 0 ? 45 : 210]; });
+  const ctr = id => [pos[id][0] + 75, pos[id][1] + 31];
   const curve = (a, b) => {
-    const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2, dx = b[0] - a[0], dy = b[1] - a[1], L = Math.hypot(dx, dy) || 1, o = 18;
+    const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2, dx = b[0] - a[0], dy = b[1] - a[1], L = Math.hypot(dx, dy) || 1, o = 20;
     return `M${a[0]} ${a[1]} Q${(mx - dy / L * o).toFixed(1)} ${(my + dx / L * o).toFixed(1)} ${b[0]} ${b[1]}`;
   };
   const parts = [`<svg width="1040" height="330" style="position:absolute;inset:0;pointer-events:none">
@@ -1037,8 +1043,8 @@ function scientistAtlas() {
       <linearGradient id="gCin"><stop offset="0" stop-color="var(--cin)"/><stop offset="1" stop-color="#e5836a"/></linearGradient>
     </defs>`];
   for (const e of sc.edges) {
-    const d = curve(e.from, e.to), g = e.color === 'cinnabar' ? 'gCin' : 'gJade';
-    parts.push(`<path d="${d}" fill="none" stroke="url(#${g})" stroke-width="2.4" stroke-linecap="round" filter="url(#atlasGlow)" opacity=".92"/>`);
+    const d = curve(ctr(e.from), ctr(e.to)), g = e.color === 'cinnabar' ? 'gCin' : 'gJade';
+    parts.push(`<path d="${d}" fill="none" stroke="url(#${g})" stroke-width="2.4" stroke-linecap="round" filter="url(#atlasGlow)" opacity=".9"/>`);
     if (!reduced) parts.push(`<path d="${d}" fill="none" stroke="#f6ecd2" stroke-width="1.3" stroke-linecap="round" stroke-dasharray="2 15" opacity=".5"><animate attributeName="stroke-dashoffset" from="0" to="-34" dur="1.7s" repeatCount="indefinite"/></path>`);
   }
   parts.push('</svg>');
@@ -1049,8 +1055,8 @@ function scientistAtlas() {
   const active = (sc.active_by_chapter[String(S.chapter)]) || sc.active_default;
   let selBtn = null;
   for (const id of sc.order) {
-    const n = sc.nodes[id], on = active.includes(id);
-    const btn = el(`<button class="atlas-node${on ? ' on' : ''}" style="left:${n.pos[0]}px;top:${n.pos[1]}px">${on ? '<span class="relic"></span>' : ''}<span class="nm">${esc(n.name)}</span><span class="ch">${esc(n.chapter)}</span></button>`);
+    const n = sc.nodes[id], on = active.includes(id), p = pos[id];
+    const btn = el(`<button class="atlas-node${on ? ' on' : ''}" style="left:${p[0]}px;top:${p[1]}px">${on ? '<span class="relic"></span>' : ''}<span class="nm">${esc(n.name)}</span><span class="yr">${esc(n.years)}</span><span class="ch">${esc(n.chapter)}</span></button>`);
     btn.onclick = () => {
       if (selBtn) selBtn.classList.remove('sel'); btn.classList.add('sel'); selBtn = btn;
       detail.innerHTML = `<span><b style="color:#ffe6a6">${esc(n.name)}</b>　<span style="color:var(--br)">${esc(n.years)}</span><br><span style="opacity:.92">${esc(n.detail)}</span></span>`;
@@ -1118,10 +1124,11 @@ function battle(c) {
     bar.appendChild(el(`<div class="chip">破局戰 ${bi + 1}/${c.battles.length}</div>`));
     bar.appendChild(el(`<div class="spacer"></div>`));
     const bInv = el(`<button class="util">行囊</button>`); bInv.onclick = () => inventoryModal(() => renderQishi());
+    const bScroll = el(`<button class="util">格物卷</button>`); bScroll.onclick = () => evidenceModal(ckey(), c.clues);   // 答題時可翻閱本章已收錄證據(還原原作,兌現行俠/說書提示)
     const q = el(`<div class="qishi"></div>`);
     const renderQishi = () => { q.innerHTML = ''; for (let k = 0; k < S.qishi_max; k++) q.appendChild(el(`<div class="pip ${k < S.qishi ? 'on' : ''}"></div>`)); };
     renderQishi();
-    bar.append(bInv, el(`<div class="chip">氣勢</div>`), q);
+    bar.append(bScroll, bInv, el(`<div class="chip">氣勢</div>`), q);
     lay.appendChild(bar);
     const panel = el(`<div class="choicebox">
       <div style="color:var(--br);letter-spacing:.2em;margin-bottom:.6rem">${esc(b.title)}</div>
