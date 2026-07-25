@@ -76,14 +76,12 @@ body.reduced #rain{display:none}
   animation:lampBreath 6s ease-in-out infinite}
 #lamp.on{opacity:1}
 @keyframes lampBreath{0%,100%{opacity:.55}50%{opacity:1}}
-/* 格物書:角色手中天理殘卷的呼吸暖金光(對準書、screen 疊加=加光不加灰塊)*/
-#book{position:absolute;left:38%;top:62%;width:30%;height:36%;transform:translate(-50%,-50%);
-  z-index:7;pointer-events:none;opacity:0;transition:opacity .8s;mix-blend-mode:screen;
-  background:radial-gradient(closest-side,rgba(232,178,86,.30),rgba(201,140,52,.12) 52%,transparent 72%);
-  animation:bookBreath 5.2s ease-in-out infinite}
+/* 格物書:角色手中天理殘卷一帶的大範圍暖光,和右側燈火同路數——只作調和、不搶眼(低 alpha、僅淡淡呼吸 opacity、不縮放、不 screen)*/
+#book{position:absolute;inset:0;z-index:7;pointer-events:none;opacity:0;transition:opacity .8s;
+  background:radial-gradient(46% 42% at 39% 61%,rgba(210,156,72,.11),transparent 70%);
+  animation:bookBreath 6.8s ease-in-out infinite}
 #book.on{opacity:1}
-@keyframes bookBreath{0%,100%{opacity:.42;transform:translate(-50%,-50%) scale(.92)}
-  50%{opacity:1;transform:translate(-50%,-50%) scale(1.08)}}
+@keyframes bookBreath{0%,100%{opacity:.4}50%{opacity:.85}}
 .scrim{position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,8,6,.15),rgba(10,8,6,.55))}
 
 /* dialogue */
