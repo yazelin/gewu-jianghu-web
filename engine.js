@@ -1097,7 +1097,7 @@ function endingGallery() {
   board.appendChild(pBtn('收起圖鑑', 440, 596, 220, 40, true, close));
 }
 
-// ---------- 素材與製作名錄:電影式滾動片尾(片尾曲清單循環 + 幕後花絮膠捲 + 可暫停/前後翻)----------
+// ---------- 素材與製作名錄:電影式滾動片尾(片尾曲清單循環 + 劇照散落隨捲 + 片尾合照 + 可暫停/前後翻)----------
 function creditsPanel() {
   sfx('paper', 1.0, 0.5);
   const reduced = isReduced();
@@ -1110,17 +1110,24 @@ function creditsPanel() {
   if (_audio) { _audio.loop = false; _audio.addEventListener('ended', onEnded); }
   const ov = el(`<div class="roll-ov"></div>`);
   const track = el(`<div class="roll-track"></div>`);
-  // 特別感謝的先賢:由 scientists 資料依年代帶入(名字＋領域),與先賢譜同源
   const sci = (G.scientists.chrono || G.scientists.order).map(id => {
     const n = G.scientists.nodes[id], dom = (n.chapter.split('｜')[1] || n.chapter).trim();
     return `<div class="roll-sci"><span class="s-nm">${esc(n.name)}</span><span class="s-dm">${esc(dom)}</span></div>`;
   }).join('');
+  // 劇照:固定挑幾張(排除結局劇透),左右錯開隨捲動一起飄;字幕依畫面類型配對
+  const port = G.portraits || {}, cell0 = (G.prologue.hotspots[0] || {}).cell;
+  const chScene = ((G.chapters[3] || G.chapters[0]) || {}).background;
+  const P = (side, img, cat, cap, take) => img
+    ? `<div class="roll-photo ${side}"><div class="rp-frame"><div class="rp-img"><img src="${img}" style="object-position:${cat === 'char' ? 'top center' : 'center'}"><span class="rr-badge">● 花絮</span><span class="rr-take">TAKE ${take}</span></div></div><div class="rr-cap">${cap}</div></div>`
+    : '';
   track.innerHTML = [
     `<div class="roll-film-title">格物江湖錄</div>`,
     `<div class="roll-film-sub">天 理 殘 卷　・　網頁離線版</div>`,
     `<div class="roll-role">原著・劇情・原始程式</div><div class="roll-name">@changyi123456<small>概念與整套物理謎題的源頭</small></div>`,
+    P('left', G.prologue.background, 'scene', 'NG · 這口鐘，比想像中重很多', '03'),
     `<div class="roll-role">網頁離線版改編・工程・重製</div><div class="roll-name">yazelin<small>經原作者授權，見 SOURCE.md</small></div>`,
     `<div class="roll-role">場景・證物・角色・結局圖</div><div class="roll-name">OpenAI image generation<small>依原專案提示與物理校正產生</small></div>`,
+    P('right', port['沈硯'], 'char', '花絮 · 這位演員，眼神一次到位', '07'),
     `<div class="roll-h">配 樂（CC0）</div>`,
     `<div class="roll-name">Oriental／Oriented／Asianoriental 系列</div>`,
     `<div class="roll-name">Night of the Streets　—　nene</div>`,
@@ -1128,6 +1135,7 @@ function creditsPanel() {
     `<div class="roll-name">Fast Fight　—　Ville Nousiainen</div>`,
     `<div class="roll-name">Ancient Temple　—　Umplix</div>`,
     `<div class="roll-name">Ending Scene　—　nene</div>`,
+    P('left', cell0, 'prop', '幕後 · 證物道具組加班中', '11'),
     `<div class="roll-h">音 效（CC0）</div>`,
     `<div class="roll-name">Correct Bell・Paper・Footsteps<small>Tree Creaking・100 CC0 SFX</small></div>`,
     `<div class="roll-h">字 型</div>`,
@@ -1135,33 +1143,19 @@ function creditsPanel() {
     `<div class="roll-h">特別感謝・格物先賢</div>`,
     `<div class="roll-quip">沒有他們，就沒有這些題目</div>`,
     sci,
+    P('right', chScene, 'scene', 'NG · 雨一直下，收音組崩潰', '14'),
     `<div class="roll-h">也一併感謝</div>`,
     `<div class="roll-quip">感謝雨，從序章到片尾都沒停過<br>感謝那口鐘，願意被算進一道題<br>感謝每一顆被當成誤差的螺絲<br>製作過程沒有動物受傷<br>但有幾個 bug 英勇犧牲</div>`,
+    P('left', port['柳照微'], 'char', 'NG · 台詞卡在「格物」兩字', '18'),
     `<div class="roll-role">致</div><div class="roll-name">每一位願意追問<br>「這到底是怎麼運作的」的人</div>`,
     `<div class="roll-quip" style="margin-top:42px">完整作者、原始網址、逐檔雜湊與授權<br>見 provenance／asset-ledger.csv</div>`,
     `<div class="roll-epi" style="margin-top:76px">看懂世界如何運作，<br>才有資格改變命運。</div>`,
     `<div class="roll-quip" style="margin-top:8px">——　敬　每一位願意追問的人</div>`,
+    // 片尾正下方:主角合照大圖
+    `<div class="roll-photo hero"><div class="rp-frame"><div class="rp-img"><img src="${G.title_keyart}"><span class="rr-badge">● 殺青合照</span><span class="rr-take">FIN</span></div></div><div class="rr-cap">辛苦了，各位　·　我們，下個案子見</div></div>`,
   ].join('');
   ov.appendChild(track);
-  // 幕後花絮膠捲(左側 PiP,輪播場景/角色/結局/格物證物 + NG 字幕)
-  const imgs = [...new Set([].concat(
-    G.story_intro.map(s => s.image), G.chapters.map(c => c.background),
-    Object.values(G.portraits || {}), Object.values(G.endings_finale).map(e => e.image),
-    Object.values(G.endings_ch9).map(e => e.image), [G.prologue.background],
-    G.prologue.hotspots.map(h => h.cell)))].filter(Boolean);
-  const caps = ['幕後花絮 · 這顆鏡拍了很多次', 'NG · 雨一直下，收音組崩潰', 'NG · 這口鐘，比想像中重很多', '花絮 · 臨演三千人，便當訂到手軟', 'NG · 主角堅持親自翻書', '花絮 · 這道題，作者自己也算了兩遍', 'NG · 燈籠又被風吹熄', '幕後 · 證物道具組加班中', '花絮 · 導演說，再下大一點的雨'];
-  const reel = el(`<div class="roll-reel"><div class="roll-reel-frame"><div class="rr-imgs"><img class="rr-a"><img class="rr-b"><div class="rr-badge">● 幕後花絮</div><div class="rr-take">TAKE 01</div></div></div><div class="rr-cap"></div></div>`);
-  const imA = reel.querySelector('.rr-a'), imB = reel.querySelector('.rr-b'), take = reel.querySelector('.rr-take'), cap = reel.querySelector('.rr-cap');
-  let ri = 0, front = imA;
-  imA.src = imgs[0]; imA.style.opacity = 1; cap.textContent = caps[0];
-  const advanceReel = () => {
-    ri = (ri + 1) % imgs.length;
-    const back = front === imA ? imB : imA;
-    back.src = imgs[ri]; back.style.opacity = 1; front.style.opacity = 0; front = back;
-    take.textContent = 'TAKE ' + String((ri % 24) + 1).padStart(2, '0');
-    cap.textContent = caps[ri % caps.length];
-  };
-  ov.appendChild(reel);
+  preload([G.prologue.background, port['沈硯'], cell0, chScene, port['柳照微'], G.title_keyart].filter(Boolean));   // 預載劇照,捲到時已就緒
   // 控制列(暫停/播放)+ 關閉
   const ctrl = el(`<div class="roll-ctrl"></div>`);
   const btnPause = el(`<button class="roll-btn">${reduced ? '播放' : '暫停'}</button>`);
@@ -1170,11 +1164,12 @@ function creditsPanel() {
   const closeBtn = el(`<button class="roll-close">關閉</button>`);
   ov.appendChild(closeBtn);
   stage.appendChild(ov);
-  // 可控捲動:pos 由 -730(片頭在畫面下方)捲到 maxPos(結語近中央);reduced 預設暫停
-  let pos = -730, paused = reduced, raf = 0, lastT = 0, reelAcc = 0, dragY = null;
-  const H = () => track.scrollHeight;
+  // 可控捲動:pos 由 -730(片頭在畫面下方)捲到 maxPos(片尾合照近中央);reduced 預設暫停
+  let pos = -730, paused = reduced, raf = 0, lastT = 0, dragY = null;
+  const heroEl = track.querySelector('.roll-photo.hero');
+  const maxP = () => heroEl ? (heroEl.offsetTop + heroEl.offsetHeight / 2 - 360) : (track.scrollHeight - 460);   // 捲到底時讓合照垂直置中
   const apply = () => { track.style.transform = `translateY(${-pos}px)`; };
-  const clampPos = () => { pos = Math.max(-760, Math.min(H() - 420, pos)); };
+  const clampPos = () => { pos = Math.max(-760, Math.min(maxP(), pos)); };
   apply();
   btnPause.onclick = () => { paused = !paused; btnPause.textContent = paused ? '播放' : '暫停'; sfx('paper', 1.05, 0.25); };
   ov.addEventListener('wheel', (e) => { pos += e.deltaY * 0.6; clampPos(); apply(); }, { passive: true });
@@ -1185,10 +1180,7 @@ function creditsPanel() {
   const frame = (t) => {
     raf = requestAnimationFrame(frame);
     const dt = lastT ? Math.min((t - lastT) / 1000, 0.05) : 0; lastT = t;
-    if (!paused && dragY == null) {
-      pos += 52 * dt; const mx = H() - 420; if (pos > mx) pos = mx;
-      reelAcc += dt; if (reelAcc >= 4) { reelAcc = 0; advanceReel(); }
-    }
+    if (!paused && dragY == null) { pos += 52 * dt; const mx = maxP(); if (pos > mx) pos = mx; }
     apply();
   };
   raf = requestAnimationFrame(frame);
