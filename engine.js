@@ -111,7 +111,7 @@ function initWeather() {
   const LAYERS = [{ n: 55, vy: 430, len: 11, w: 0.7, a: 0.07 }, { n: 66, vy: 640, len: 17, w: 1.0, a: 0.11 }, { n: 56, vy: 900, len: 25, w: 1.5, a: 0.17 }];
   const rain = [];
   LAYERS.forEach((L, li) => { for (let k = 0; k < L.n; k++) rain.push({ L, li, k, x: (li * 313 + k * 197) % 1280, y: (li * 271 + k * 149) % 720 }); });
-  const dust = Array.from({ length: 26 }, (_, i) => ({ x: (i * 331) % 1280, y: (i * 149) % 720, i }));
+  const dust = Array.from({ length: 42 }, (_, i) => ({ x: (i * 331) % 1280, y: (i * 149) % 720, i }));
   let last = 0;
   const frame = (t) => {
     requestAnimationFrame(frame);
@@ -126,12 +126,16 @@ function initWeather() {
       ctx.strokeStyle = `rgba(176,208,232,${L.a})`;
       ctx.lineWidth = L.w; ctx.beginPath(); ctx.moveTo(d.x, d.y); ctx.lineTo(d.x - L.len * gust, d.y + L.len); ctx.stroke();
     }
-    for (const m of dust) {                                    // 浮塵:緩慢上飄微擺
+    ctx.shadowColor = 'rgba(234,214,150,.6)';                  // 浮塵:緩慢上飄微擺 + 淡淡光暈
+    for (const m of dust) {
       m.y -= dt * (6 + (m.i % 4) * 2); m.x += Math.sin((t / 1000 + m.i) * 0.5) * dt * 8;
-      if (m.y < -6) { m.y = 726; m.x = (m.i * 331 + (t * 0.02 | 0)) % 1280; }
-      ctx.fillStyle = `rgba(216,200,152,${0.05 + (m.i % 3) * 0.022})`;
-      ctx.beginPath(); ctx.arc(m.x, m.y, 1.2 + (m.i % 3) * 0.6, 0, 6.283); ctx.fill();
+      if (m.y < -8) { m.y = 728; m.x = (m.i * 331 + (t * 0.02 | 0)) % 1280; }
+      const r = 1.6 + (m.i % 3) * 0.9;                         // 半徑放大些(1.6~3.4),有大有小
+      ctx.shadowBlur = 4 + r * 1.7;                            // 越大越亮的柔光暈
+      ctx.fillStyle = `rgba(224,206,150,${0.06 + (m.i % 3) * 0.03})`;
+      ctx.beginPath(); ctx.arc(m.x, m.y, r, 0, 6.283); ctx.fill();
     }
+    ctx.shadowBlur = 0;                                        // 歸零,別讓光暈汙染下一幀雨絲
   };
   requestAnimationFrame(frame);
 }
