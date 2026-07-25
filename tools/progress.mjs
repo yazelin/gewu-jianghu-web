@@ -64,7 +64,7 @@ await page.evaluate(() => { document.querySelectorAll('.modal').forEach(m => m.r
 const newBtn = page.locator('button.btn', { hasText: '新案入局' }).first();
 await newBtn.click();
 await page.waitForTimeout(500);
-const dialogText = await page.evaluate(() => document.querySelector('.modal .sheet')?.innerText || '');
+const dialogText = await page.evaluate(() => document.querySelector('.modal .sheet')?.innerText.replace(/^✕\s*/,'') || '');
 ok('新案入局會先跳確認', /新案入局？/.test(dialogText) && /無法復原/.test(dialogText), dialogText.split('\n')[0] || '沒有視窗');
 ok('確認視窗說明成就會保留', /成就.*保留/.test(dialogText.replace(/\s/g, '')), '');
 await page.evaluate(() => [...document.querySelectorAll('.modal .btn')].find(b => b.textContent.includes('取消'))?.click());
@@ -74,7 +74,7 @@ ok('按取消不會動到存檔', ((await read(SAVE)) || {}).chapter === 6, '第
 // ---- 3) 真的開新局:進度歸零,但成就/結局圖鑑保留 ----
 await newBtn.click();
 await page.waitForTimeout(400);
-await page.evaluate(() => [...document.querySelectorAll('.modal .btn')].find(b => b.textContent.includes('開新局'))?.click());
+await page.evaluate(() => [...document.querySelectorAll('.modal .btn')].find(b => b.textContent.includes('新案入局'))?.click());
 await page.waitForTimeout(1500);
 const after = await read(SAVE);
 ok('新案後進度歸零', !!after && after.chapter === 1 && (after.cleared || []).length === 0,
@@ -103,7 +103,7 @@ await page.reload({ waitUntil: 'load' }); await page.waitForTimeout(1200);
 const before = await read(SAVE);
 await page.locator('button.btn', { hasText: '新案入局' }).first().click();
 await page.waitForTimeout(400);
-await page.evaluate(() => [...document.querySelectorAll('.modal .btn')].find(b => b.textContent.includes('開新局'))?.click());
+await page.evaluate(() => [...document.querySelectorAll('.modal .btn')].find(b => b.textContent.includes('新案入局'))?.click());
 await page.waitForTimeout(1500);
 const kept = await read(SAVE);
 const same = (f) => JSON.stringify((kept || {})[f]) === JSON.stringify((before || {})[f]);
@@ -126,7 +126,7 @@ await page.reload({ waitUntil: 'load' }); await page.waitForTimeout(1000);
 // 按不動時不能是「灰掉不講原因」——要說得出為什麼
 await page.locator('button.btn', { hasText: '選章' }).first().click();
 await page.waitForTimeout(400);
-const gate1 = await page.evaluate(() => document.querySelector('.modal .sheet')?.innerText || '');
+const gate1 = await page.evaluate(() => document.querySelector('.modal .sheet')?.innerText.replace(/^✕\s*/,'') || '');
 ok('沒通關過時,選章會說明原因而不是灰掉', /通關一次/.test(gate1), gate1.split('\n')[0] || '沒有視窗');
 await page.evaluate(() => document.querySelectorAll('.modal').forEach(m => m.remove()));
 
@@ -138,7 +138,7 @@ await page.evaluate((k) => {
 await page.reload({ waitUntil: 'load' }); await page.waitForTimeout(1000);
 await page.locator('button.btn', { hasText: '選章' }).first().click();
 await page.waitForTimeout(400);
-const gate2 = await page.evaluate(() => document.querySelector('.modal .sheet')?.innerText || '');
+const gate2 = await page.evaluate(() => document.querySelector('.modal .sheet')?.innerText.replace(/^✕\s*/,'') || '');
 ok('舊存檔(無快照)會解釋原因並給出路', /沒有章節快照/.test(gate2) && /重來本章/.test(gate2), gate2.split('\n')[0] || '沒有視窗');
 await page.evaluate(() => document.querySelectorAll('.modal').forEach(m => m.remove()));
 
@@ -159,9 +159,9 @@ await page.reload({ waitUntil: 'load' }); await page.waitForTimeout(1200);
 ok('通關過就能選章', !(await page.locator('button.btn', { hasText: '選章' }).first().isDisabled()));
 await page.locator('button.btn', { hasText: '選章' }).first().click();
 await page.waitForTimeout(500);
-const list = await page.evaluate(() => [...document.querySelectorAll('.modal .btn.sm')].map(b => b.textContent.trim()));
+const list = await page.evaluate(() => [...document.querySelectorAll('.modal .mrow')].map(b => b.textContent.trim()));
 ok('選章列出有快照的章節', list.length === 3 && list[0].includes('第 1 章') && list[2].includes('第 6 章'), list.join(' / '));
-await page.evaluate(() => [...document.querySelectorAll('.modal .btn.sm')].find(b => b.textContent.includes('第 3 章'))?.click());
+await page.evaluate(() => [...document.querySelectorAll('.modal .mrow')].find(b => b.textContent.includes('第 3 章'))?.click());
 await page.waitForTimeout(1500);
 const jumped = await read(SAVE);
 ok('跳到第 3 章', !!jumped && jumped.chapter === 3, jumped ? '第 ' + jumped.chapter + ' 章' : '無');

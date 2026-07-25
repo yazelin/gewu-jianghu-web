@@ -528,19 +528,15 @@ function render() {
 
 // 通用確認視窗(沿用選單的 .modal/.sheet 排版)
 function confirmModal(title, body, note, okLabel, onOk) {
-  const m = el(`<div class="modal"><div class="sheet" style="max-width:460px;text-align:center">
-    <h2 style="border:0">${esc(title)}</h2>
-    <div style="color:var(--pa);margin:.2rem 0 .8rem;line-height:1.8">${esc(body)}</div>
-    ${note ? `<div style="color:var(--pa2);font-size:.9rem;margin-bottom:1rem;line-height:1.7">${esc(note)}</div>` : ''}
-  </div></div>`);
-  const sheet = m.querySelector('.sheet');
+  const { m, sheet } = modalShell(title, '', 460);
+  sheet.append(el(`<div style="color:var(--pa);margin:.9rem 0 .7rem;line-height:1.85;text-align:center">${esc(body)}</div>`));
+  if (note) sheet.append(el(`<div style="color:var(--pa2);font-size:.87rem;margin-bottom:1.1rem;line-height:1.75;text-align:center">${esc(note)}</div>`));
   const row = el(`<div style="display:flex;gap:.6rem;justify-content:center"></div>`);
   const ok = el(`<button class="btn">${esc(okLabel)}</button>`);
   ok.onclick = () => { m.remove(); if (onOk) onOk(); };
   row.append(ok);
   if (onOk) { const no = el(`<button class="btn ghost">取消</button>`); no.onclick = () => m.remove(); row.append(no); }   // onOk 為空 = 純告知,不需要取消
   sheet.appendChild(row);
-  m.onclick = (e) => { if (e.target === m) m.remove(); };
   stage.appendChild(m);
 }
 // 選章重走:回到該章入口快照。好感/旗標/證據都回到當時,結局判定才算得對
@@ -550,15 +546,12 @@ function chapterSelect() {
   const cps = sv.checkpoints || {};
   const ids = Object.keys(cps).map(Number).sort((a, b) => a - b);
   if (!ids.length) return;
-  const m = el(`<div class="modal"><div class="sheet" style="max-width:560px">
-    <h2>選章重走</h2>
-    <div style="color:var(--pa2);font-size:.9rem;margin:0 0 1rem;line-height:1.8">回到該章開始時的狀態（好感、旗標、已收證據都照當時）。之後的進度會被覆蓋，但成就與結局圖鑑只累加、不會減少——想收齊多重結局走這裡，不要按新案。</div>
-  </div></div>`);
-  const sheet = m.querySelector('.sheet');
-  const grid = el(`<div style="display:flex;flex-wrap:wrap;gap:.5rem;justify-content:center"></div>`);
+  const { m, sheet } = modalShell('選章重走',
+    '回到該章開始時的狀態（好感、旗標、已收證據都照當時）。之後的進度會被覆蓋，但成就與結局圖鑑只累加、不會減少。', 560);
+  const grid = el(`<div class="mlist"></div>`);
   ids.forEach(n => {
     const c = chById(n);
-    const b = el(`<button class="btn sm">第 ${n} 章｜${esc(c ? c.title : '')}</button>`);
+    const b = modalRow(`第 ${n} 章`, null, { value: c ? c.title : '' });
     b.onclick = () => {
       m.remove();
       S = { ...cps[n], checkpoints: cps, ...codexSeed() };   // 回到快照,收藏庫用最新的
@@ -568,10 +561,6 @@ function chapterSelect() {
     grid.appendChild(b);
   });
   sheet.appendChild(grid);
-  const no = el(`<button class="btn ghost" style="margin-top:1.2rem">取消</button>`);
-  no.onclick = () => m.remove();
-  sheet.appendChild(no);
-  m.onclick = (e) => { if (e.target === m) m.remove(); };
   stage.appendChild(m);
 }
 // ESC = 關掉最上層的視窗,反應與按該視窗的 X 完全一致。
@@ -591,22 +580,45 @@ function initEscClose() {
     else top.remove();         // .modal:沒有 X,等同點背景關掉
   });
 }
+// 選單/確認框的共用外殼:與 .pboard 同一套語言(銅色標題 → 小注 → 朱砂細線 → 圓形 X)。
+// X 沿用 .pclose,ESC 的全域處理才會走同一條關閉路徑。
+function modalShell(title, sub, maxw = 460) {
+  const m = el(`<div class="modal"><div class="sheet" style="max-width:${maxw}px"></div></div>`);
+  const sheet = m.querySelector('.sheet');
+  const x = el(`<button class="pclose" title="關閉">✕</button>`);
+  x.onclick = () => m.remove();
+  sheet.append(x, el(`<div class="mtitle">${esc(title)}</div>`));
+  if (sub) sheet.append(el(`<div class="msub">${esc(sub)}</div>`));
+  sheet.append(el(`<div class="mrule"></div>`));
+  m.onclick = (e) => { if (e.target === m) m.remove(); };
+  return { m, sheet };
+}
+// 卷宗式清單的一列:名稱在左、狀態在右、收尾記號
+function modalRow(label, onPick, { value = '', danger = false } = {}) {
+  const r = el(`<button class="mrow${danger ? ' danger' : ''}"><span class="mr-n">${esc(label)}</span>${value ? `<span class="mr-v">${esc(value)}</span>` : ''}<span class="mr-x">›</span></button>`);
+  r.onclick = onPick;
+  return r;
+}
 // 遊戲中選單:回題名(進度保留)/ 重來本章
 function initMenu() {
   const b = document.getElementById('gmenu');
   if (!b) return;
   b.onclick = () => {
-    const m = el(`<div class="modal"><div class="sheet" style="max-width:420px;text-align:center">
-      <h2 style="border:0">選單</h2></div></div>`);
-    const sheet = m.querySelector('.sheet');
-    const mk = (label, fn) => { const x = el(`<button class="btn" style="margin:.4rem">${label}</button>`); x.onclick = () => { m.remove(); fn(); }; sheet.appendChild(x); };
-    mk('繼續遊戲', () => { });
-    if (S.scene === 'chapter') mk('重來本章', () => { S.evidence[ckey()] = []; S.lost[ckey()] = []; delete S.rewarded['reward_ch' + S.chapter]; go('chapter'); });
-    mk('回題名', () => go('title'));      // 題名可「開新局」重玩或「繼續」
-    mk(isReduced() ? '動態效果：關（點擊開啟）' : '動態效果：開（點擊關閉）', () => {
+    const { m, sheet } = modalShell('選單', S.scene === 'chapter' ? `第 ${S.chapter} 章　${chById(S.chapter)?.title || ''}` : '', 420);
+    const list = el(`<div class="mlist"></div>`);
+    const add = (label, fn, opt) => list.appendChild(modalRow(label, () => { m.remove(); fn(); }, opt));
+    add('繼續遊戲', () => { });
+    if (S.scene === 'chapter') add('重來本章', () => {
+      S.evidence[ckey()] = []; S.lost[ckey()] = []; delete S.rewarded['reward_ch' + S.chapter]; go('chapter');
+    }, { danger: true });
+    add('回題名', () => go('title'));      // 題名可「開新局」重玩或「繼續」
+    // 設定列:名稱只是名稱,狀態放右邊,不要把整句話塞進按鈕
+    const motion = modalRow('動態效果', () => {
       localStorage.setItem('gewu_reduced', isReduced() ? '0' : '1'); syncReduced();
-    });
-    m.onclick = (e) => { if (e.target === m) m.remove(); };
+      motion.querySelector('.mr-v').textContent = isReduced() ? '關' : '開';
+    }, { value: isReduced() ? '關' : '開' });
+    list.appendChild(motion);
+    sheet.appendChild(list);
     stage.appendChild(m);
   };
 }
@@ -657,7 +669,7 @@ function sTitle() {
     if (!sv || (!sv.intro_seen && !(sv.cleared || []).length)) return startNew();   // 沒有實質進度就別煩
     const ch = sv.chapter || 1, done = (sv.cleared || []).length;
     confirmModal('新案入局？', `目前存檔在第 ${ch} 章（已通關 ${done} 章）。開新局會覆蓋掉這份進度，無法復原。`,
-      '成就、結局圖鑑與佩印稱號會保留，不受影響。', '開新局', startNew);
+      '成就、結局圖鑑與佩印稱號會保留，不受影響。', '新案入局', startNew);
   };
   // 下左:只留氛圍文案(標語 + 路線)
   const bottom = el(`<div class="t-bottom"></div>`);
