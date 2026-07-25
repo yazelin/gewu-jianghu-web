@@ -219,9 +219,14 @@ body.reduced #rain{display:none}
 .ach-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .ach-card{display:flex;gap:12px;align-items:flex-start;padding:11px 13px;border-radius:10px;border:1px solid rgba(138,107,58,.4);background:linear-gradient(160deg,rgba(34,28,19,.68),rgba(18,15,11,.7))}
 .ach-card.locked{opacity:.6;border-style:dashed}
-.ach-badge{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:21px;flex:none;border:2px solid var(--gold);font-weight:600}
-.ach-badge.got{color:#ffe6a6;background:radial-gradient(circle at 40% 35%,rgba(201,162,75,.4),rgba(40,30,14,.72));box-shadow:0 0 13px rgba(201,162,75,.32)}
-.ach-badge.locked{border-color:rgba(138,107,58,.45);border-style:dashed;color:var(--tx-mut);background:rgba(20,17,13,.5);font-size:17px}
+/* 徽記=我們自製的 6 格銅印圖集(sprite,依類別切格);未解=灰階壓暗 */
+.ach-badge{width:52px;height:52px;flex:none;border-radius:8px;background-image:url(assets/img/achievement_emblem_atlas.webp);background-size:300% 200%;background-repeat:no-repeat;box-shadow:0 2px 9px rgba(0,0,0,.55)}
+.ach-badge[data-cat="story"]{background-position:0% 0%}
+.ach-badge[data-cat="mastery"]{background-position:50% 0%}
+.ach-badge[data-cat="relationship"]{background-position:100% 0%}
+.ach-badge[data-cat="ending"]{background-position:0% 100%}
+.ach-badge[data-cat="system"]{background-position:100% 100%}
+.ach-badge.locked{filter:grayscale(.9) brightness(.42)}
 .ach-body{min-width:0}
 .ach-t{color:var(--jade);font-size:.98rem;font-weight:600;letter-spacing:.04em}
 .ach-card.locked .ach-t{color:var(--pa2)}

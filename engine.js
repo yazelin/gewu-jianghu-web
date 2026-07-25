@@ -1477,8 +1477,7 @@ function achievementCodex() {
     });
     content.appendChild(trow);
   }
-  // 篩選頁籤 + 印章徽記格(徽記＝印章;類別以篆意字表示,未解為「密」)
-  const GLYPH = { story: '卷', mastery: '格', relationship: '緣', ending: '終', system: '璽' };
+  // 篩選頁籤 + 印章徽記格(徽記＝自製 6 格銅印圖集,依類別切格;未解灰階壓暗)
   const tabs = el(`<div class="ach-tabs"></div>`);
   const grid = el(`<div class="ach-grid"></div>`);
   let active = 'all';
@@ -1488,7 +1487,7 @@ function achievementCodex() {
       const a = A.items[id], got = S.achievements[id];
       const tr = got && a.title_reward ? `<span class="ach-tr">稱號「${esc(a.title_reward)}」</span>` : '';
       grid.appendChild(el(`<div class="ach-card${got ? '' : ' locked'}">
-        <div class="ach-badge ${got ? 'got' : 'locked'}">${got ? (GLYPH[a.category] || '✦') : '密'}</div>
+        <div class="ach-badge${got ? '' : ' locked'}" data-cat="${a.category}"></div>
         <div class="ach-body"><div class="ach-t">${got ? esc(a.title) : '未解秘印'}</div>
           <div class="ach-d">${esc(got ? a.description : a.hint)}${tr}</div></div></div>`));
     });
