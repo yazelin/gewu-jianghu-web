@@ -56,7 +56,9 @@ html,body{height:100%;background:#000;overflow:hidden;
 @media (orientation:portrait) and (max-width:900px){#rotate{display:flex}}
 
 .layer{position:absolute;inset:0}
-.bg{position:absolute;inset:0;background-size:cover;background-position:center;filter:brightness(.86) contrast(1.1) saturate(1.08);
+.bg{position:absolute;inset:0;background-size:cover;background-position:center;
+  /* 亮度各畫面自己用 --bgb 指定(壓字需求不同),對比與彩度統一在這裡——行內 filter 會整個蓋掉類別,不能疊加 */
+  filter:brightness(var(--bgb,.86)) contrast(1.1) saturate(var(--bgs,1.08));
   transform-origin:center;animation:kenburns 24s ease-in-out infinite}
 @keyframes kenburns{0%,100%{transform:scale(1.02)}50%{transform:scale(1.052)}}
 /* 雨幕(還原原作 rain_overlay)+ 浮塵層 */

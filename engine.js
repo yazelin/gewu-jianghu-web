@@ -723,7 +723,7 @@ function sIntro() {
     const p = pages[i];
     // 每幕:Ken Burns 背景 + 字幕分層進場;交叉溶接(不 clear,舊幕淡出移除)
     const lay = el(`<div class="cine-scene">
-      <div class="bg ${KB[i % 4]}" style="background-image:url('${p.image}');filter:brightness(.62)"></div>
+      <div class="bg ${KB[i % 4]}" style="background-image:url('${p.image}');--bgb:.62"></div>
       <div class="scrim"></div>
       <div class="cine-txt">
         <div class="intro-eyebrow ci-a">${esc(p.eyebrow)}</div>
@@ -818,7 +818,7 @@ function prologueBattle() {
     if (phase >= total) return prologueFinalChoice();
     clear();
     const lay = el(`<div class="layer fade"></div>`);
-    lay.append(el(`<div class="bg" style="background-image:url('${p.background}');filter:brightness(.45)"></div>`), el(`<div class="scrim"></div>`));
+    lay.append(el(`<div class="bg" style="background-image:url('${p.background}');--bgb:.45"></div>`), el(`<div class="scrim"></div>`));
     const q = el(`<div class="qishi"></div>`);
     const renderQishi = () => { q.innerHTML = ''; for (let k = 0; k < S.qishi_max; k++) q.appendChild(el(`<div class="pip ${k < S.qishi ? 'on' : ''}"></div>`)); };
     renderQishi();
@@ -883,7 +883,7 @@ function prologueFinalChoice() {
   const fc = G.prologue.final_choice;
   clear(); playMusic(MUSIC.prologue);
   const lay = el(`<div class="layer fade"></div>`);
-  lay.append(el(`<div class="bg" style="background-image:url('${G.prologue.background}');filter:brightness(.5)"></div>`), el(`<div class="scrim"></div>`));
+  lay.append(el(`<div class="bg" style="background-image:url('${G.prologue.background}');--bgb:.5"></div>`), el(`<div class="scrim"></div>`));
   const box = el(`<div class="choicebox">
     <div style="color:var(--br);letter-spacing:.2em;font-size:1.3rem">${esc(fc.banner[0])}</div>
     <div style="color:var(--pa2);margin:.3rem 0 1rem">${esc(fc.banner[1])}</div>
@@ -915,7 +915,7 @@ function prologueEnding(ending, lizheng, insight) {
   const e = G.prologue.endings[ending];
   clear(); playMusic(MUSIC.ambient);
   const lay = el(`<div class="layer fade"></div>`);
-  lay.append(el(`<div class="bg" style="background-image:url('${G.prologue.background}');filter:brightness(.5)"></div>`), el(`<div class="scrim"></div>`));
+  lay.append(el(`<div class="bg" style="background-image:url('${G.prologue.background}');--bgb:.5"></div>`), el(`<div class="scrim"></div>`));
   lay.appendChild(el(`<div style="position:absolute;left:80px;right:80px;top:56px">
     <div class="intro-eyebrow">序章結局</div>
     <div class="intro-title" style="max-width:92%">${esc(e.title)}</div>
@@ -941,7 +941,7 @@ function sChapter() {
     clear();
     // 章名卡
     const card = el(`<div class="layer fade" style="display:flex;flex-direction:column;align-items:center;justify-content:center">
-      <div class="bg" style="background-image:url('${c.background}');filter:brightness(.4)"></div>
+      <div class="bg" style="background-image:url('${c.background}');--bgb:.4"></div>
       <div class="scrim"></div>
       <div style="position:relative;text-align:center">
         <div style="color:var(--br);letter-spacing:.3em;margin-bottom:1rem">${esc(c.location)}</div>
@@ -1502,7 +1502,7 @@ function battle(c) {
     clear();
     const b = c.battles[bi];
     const lay = el(`<div class="layer fade"></div>`);
-    lay.appendChild(el(`<div class="bg" style="background-image:url('${c.background}');filter:brightness(.45)"></div>`));
+    lay.appendChild(el(`<div class="bg" style="background-image:url('${c.background}');--bgb:.45"></div>`));
     lay.appendChild(el(`<div class="scrim"></div>`));
     const bar = el(`<div class="topbar"></div>`);
     bar.appendChild(el(`<div class="chip">破局戰 ${bi + 1}/${c.battles.length}</div>`));
@@ -1575,7 +1575,7 @@ function battleCleared(c) {
 function failScreen(background, title, reason, retry, retryLabel) {
   clear();
   const lay = el(`<div class="layer fade"></div>`);
-  lay.appendChild(el(`<div class="bg" style="background-image:url('${background}');filter:brightness(.3) grayscale(.5)"></div>`));
+  lay.appendChild(el(`<div class="bg" style="background-image:url('${background}');--bgb:.3;--bgs:.5"></div>`));
   lay.appendChild(el(`<div class="scrim"></div>`));
   const box = el(`<div class="choicebox" style="text-align:center">
     <div class="gsub" style="color:var(--danger);font-size:1.3rem;margin-bottom:1rem">${esc(title)}</div>
@@ -1609,7 +1609,7 @@ function finalChoice(c) {
   if (!fc) { advance(c); return; }
   clear();
   const lay = el(`<div class="layer fade"></div>`);
-  lay.appendChild(el(`<div class="bg" style="background-image:url('${c.background}');filter:brightness(.5)"></div>`));
+  lay.appendChild(el(`<div class="bg" style="background-image:url('${c.background}');--bgb:.5"></div>`));
   lay.appendChild(el(`<div class="scrim"></div>`));
   const box = el(`<div class="choicebox"><div class="prompt">${esc(fc.prompt)}</div></div>`);
   const eff = G.logic.final_effects[String(c.id)] || {};
@@ -1654,7 +1654,7 @@ function chapterClearScreen(c) {
   clear();
   sfx('gong', 0.7, 0.65);           // 過關:鑼聲
   const lay = el(`<div class="layer fade" style="display:flex;align-items:center;justify-content:center">
-    <div class="bg" style="background-image:url('${c.background}');filter:brightness(.4)"></div>
+    <div class="bg" style="background-image:url('${c.background}');--bgb:.4"></div>
     <div class="scrim"></div></div>`);
   const box = el(`<div class="choicebox" style="text-align:center">
     <div style="color:var(--jade);letter-spacing:.3em;margin-bottom:.6rem">通　關</div>
@@ -1808,7 +1808,7 @@ function romanceSelect(phase, next) {
   if (!cands.length) { S.romance = phase === 'final' ? S.romance : ''; save(); return next(); }
   clear();
   const lay = el(`<div class="layer fade"></div>`);
-  lay.appendChild(el(`<div class="bg" style="background-image:url('${G.title_keyart}');filter:brightness(.4)"></div>`));
+  lay.appendChild(el(`<div class="bg" style="background-image:url('${G.title_keyart}');--bgb:.4"></div>`));
   lay.appendChild(el(`<div class="scrim"></div>`));
   const box = el(`<div class="choicebox"><div class="prompt">${phase === 'final' ? '第十一章・情緣定局' : '第九章・止機之後，可確認心意'}</div></div>`);
   cands.forEach(n => {
@@ -1886,7 +1886,7 @@ function showEnding(e, next, badge, label) {
   clear();
   preload([e.image]).then(() => {
     const lay = el(`<div class="layer fade"></div>`);
-    lay.appendChild(el(`<div class="bg" style="background-image:url('${e.image}');filter:brightness(.55)"></div>`));
+    lay.appendChild(el(`<div class="bg" style="background-image:url('${e.image}');--bgb:.55"></div>`));
     lay.appendChild(el(`<div class="scrim"></div>`));
     lay.appendChild(el(`<div style="position:absolute;left:80px;right:80px;top:80px">
       <div class="intro-eyebrow">${esc(badge || '結局')}</div>
