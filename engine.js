@@ -393,7 +393,14 @@ const codexSeed = () => {                           // 開新局時把收藏庫�
 };
 const clearedOnce = () => { const c = loadCodex(); return (c.seen_normal || []).length > 0 || (c.seen_finale || []).length > 0; };
 
-const save = () => { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); mergeCodex(S); };
+// 存檔失敗要讓人知道,不能靜默——存檔壞掉卻照玩下去,等於在累積不會被記住的進度。
+// (實測滿檔含 11 份快照約 34.5KB,離 localStorage 5MB 上限還很遠;這是保險不是常態)
+let saveWarned = false;
+const save = () => {
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); saveWarned = false; }
+  catch { if (!saveWarned) { saveWarned = true; toast('存檔失敗：瀏覽器儲存空間已滿或被封鎖'); } }
+  mergeCodex(S);
+};
 const loadSave = () => { try { return JSON.parse(localStorage.getItem(SAVE_KEY)); } catch { return null; } };
 const hasSave = () => !!localStorage.getItem(SAVE_KEY);
 // 進章當下的快照:選章就是回到這個點,好感/旗標/證據都照當時,結局判定才不會算出亂七八糟的結果
