@@ -1181,10 +1181,11 @@ function scientistAtlas() {
   let selBtn = null;
   for (const id of sc.order) {
     const n = sc.nodes[id], on = active.includes(id), p = pos[id];
-    const btn = el(`<button class="atlas-node${on ? ' on' : ''}" style="left:${p[0]}px;top:${p[1]}px">${on ? '<span class="relic"></span>' : ''}<span class="nm">${esc(n.name)}</span><span class="yr">${esc(n.years)}</span><span class="ch">${esc(n.chapter)}</span></button>`);
+    const face = `assets/img/sage_${id}.webp`;
+    const btn = el(`<button class="atlas-node${on ? ' on' : ''}" style="left:${p[0]}px;top:${p[1]}px">${on ? '<span class="relic"></span>' : ''}<span class="atlas-face" style="background-image:url('${face}')"></span><span class="nm">${esc(n.name)}</span><span class="yr">${esc(n.years)}</span><span class="ch">${esc(n.chapter)}</span></button>`);
     btn.onclick = () => {
       if (selBtn) selBtn.classList.remove('sel'); btn.classList.add('sel'); selBtn = btn;
-      detail.innerHTML = `<span><b style="color:#ffe6a6">${esc(n.name)}</b>　<span style="color:var(--br)">${esc(n.years)}</span><br><span style="opacity:.92">${esc(n.detail)}</span></span>`;
+      detail.innerHTML = `<div class="ad-row"><div class="ad-face" style="background-image:url('${face}')"></div><div class="ad-txt"><b style="color:#ffe6a6">${esc(n.name)}</b>　<span style="color:var(--br)">${esc(n.years)}</span><br><span style="opacity:.92">${esc(n.detail)}</span></div></div>`;
       sfx('paper', 1.08, 0.32);
     };
     graph.appendChild(btn);
