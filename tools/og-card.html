@@ -1,0 +1,40 @@
+<!-- OG 分享卡的產生器。用法:在 repo 根目錄起 http server,
+     用 Playwright 開 /tools/og-card.html(viewport 1200x630、deviceScaleFactor 2)截圖,
+     縮成 1200x630 存成 assets/og-vN.jpg。改 keyart 或標語時重跑一次。
+     檔名一定要換版號:FB 的爬蟲照 URL 快取 OG 圖,同名換內容它會繼續拿舊的。 -->
+<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8">
+<style>
+@font-face{font-family:"Noto Sans TC";src:url("../assets/fonts/notosanstc.woff2") format("woff2");font-weight:100 900;font-display:block}
+*{margin:0;padding:0;box-sizing:border-box}
+body{width:1200px;height:630px;overflow:hidden;font-family:"Noto Sans TC",sans-serif}
+.card{position:relative;width:1200px;height:630px;overflow:hidden;background:#0a0806}
+/* 背景放大並推右:角色與巨鐘落在右半,左半留給題字 */
+.bg{position:absolute;inset:0;background-repeat:no-repeat;background-size:128% auto;
+    background-position:26% 30%;filter:brightness(.94) contrast(1.08) saturate(1.12)}
+.scrim{position:absolute;inset:0;background:
+  linear-gradient(264deg,rgba(3,2,2,.93) 0%,rgba(3,2,2,.88) 26%,rgba(3,2,2,.48) 46%,rgba(3,2,2,0) 62%),
+  linear-gradient(0deg,rgba(3,2,2,.72) 0%,rgba(3,2,2,0) 26%)}
+.wrap{position:absolute;right:56px;top:92px;width:540px;text-align:right}
+.lock{width:100%;display:block;
+  filter:drop-shadow(0 0 3px rgba(201,162,75,.6)) drop-shadow(0 0 14px rgba(201,162,75,.44))
+         drop-shadow(0 0 34px rgba(201,162,75,.26)) drop-shadow(0 6px 26px rgba(0,0,0,.9))}
+.tag{margin-top:26px;justify-content:flex-end;color:#f0e7d4;font-size:27px;letter-spacing:.05em;line-height:1.55;
+  text-shadow:0 3px 16px #000,0 0 26px rgba(0,0,0,.95);display:flex;align-items:center;gap:11px;white-space:nowrap}
+.tag img{width:38px;height:38px;flex:none}
+.meta{position:absolute;right:56px;bottom:46px;display:flex;align-items:center;gap:13px;
+  color:#dccfb3;font-size:21px;letter-spacing:.13em;text-shadow:0 2px 12px #000,0 0 20px rgba(0,0,0,.9)}
+.meta i{width:5px;height:5px;border-radius:50%;background:#a8322a;flex:none;display:block}
+.badge{position:absolute;left:56px;bottom:46px;display:flex;gap:10px}
+.badge span{border:1px solid rgba(201,162,75,.7);color:#e8dcbe;font-size:18px;letter-spacing:.12em;
+  padding:8px 17px;border-radius:999px;background:rgba(8,6,5,.68);text-shadow:0 2px 8px #000}
+</style></head><body>
+<div class="card">
+  <div class="bg" style="background-image:url('../assets/img/title_keyart_v16.webp')"></div>
+  <div class="scrim"></div>
+  <div class="wrap">
+    <img class="lock" src="../assets/img/title_lockup_v1.webp">
+    <div class="tag">巨鐘未落，真相已先被定罪<img src="../assets/seal.svg"></div>
+  </div>
+  <div class="meta">原創武俠推理 RPG<i></i>十一章懸案<i></i>八種結局</div>
+  <div class="badge"><span>免安裝</span><span>可離線</span></div>
+</div></body></html>
