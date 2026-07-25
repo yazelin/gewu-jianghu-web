@@ -598,7 +598,7 @@ if ('serviceWorker' in navigator) {
   function showOffline(done, total, ready) {
     const b = document.getElementById('offbadge'); if (!b) return;
     const t = b.querySelector('.txt');
-    if (!ready) { b.classList.add('show'); b.classList.remove('gone', 'ready'); t.textContent = `離線打包中 ${Math.round(done / total * 100)}%`; return; }
+    if (!ready) { b.classList.add('show'); b.classList.remove('gone', 'ready'); t.textContent = `資源載入中 ${Math.round(done / total * 100)}%`; return; }
     b.classList.add('show', 'ready'); b.classList.remove('gone'); t.textContent = '已可離線遊玩';
     setTimeout(() => b.classList.add('gone'), 3000);
     setTimeout(() => b.classList.remove('show', 'gone', 'ready'), 3800);
