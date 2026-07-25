@@ -339,13 +339,15 @@ function sTitle() {
   const bg = el(`<div class="layer fade"></div>`);
   bg.appendChild(el(`<div class="bg" style="background-image:url('${G.title_keyart}');filter:brightness(.7)"></div>`));
   bg.appendChild(el(`<div class="scrim"></div>`));
-  const col = el(`<div class="center-col">
-    <div class="tkicker">原創武俠物理解題 RPG</div>
+  // 置中上緣:與底部連結列對稱(海報上下框)
+  const kicker = el(`<div class="t-kicker">原創武俠物理解題 RPG</div>`);
+  // 上左:標題組(整體偏上)
+  const top = el(`<div class="t-top">
     <div class="gtitle">格物江湖錄</div>
     <div class="gsub">天 理 殘 卷</div>
     <div class="tomen">巨鐘未落，真相已先被定罪。</div>
   </div>`);
-  // 心法(難度):三檔以提示詳略區分,用武俠語言不提學科(還原原作三心法:說書/行俠/宗師)
+  // 心法(難度):三檔以提示詳略區分,用武俠語言(還原原作三心法:說書/行俠/宗師)
   const DIFFS = [['說書', '說書人循循道來,提示最詳盡'], ['行俠', '行俠仗劍,提示適中,可隨時翻閱格物卷'], ['宗師', '宗師只點模型與方向,獨闖險關']];
   const diff = { val: '行俠' };
   const diffWrap = el(`<div class="tseg-wrap"></div>`);
@@ -359,15 +361,19 @@ function sTitle() {
   diffWrap.append(el(`<div class="tseg-label">擇一心法</div>`), seg, desc);
   const bNew = el(`<button class="btn">新案入局｜觀看劇情序引</button>`);
   bNew.onclick = () => { S = newState(); S.difficulty = diff.val; sfx('door'); go('intro'); };
-  const bCont = el(`<button class="btn ghost">繼續</button>`);
+  // 下左:標語 + 路線 + 心法 + 新案入局
+  const bottom = el(`<div class="t-bottom"></div>`);
+  bottom.append(
+    el(`<div class="ttag">看懂世界如何運作，才有資格改變命運。</div>`),
+    el(`<div class="troute">十一章懸案｜雙走向承接｜多重結局｜三線情緣</div>`),
+    diffWrap, bNew);
+  const savedTitle = (loadSave() || {}).equipped_title;      // 佩印稱號(讀存檔)
+  if (savedTitle && savedTitle !== DEFAULT_TITLE) bottom.append(el(`<div class="ttitle">佩印稱號｜${esc(savedTitle)}</div>`));
+  // 右:繼續(次要動作移右側,讓出中央角色與場景)
+  const bCont = el(`<button class="btn ghost t-cont">繼續</button>`);
   bCont.disabled = !hasSave();
   bCont.onclick = () => { S = loadSave() || newState(); render(); };
-  col.append(diffWrap, bNew, bCont);
-  col.append(el(`<div class="ttag">看懂世界如何運作，才有資格改變命運。</div>`));
-  col.append(el(`<div class="troute">十一章懸案｜雙走向承接｜多重結局｜三線情緣</div>`));
-  const savedTitle = (loadSave() || {}).equipped_title;      // 佩印稱號(讀存檔)
-  if (savedTitle && savedTitle !== DEFAULT_TITLE) col.append(el(`<div class="ttitle">佩印稱號｜${esc(savedTitle)}</div>`));
-  bg.appendChild(col);
+  bg.append(kicker, top, bottom, bCont);
   // 次要選項:退為畫面底部一列低調文字連結,保留電影感(不佔主畫面按鈕堆)
   const withSave = (fn) => { const prev = S; S = loadSave() || newState(); fn(); S = prev; };
   const menu = el(`<div class="tmenu"></div>`);
@@ -385,7 +391,7 @@ function sTitle() {
   bg.appendChild(menu);
   stage.appendChild(bg);
   document.getElementById('lamp')?.classList.add('on');           // 雨夜鐘樓燈火呼吸
-  [...col.children].forEach((n, i) => { n.classList.add('slide-in'); n.style.animationDelay = (0.06 + i * 0.1) + 's'; });   // 選單進場動畫
+  [kicker, ...top.children, ...bottom.children, bCont].forEach((n, i) => { n.classList.add('slide-in'); n.style.animationDelay = (0.05 + i * 0.08) + 's'; });   // 進場動畫
 }
 
 

@@ -135,9 +135,12 @@ body.reduced #rain{display:none}
 .ttitle{font-size:.9rem;letter-spacing:.14em;color:var(--br);margin-top:.2rem}
 
 /* title */
-.center-col{position:absolute;inset:0;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:1rem;
-  padding-left:8.5%;padding-right:40%;text-align:left}
-.center-col>*{text-align:left}
+/* 海報式分區:上緣置中 kicker / 左上標題 / 左下主要動作 / 右側繼續 / 底部 billing */
+.t-kicker{position:absolute;top:16px;left:0;right:0;z-index:20;text-align:center;
+  color:var(--br);font-size:.95rem;letter-spacing:.35em}
+.t-top{position:absolute;left:8.5%;top:12%;max-width:60%;text-align:left;display:flex;flex-direction:column;align-items:flex-start;gap:.7rem}
+.t-bottom{position:absolute;left:8.5%;bottom:11%;max-width:56%;text-align:left;display:flex;flex-direction:column;align-items:flex-start;gap:.95rem}
+.t-cont{position:absolute;right:9%;top:50%;transform:translateY(-50%)}
 .gtitle{font-size:4.2rem;letter-spacing:.3em;color:#f3ead6;text-shadow:0 4px 30px #000,0 0 8px rgba(168,50,42,.4)}
 .gsub{font-size:1.4rem;letter-spacing:.5em;color:var(--pa2)}
 .tkicker{font-size:.95rem;letter-spacing:.35em;color:var(--br);margin-bottom:-.4rem}
