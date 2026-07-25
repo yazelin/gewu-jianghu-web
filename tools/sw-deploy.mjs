@@ -24,7 +24,10 @@ const srv = http.createServer((req, res) => {
   const f = join(ROOT, rel);
   if (!existsSync(f) || statSync(f).isDirectory()) { res.writeHead(404); return res.end(); }
   const st = statSync(f), etag = `"${st.size}-${st.mtimeMs}"`, ct = MIME[extname(f)] || 'application/octet-stream';
-  const base = { 'cache-control': 'max-age=600', etag, 'content-type': ct };   // 仿 GitHub Pages
+  // 仿 GitHub Pages。vary 這行不是裝飾:Pages 對每個檔都回 Vary: Accept-Encoding,
+  // 而 <audio> 送的 Accept-Encoding 與暖快取不同,SW 的 cache.match 若沒 ignoreVary 就會整個 miss。
+  // 少了這行,本機測試對「斷網大音檔播不出來」完全沒有鑑別力(這個 bug 就是這樣漏上線的)。
+  const base = { 'cache-control': 'max-age=600', etag, 'content-type': ct, vary: 'Accept-Encoding' };
   if (req.headers['if-none-match'] === etag) { hits.push({ u: rel, b: 0 }); res.writeHead(304, base); return res.end(); }
   const buf = readFileSync(f);
   const m = req.headers.range && /^bytes=(\d*)-(\d*)$/.exec(req.headers.range);
@@ -86,6 +89,26 @@ const s3 = await stat();
 ok('部署後:資產快取存活,不重抓 33MB', deploy.b < 5 * 1048576, `${deploy.n} 個請求、${MB(deploy.b)}`);
 ok('部署後:離線包仍完整', !!s3 && s3.done === s3.total, s3 ? `${s3.done}/${s3.total}` : '無回報');
 ok('部署後:音檔沒有被清掉', (await audioCached(ASSET_CACHE)) === AUDIO_N, `${await audioCached(ASSET_CACHE)}/${AUDIO_N}`);
+
+// ---- 4) 斷網真的能播:命中快取 ≠ 播得出來 ----
+await ctx.setOffline(true);
+await page.reload({ waitUntil: 'domcontentloaded' }).catch(() => {});
+await page.waitForTimeout(1200);
+const tracks = ['oriental_calm', 'chapter1_workshop', 'chapter7_mirror_city'];   // 144KB / 464KB / 1.1MB
+const decoded = [];
+for (const t of tracks) {
+  decoded.push(t + '→' + await page.evaluate(async (f) => {
+    const el = new Audio(); el.volume = 0; el.preload = 'auto'; el.src = f;
+    const v = await new Promise(res => {
+      el.addEventListener('loadedmetadata', () => res('OK'));
+      el.addEventListener('error', () => res('FAIL' + (el.error && el.error.code)));
+      setTimeout(() => res('TIMEOUT'), 12000);
+    });
+    el.removeAttribute('src'); el.load(); return v;
+  }, `assets/audio/${t}.ogg`));
+}
+ok('斷網後音檔真的能解碼播放(不只命中快取)', decoded.every(d => d.endsWith('OK')), decoded.join(' '));
+await ctx.setOffline(false);
 
 await browser.close(); srv.close(); rmSync(ROOT, { recursive: true, force: true });
 const failed = results.filter(r => !r.pass);

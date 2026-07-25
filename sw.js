@@ -2,12 +2,16 @@
 //   殼(HTML/JS/data,約 0.4MB)每次部署 bump;資產(assets/,約 33MB)只有同名檔換內容才 bump。
 //   舊做法把 33MB 和殼放同一個 CACHE,每次部署 activate 整包刪掉重抓——不只浪費頻寬,更會反覆
 //   製造「重寫 33MB」的窗口,而寫入失敗(配額/SW 被回收)是靜默的,尾端最大的音檔最容易掉。
-const SHELL_CACHE="gewu-shell-v85";   // ← 每次部署 bump 這行(觸發新 SW + 自動重整)
+const SHELL_CACHE="gewu-shell-v86";   // ← 每次部署 bump 這行(觸發新 SW + 自動重整)
 // ponytail: 新增/改名的資產 URL 變了就自動抓;只有「同名檔換內容」才要手動 bump 這行
 // (本 repo 慣例是檔名帶 _vNN,如 title_keyart_v14.webp,平常不用動)。
 // 上限=靠人記得 bump;要根治就資產改雜湊檔名 + build step,見 NOTES.md。
 const ASSET_CACHE="gewu-assets-v1";
 const KEEP=[SHELL_CACHE,ASSET_CACHE];
+// 快取比對一律忽略 query 與 Vary:資產以 URL 為鍵,存進去的位元組就是位元組。
+// GitHub Pages 對每個檔都回 Vary: Accept-Encoding,而 <audio> 送的是 Accept-Encoding: identity,
+// 跟暖快取當初的 gzip/br 不同 → 預設的 Vary 比對會 miss → 斷網時大音檔全部 Format error。
+const MATCH={ignoreSearch:true,ignoreVary:true};
 const isAsset=p=>p.includes("/assets/");           // data/ 跟著殼走(才 0.4MB,且改版必須更新)
 const cacheable=r=>!!r&&r.ok&&r.status!==206;      // Cache.put 對 206 直接 throw,必須擋掉
 // 寫入一律 await + 回報成敗:配額不足/SW 被回收時要看得見,不能靜默吞掉(音樂消失的真因)
@@ -19,7 +23,7 @@ self.addEventListener("install",e=>{e.waitUntil((async()=>{
   await Promise.allSettled(SHELL.map(async u=>{
     const asset=isAsset(new URL(u,self.registration.scope).pathname);
     const c=await caches.open(asset?ASSET_CACHE:SHELL_CACHE);
-    if(asset&&await c.match(u))return;                                    // 資產已在長命快取 → 不重抓(省下每次部署的 33MB)
+    if(asset&&await c.match(u,MATCH))return;                                    // 資產已在長命快取 → 不重抓(省下每次部署的 33MB)
     const r=await fetch(new Request(u,{cache:asset?"default":"reload"})); // 殼一律繞 HTTP 快取拿最新
     if(cacheable(r))await c.put(u,r);
   }));
@@ -28,7 +32,7 @@ self.addEventListener("install",e=>{e.waitUntil((async()=>{
 // 回報「真的在快取裡」的清單——頁面靠這個驗證,不能自己宣告完成(音樂消失時徽章卻說已完成的真因)
 async function missingFromCache(){
   const shell=await caches.open(SHELL_CACHE),asset=await caches.open(ASSET_CACHE);
-  const hit=await Promise.all(CORE.map(u=>(isAsset(new URL(u,self.registration.scope).pathname)?asset:shell).match(u).then(r=>!!r)));
+  const hit=await Promise.all(CORE.map(u=>(isAsset(new URL(u,self.registration.scope).pathname)?asset:shell).match(u,MATCH).then(r=>!!r)));
   return CORE.filter((u,i)=>!hit[i]);
 }
 self.addEventListener("message",e=>{
@@ -49,7 +53,7 @@ async function adopt(keys){
     const src=await caches.open(k);
     for(const req of await src.keys()){
       if(!isAsset(new URL(req.url).pathname))continue;
-      if(await dst.match(req))continue;
+      if(await dst.match(req,MATCH))continue;
       const r=await src.match(req);
       if(r)await store(ASSET_CACHE,req,r);
     }
@@ -84,7 +88,7 @@ async function rangedResponse(req,res){
   return new Response(buf.slice(start,end+1),{status:206,headers:h});
 }
 async function backfill(name,href){
-  if(await (await caches.open(name)).match(href))return;
+  if(await (await caches.open(name)).match(href,MATCH))return;
   try{const full=await fetch(href,{cache:"no-cache"});if(cacheable(full))await store(name,href,full);}catch{}
 }
 self.addEventListener("fetch",e=>{
@@ -98,7 +102,7 @@ self.addEventListener("fetch",e=>{
   let finish;e.waitUntil(new Promise(r=>finish=r));                 // 同步佔住 SW 壽命,背景寫快取才不會被回收掉
   e.respondWith((async()=>{
     const c=await caches.open(name);
-    const hit=forced?null:await c.match(req,{ignoreSearch:true});   // ignoreSearch:斷網開 design.html?utm=… 才不會開成遊戲
+    const hit=forced?null:await c.match(req,MATCH);   // ignoreSearch:斷網開 design.html?utm=… 才不會開成遊戲
     if(hit&&asset){finish();return rangedResponse(req,hit);}        // 資產不變 → 純快取優先;Range 請求要合成 206
     if(hit){(async()=>{try{const r=await fetch(req);if(cacheable(r)&&!u.search)await store(name,req,r.clone());}catch{}})().then(finish);return hit;}
     try{
@@ -109,7 +113,7 @@ self.addEventListener("fetch",e=>{
       return r;
     }catch{
       finish();
-      const cached=await c.match(req,{ignoreSearch:true});
+      const cached=await c.match(req,MATCH);
       if(cached)return asset?rangedResponse(req,cached):cached;
       return (nav?await c.match("index.html"):Response.error());
     }
