@@ -197,33 +197,139 @@ const GALLERY_FILE = {
   chapter10: 'chapter10_nameless_institute', chapter11: 'chapter11_heaven_earth',
   chapter9_ending: 'chapter9_ending', chapter11_ending: 'chapter9_ending',
 };
+// ---------- 配樂鑑賞:音樂播放器(大封面+播放控制+進度條+收藏♥+全部/收藏+自動接下一首)----------
 function musicGallery() {
   sfx('paper', 1.0, 0.5);
   const tracks = G.achievements.music_gallery;
-  const unlockedN = tracks.filter(m => !m.unlock || S.achievements[m.unlock]).length;
-  const { content } = boardScroll(860, 620, '配樂鑑賞', `原聲帶 ${unlockedN}／${tracks.length} 曲　·　點曲目試聽（需先以右上 ♪ 開啟聲音）`);
-  const setPlaying = (id) => content.querySelectorAll('.mtrack').forEach(r => r.classList.toggle('playing', r.dataset.mid === id));
+  const coverOf = (id) => {                                       // 每首曲配對應場景圖當專輯封面
+    if (id === 'calm') return G.title_keyart;
+    if (id === 'suspense') return G.prologue.background;
+    if (id === 'chapter9_ending') return (Object.values(G.endings_ch9)[0] || {}).image;
+    if (id === 'chapter11_ending') return (Object.values(G.endings_finale)[0] || {}).image;
+    const m = id.match(/^chapter(\d+)$/);
+    return (m && G.chapters[+m[1] - 1] && G.chapters[+m[1] - 1].background) || G.title_keyart;
+  };
+  const unlockedOf = (m) => !m.unlock || S.achievements[m.unlock];
+  const FAV = 'gewu_music_fav';
+  let fav = new Set(JSON.parse(localStorage.getItem(FAV) || '[]'));
+  const saveFav = () => localStorage.setItem(FAV, JSON.stringify([...fav]));
+  const SVG = {
+    play: '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>',
+    pause: '<svg viewBox="0 0 24 24"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>',
+    prev: '<svg viewBox="0 0 24 24"><path d="M7 6h2.2v12H7zm2.8 6l9 6V6z"/></svg>',
+    next: '<svg viewBox="0 0 24 24"><path d="M14.8 6H17v12h-2.2zM5 18l9-6-9-6z"/></svg>',
+    heart: '<svg viewBox="0 0 24 24"><path d="M12 20.3l-1.4-1.3C5.4 14.4 2 11.3 2 7.6 2 4.9 4.1 3 6.6 3 8.1 3 9.5 3.7 12 6c2.5-2.3 3.9-3 5.4-3C19.9 3 22 4.9 22 7.6c0 3.7-3.4 6.8-8.6 11.4z"/></svg>',
+  };
+  let curId = null, shuffle = false, repeat = 'off', filter = 'all';
+  const fmt = (s) => { s = Math.max(0, s | 0); return (s / 60 | 0) + ':' + String(s % 60).padStart(2, '0'); };
+
+  const { ov, board, close: closeBoard } = boardOverlay(90, 40, 1100, 640, 110, () => done());
+  board.append(
+    pLbl('配樂鑑賞', 40, 24, 1020, 30, 'var(--br)', { align: 'center', bold: true }),
+    pLbl('點播放即自動開聲；♥ 收藏，可切「全部／收藏」，播完自動接下一首', 40, 58, 1020, 14, 'var(--pa2)', { align: 'center' }));
+
+  const now = el(`<div class="mp-now">
+    <div class="mp-cover-lg"></div>
+    <div class="mp-title">選一首開始聆聽</div><div class="mp-src"></div>
+    <div class="mp-seek"><div class="mp-seek-fill"></div></div>
+    <div class="mp-time"><span class="mp-cur">0:00</span><span class="mp-dur">0:00</span></div>
+    <div class="mp-ctrl">
+      <button class="mp-btn" data-a="prev" title="上一首">${SVG.prev}</button>
+      <button class="mp-btn play" data-a="play" title="播放／暫停">${SVG.play}</button>
+      <button class="mp-btn" data-a="next" title="下一首">${SVG.next}</button></div>
+    <div class="mp-modes">
+      <button class="mp-mode" data-m="shuffle">隨機</button>
+      <button class="mp-mode" data-m="repeat">循環：關</button></div></div>`);
+  const $ = (s) => now.querySelector(s);
+  const coverLg = $('.mp-cover-lg'), titleEl = $('.mp-title'), srcEl = $('.mp-src');
+  const seekEl = $('.mp-seek'), fillEl = $('.mp-seek-fill'), curT = $('.mp-cur'), durT = $('.mp-dur'), playBtn = $('[data-a=play]');
+  const rows = el(`<div class="mp-rows"></div>`);
+  const tabs = el(`<div class="mp-tabs"><button class="mp-tab on" data-f="all">全部</button><button class="mp-tab" data-f="fav">收藏</button></div>`);
+  const listCol = el(`<div class="mp-list"></div>`); listCol.append(tabs, rows);
+  const wrap = el(`<div class="mp-wrap"></div>`); wrap.append(now, listCol);
+  board.append(wrap, pBtn('關閉', 440, 596, 220, 40, true, () => done()));
+
+  const playable = () => tracks.filter(m => unlockedOf(m) && (filter === 'all' || fav.has(m.id)));
+  const isPlaying = () => !!(_audio && !_audio.paused && curId && _curTrack === GALLERY_FILE[curId]);
+  const updateNow = () => {
+    const m = tracks.find(t => t.id === curId), pl = isPlaying();
+    playBtn.innerHTML = pl ? SVG.pause : SVG.play;
+    if (m) { coverLg.style.backgroundImage = `url('${coverOf(m.id)}')`; titleEl.textContent = m.title; srcEl.textContent = '原曲｜' + m.source_title; }
+    rows.querySelectorAll('.mtrack').forEach(r => r.classList.toggle('playing', r.dataset.mid === curId && pl));
+  };
+  const playTrack = (id) => {
+    const m = tracks.find(t => t.id === id); if (!m || !unlockedOf(m)) return;
+    const file = GALLERY_FILE[id];
+    if (curId === id && isPlaying()) { _audio.pause(); updateNow(); return; }  // 同首再按=暫停
+    if (isMuted()) { setMuted(false); initGlobalMute(); }         // 播放即自動開聲(不必先按右上 ♪)
+    curId = id; playMusic(file); if (_audio) _audio.loop = (repeat === 'one'); updateNow();
+  };
+  const advance = (dir) => {
+    const list = playable(); if (!list.length) return;
+    let idx = list.findIndex(m => m.id === curId);
+    if (shuffle && dir > 0 && list.length > 1) { do { idx = Math.floor(Math.random() * list.length); } while (list[idx].id === curId); }
+    else idx = idx < 0 ? 0 : (idx + dir + list.length) % list.length;
+    playTrack(list[idx].id);
+  };
+  $('[data-a=prev]').onclick = () => advance(-1);
+  $('[data-a=next]').onclick = () => advance(1);
+  playBtn.onclick = () => {
+    if (!curId) { const l = playable(); if (l.length) playTrack(l[0].id); return; }
+    if (isPlaying()) { _audio.pause(); updateNow(); }
+    else { if (isMuted()) { setMuted(false); initGlobalMute(); } playMusic(GALLERY_FILE[curId]); updateNow(); }
+  };
+  $('[data-m=shuffle]').onclick = (e) => { shuffle = !shuffle; e.currentTarget.classList.toggle('on', shuffle); sfx('paper', 1.05, .2); };
+  $('[data-m=repeat]').onclick = (e) => {
+    repeat = repeat === 'off' ? 'all' : repeat === 'all' ? 'one' : 'off';
+    e.currentTarget.textContent = '循環：' + (repeat === 'off' ? '關' : repeat === 'all' ? '全部' : '單曲');
+    e.currentTarget.classList.toggle('on', repeat !== 'off');
+    if (_audio) _audio.loop = (repeat === 'one');
+  };
+  seekEl.onclick = (e) => { if (!_audio || !_audio.duration) return; const r = seekEl.getBoundingClientRect(); _audio.currentTime = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * _audio.duration; };
+
   const eqHTML = '<span class="m-eq"><span></span><span></span><span></span></span>';
-  tracks.forEach((mm, i) => {
-    const unlocked = !mm.unlock || S.achievements[mm.unlock];
-    const no = String(i + 1).padStart(2, '0');
-    const row = el(`<div class="mtrack${unlocked ? '' : ' locked'}" data-mid="${mm.id}">
-      <span class="m-no">${unlocked ? no : '—'}</span>
-      <span class="m-play">${unlocked ? '▶' : '·'}</span>${eqHTML}
-      <span class="m-meta"><span class="m-title">${unlocked ? esc(mm.title) : '未解鎖曲目'}</span>
-        <span class="m-src">原曲｜${esc(mm.source_title)}</span></span></div>`);
-    if (unlocked) row.onclick = () => {
-      const file = GALLERY_FILE[mm.id];
-      if (_curTrack === file && _audio && !_audio.paused) { _audio.pause(); setPlaying(''); return; }  // 再點=暫停
-      if (isMuted()) { setMuted(false); initGlobalMute(); }     // 試聽自動開聲
-      playMusic(file); setPlaying(mm.id);
-    };
-    content.appendChild(row);
-  });
-  if (_audio && !_audio.paused) {                               // 標示目前正在播的曲目
-    const curId = Object.keys(GALLERY_FILE).find(k => GALLERY_FILE[k] === _curTrack);
-    if (curId) setPlaying(curId);
-  }
+  const renderRows = () => {
+    rows.innerHTML = '';
+    const list = tracks.filter(m => filter === 'all' || fav.has(m.id));
+    if (!list.length) { rows.appendChild(el(`<div class="mp-empty">還沒有收藏曲目。點曲目右側的 ♥ 加入收藏。</div>`)); updateNow(); return; }
+    list.forEach((mm) => {
+      const unlocked = unlockedOf(mm), no = String(tracks.indexOf(mm) + 1).padStart(2, '0');
+      const row = el(`<div class="mtrack${unlocked ? '' : ' locked'}" data-mid="${mm.id}">
+        <span class="m-no">${unlocked ? no : '—'}</span><span class="m-play">▶</span>${eqHTML}
+        <div class="m-cover" style="background-image:url('${coverOf(mm.id)}')"></div>
+        <span class="m-meta"><span class="m-title">${unlocked ? esc(mm.title) : '未解鎖曲目'}</span>
+          <span class="m-src">原曲｜${esc(mm.source_title)}</span></span>
+        <button class="m-fav${fav.has(mm.id) ? ' on' : ''}" title="收藏">${SVG.heart}</button></div>`);
+      if (unlocked) row.onclick = () => playTrack(mm.id);
+      row.querySelector('.m-fav').onclick = (e) => {
+        e.stopPropagation();
+        fav.has(mm.id) ? fav.delete(mm.id) : fav.add(mm.id); saveFav();
+        e.currentTarget.classList.toggle('on', fav.has(mm.id));
+        if (filter === 'fav') renderRows();
+      };
+      rows.appendChild(row);
+    });
+    updateNow();
+  };
+  tabs.querySelectorAll('.mp-tab').forEach(t => t.onclick = () => { filter = t.dataset.f; tabs.querySelectorAll('.mp-tab').forEach(x => x.classList.remove('on')); t.classList.add('on'); renderRows(); });
+  renderRows();
+
+  const onTime = () => {
+    if (!ov.isConnected) return cleanup();                        // 面板被外部移除 → 自動清理
+    if (!_audio || !_audio.duration) return;
+    fillEl.style.width = (_audio.currentTime / _audio.duration * 100) + '%'; curT.textContent = fmt(_audio.currentTime); durT.textContent = fmt(_audio.duration);
+  };
+  const onEnd = () => {                                           // repeat=='one' 時 loop=true 不會觸發;其餘播完接下一首
+    if (!ov.isConnected) return cleanup();
+    const list = playable(); const idx = list.findIndex(m => m.id === curId);
+    if (idx < 0) return;
+    if (idx < list.length - 1 || repeat === 'all' || shuffle) advance(1); else updateNow();
+  };
+  function cleanup() { if (_audio) { _audio.removeEventListener('timeupdate', onTime); _audio.removeEventListener('ended', onEnd); _audio.loop = true; } }
+  function done() { cleanup(); closeBoard(); }
+  if (_audio) { _audio.addEventListener('timeupdate', onTime); _audio.addEventListener('ended', onEnd); _audio.loop = false; }
+  if (_audio && !_audio.paused) { const id = Object.keys(GALLERY_FILE).find(k => GALLERY_FILE[k] === _curTrack); if (id) curId = id; }
+  updateNow();
 }
 
 // ---------- 難度提示(逐字還原三檔) ----------

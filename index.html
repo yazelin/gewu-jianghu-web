@@ -244,6 +244,37 @@ body.reduced .tstorm.flash{animation:none}
 .mtrack.locked{opacity:.45;cursor:default}
 .mtrack .m-no{font-size:.92rem;color:var(--br);width:26px;text-align:center;letter-spacing:.02em;flex:none}
 .mtrack .m-play{width:20px;color:var(--gold);font-size:.85rem;text-align:center;flex:none}
+.mtrack .m-cover{width:56px;height:42px;flex:none;border-radius:5px;background-size:cover;background-position:center;box-shadow:0 2px 8px rgba(0,0,0,.5);border:1px solid rgba(138,107,58,.4)}
+.mtrack.locked .m-cover{filter:grayscale(1) brightness(.28)}
+/* 配樂播放器:左「正在播放」大封面+控制,右曲目列(收藏♥/全部・收藏切換/自動接下一首)*/
+.mp-wrap{position:absolute;left:40px;top:80px;right:40px;bottom:70px;display:flex;gap:26px}
+.mp-now{width:330px;flex:none;display:flex;flex-direction:column}
+.mp-cover-lg{width:330px;height:208px;border-radius:10px;background-size:cover;background-position:center;box-shadow:0 12px 32px rgba(0,0,0,.6);border:1px solid var(--br)}
+.mp-title{font-size:1.24rem;color:var(--tx-hi);margin-top:16px;letter-spacing:.04em;line-height:1.3}
+.mp-src{font-size:.85rem;color:var(--tx-mut);margin-top:5px}
+.mp-seek{height:6px;border-radius:3px;background:rgba(138,107,58,.25);margin-top:20px;cursor:pointer;position:relative}
+.mp-seek-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--br),var(--gold));width:0}
+.mp-time{display:flex;justify-content:space-between;font-size:.72rem;color:var(--tx-mut);margin-top:6px}
+.mp-ctrl{display:flex;align-items:center;justify-content:center;gap:18px;margin-top:16px}
+.mp-btn{width:46px;height:46px;border-radius:50%;border:1px solid var(--br);background:rgba(20,17,14,.7);color:var(--pa);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0}
+.mp-btn svg{width:22px;height:22px;fill:currentColor}
+.mp-btn:hover{border-color:var(--gold);color:#f3ead6}
+.mp-btn.play{width:58px;height:58px;background:var(--cin);border-color:var(--cin);color:#fff}
+.mp-btn.play svg{width:26px;height:26px}
+.mp-btn.play:hover{filter:brightness(1.12);color:#fff}
+.mp-modes{display:flex;gap:10px;justify-content:center;margin-top:16px}
+.mp-mode{background:none;border:1px solid rgba(138,107,58,.4);color:var(--pa2);font-family:inherit;font-size:.8rem;letter-spacing:.06em;padding:5px 13px;border-radius:14px;cursor:pointer}
+.mp-mode.on{background:var(--br);color:#f6eed9;border-color:var(--br)}
+.mp-list{flex:1;min-width:0;display:flex;flex-direction:column}
+.mp-tabs{display:flex;gap:8px;margin-bottom:10px;flex:none}
+.mp-tab{background:rgba(20,17,14,.7);border:1px solid var(--br);color:var(--pa2);font-family:inherit;font-size:.86rem;letter-spacing:.06em;padding:6px 16px;border-radius:16px;cursor:pointer}
+.mp-tab.on{background:var(--br);color:#f6eed9;border-color:var(--br)}
+.mp-rows{flex:1;overflow-y:auto;padding-right:8px}
+.mp-empty{color:var(--tx-mut);text-align:center;padding:40px 0;font-size:.9rem}
+.m-fav{background:none;border:0;cursor:pointer;color:var(--tx-mut);padding:5px;flex:none;display:flex}
+.m-fav svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2}
+.m-fav.on svg{fill:var(--cin);stroke:var(--cin)}
+.m-fav:hover{color:var(--gold)}
 .mtrack .m-meta{flex:1;min-width:0;display:flex;flex-direction:column}
 .mtrack .m-title{color:var(--tx-hi);font-size:1rem;letter-spacing:.03em}
 .mtrack.locked .m-title{color:var(--pa2)}
