@@ -54,6 +54,33 @@
   - 全程 console 零錯誤。
 - 現況:本機 15/15、design 對照全一致;線上 Pages 同套亦通過。
 
+## 離線快取:兩層,改版時只 bump 該 bump 的那個
+
+`sw.js` 有**兩個**快取名,分家的依據是「壽命」不是「一起改」:
+
+| 常數 | 內容 | 什麼時候 bump |
+|---|---|---|
+| `SHELL_CACHE` | HTML / `engine.js` / `manifest.json` / `data/`(約 0.4MB) | **每次部署都要 bump**,這是觸發新 SW + 自動重整的開關 |
+| `ASSET_CACHE` | `assets/` 底下全部(圖 + 音,約 33MB) | **平常不要動**。只有「同名檔換了內容」才 bump |
+
+新增或改名的資產不用 bump —— URL 變了就自然是新的,快取查不到就會去抓。本 repo 的慣例是改內容時
+一併改檔名(`title_keyart_v14.webp`),照這個慣例走就永遠不用碰 `ASSET_CACHE`。
+
+**為什麼要分:** 原本兩者共用一個 `CACHE`,而它每次部署都 bump,`activate` 就把 33MB 整包刪掉重抓。
+量過:改版後若瀏覽器 HTTP 快取已被清,實抓 **28.86MB**;分層之後同樣情境是 **0.84MB**。
+而且每次重寫 33MB 都在製造掉檔窗口 —— `cache.put` 失敗(配額不足、SW 被回收)是靜默的,
+排在最後、檔案最大的音檔最容易掉,結果就是「圖都在、音樂不能播」。
+
+**兩條配套的規矩:**
+- 徽章不准自我宣告。`index.html` 跑完暖快取後會再問 SW `offline-status`(逐項 `cache.match` 實查),
+  只有真的一個不缺才顯示「已可離線遊玩」,補不齊就顯示 `離線包 154/160`。
+  數 `fetch` 成功次數是不算數的 —— fetch 回 200 不代表 `cache.put` 有成功。
+- 音檔走 Range 請求拿到的是 **206**,`Cache.put` 對 206 會直接 throw。`cacheable()` 擋掉它,
+  另外用 `backfill()` 抓一次完整檔補存,所以「聽過的曲子」自己會留在離線包裡。
+
+`bash tools/test.sh` 的第 2 關(`tools/sw-deploy.mjs`)就是在擋這件事回歸 —— 它會實際模擬一次部署,
+斷言資產快取存活、音檔 31/31 沒被清掉。這個 bug 壞掉時功能完全正常,只是偷抓 28MB,一般 E2E 測不出來。
+
 ## 已知取捨(ponytail ceiling)
 - **配樂**取原作標示的 CC0 原始來源重編(非反解 PCK),見 `provenance/AUDIO.md`;**音效 SFX** 則以自寫 remuxer
   從原作 PCK 的 Godot 匯入串流(OggPacketSequence)抽出、8 個全接並進 precache。

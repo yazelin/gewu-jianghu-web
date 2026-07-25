@@ -703,5 +703,7 @@ function boot(){var tries=0;(function t(){if(start())return;if(++tries<20)setTim
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",boot);else boot();
 })();
 </script>
+<!-- 公式站也要自己註冊 SW:第一次從這頁進來的人,否則永遠不會有離線包 -->
+<script>if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});</script>
 
 </body></html>

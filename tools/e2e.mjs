@@ -14,7 +14,11 @@ const LIVE = process.argv.includes('--live');
 const BASE = LIVE ? 'https://yazelin.github.io/gewu-jianghu-web/' : 'http://localhost:8099/';
 const HERE = new URL('.', import.meta.url).pathname;
 const G = JSON.parse(readFileSync(HERE + '../data/game.json', 'utf8'));
-const CACHE = /CACHE\s*=\s*["']([^"']+)/.exec(readFileSync(HERE + '../sw.js', 'utf8'))[1];
+const SW_SRC = readFileSync(HERE + '../sw.js', 'utf8');
+const SHELL_CACHE = /SHELL_CACHE\s*=\s*["']([^"']+)/.exec(SW_SRC)[1];
+const ASSET_CACHE = /ASSET_CACHE\s*=\s*["']([^"']+)/.exec(SW_SRC)[1];
+const CORE_N = (/const CORE=\[(.*?)\];/s.exec(SW_SRC)[1].match(/"/g).length) / 2;
+const AUDIO_N = (SW_SRC.match(/"assets\/audio\/[^"]+"/g) || []).length;
 
 // 由 game.json 建正解對照表(線索/破局戰)
 const clueCorrect = {}, battleCorrect = {};
@@ -143,14 +147,26 @@ ok('公式站 design.html', (await page.evaluate(async () => (await fetch('desig
 
 // ---- 5) 離線:Service Worker 全量 precache + 斷網重載 + 未播音檔命中 ----
 await page.waitForFunction(() => navigator.serviceWorker.controller !== null, { timeout: 15000 }).catch(() => {});
-await page.waitForFunction(() => window.__offlineReady === true, { timeout: 45000 }).catch(() => {});   // 等頁面主導的背景暖快取跑完
+await page.waitForFunction(() => window.__offlineSettled === true, { timeout: 90000 }).catch(() => {});   // 等背景暖快取收斂(完整與否都會設)
 await page.waitForTimeout(500);
-const cached = await page.evaluate(async (c) => { try { return (await (await caches.open(c)).keys()).length; } catch { return 0; } }, CACHE);
-ok(`Service Worker 全量快取(${CACHE})`, cached > 100, `${cached} 檔`);
+const stat = await page.evaluate(() => window.__offlineStat);
+ok('離線包完整(SW 實查快取,不是數 fetch 成功次數)',
+  !!stat && stat.done === stat.total && stat.total === CORE_N, stat ? `${stat.done}/${stat.total}` : '無回報');
+const counts = await page.evaluate(async ([shell, asset]) => {
+  const list = async (n) => { try { return (await (await caches.open(n)).keys()).map(r => new URL(r.url).pathname); } catch { return []; } };
+  const s = await list(shell), a = await list(asset);
+  return { shell: s.length, asset: a.length, audio: a.filter(p => p.includes('/audio/')).length };
+}, [SHELL_CACHE, ASSET_CACHE]);
+ok(`殼與資產分屬兩個快取(${SHELL_CACHE} / ${ASSET_CACHE})`, counts.shell > 0 && counts.asset > 100, `殼 ${counts.shell}、資產 ${counts.asset}`);
+ok('音檔全數在快取裡(音樂斷網不能播的回歸擋板)', counts.audio === AUDIO_N, `${counts.audio}/${AUDIO_N}`);
 await ctx.setOffline(true);
 await page.reload({ waitUntil: 'domcontentloaded' }); await page.waitForTimeout(1500);
 ok('斷網後題名仍可載入', await page.evaluate(() => !!document.querySelector('.gtitle')));
 ok('斷網後未播過的章末音檔命中快取', (await page.evaluate(async () => { try { return (await fetch('assets/audio/chapter11_heaven_earth.ogg')).status; } catch { return 0; } })) === 200);
+const dp = await ctx.newPage();   // 缺 ignoreSearch 的話,這頁斷網會開成遊戲
+await dp.goto(BASE + 'design.html?utm_source=fb', { waitUntil: 'domcontentloaded' }).catch(() => {});
+ok('斷網開 design.html?utm_source=fb 不會開成遊戲', (await dp.title()).includes('設計與公式站'));
+await dp.close();
 await ctx.setOffline(false);
 
 // ---- 收尾 ----

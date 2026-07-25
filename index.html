@@ -594,14 +594,24 @@ body.reduced #loadbar::before{animation:none;left:0;width:100%;opacity:.5}
 <script>
 if ('serviceWorker' in navigator) {
   let updated = false, refreshing = false, warmed = false;
-  // 低調徽章:背景暖快取時顯示「離線打包中 N%」,完成顯示「已可離線遊玩」後淡出
-  function showOffline(done, total, ready) {
+  // 低調徽章:'progress' 顯示百分比、'ready' 顯示已可離線遊玩、'incomplete' 說實話報真實數字
+  function showOffline(done, total, state) {
     const b = document.getElementById('offbadge'); if (!b) return;
     const t = b.querySelector('.txt');
-    if (!ready) { b.classList.add('show'); b.classList.remove('gone', 'ready'); t.textContent = `資源載入中 ${Math.round(done / total * 100)}%`; return; }
-    b.classList.add('show', 'ready'); b.classList.remove('gone'); t.textContent = '已可離線遊玩';
-    setTimeout(() => b.classList.add('gone'), 3000);
-    setTimeout(() => b.classList.remove('show', 'gone', 'ready'), 3800);
+    if (state === 'ready') {
+      b.classList.add('show', 'ready'); b.classList.remove('gone'); t.textContent = '已可離線遊玩';
+      setTimeout(() => b.classList.add('gone'), 3000);
+      setTimeout(() => b.classList.remove('show', 'gone', 'ready'), 3800);
+      return;
+    }
+    b.classList.add('show'); b.classList.remove('gone', 'ready');
+    if (state === 'incomplete') {   // 補不齊就別謊報完成——寧可讓人知道還缺幾個
+      t.textContent = `離線包 ${done}/${total}(下次連線再補)`;
+      setTimeout(() => b.classList.add('gone'), 5000);
+      setTimeout(() => b.classList.remove('show', 'gone'), 5800);
+      return;
+    }
+    t.textContent = `資源載入中 ${Math.round(done / total * 100)}%`;
   }
   // 頁面主導的背景暖快取(仿客語 repo「畫面持續顯示真實進度」):向 SW 取完整清單,
   // 逐一 fetch——命中快取即秒過、未快取才走網路下載;真的有下載(>600ms)才顯示徽章,全快取的回訪則靜默
@@ -613,17 +623,40 @@ if ('serviceWorker' in navigator) {
       setTimeout(() => res(null), 5000);
     });
   }
+  // fetch 成功 ≠ 真的存進快取:配額不足或 SW 被回收時 cache.put 會失敗,而 fetch 照樣回 200。
+  // 所以每一輪抓完都回頭問 SW「實際還缺哪些」,只有真的一個不缺才敢說「已可離線遊玩」。
   async function warmOffline() {
-    const st = await askSW({ type: 'offline-status' });                        // 先問 SW:這版離線包是否已完整
-    if (st && st.done >= st.total) { window.__offlineReady = true; return; }   // 已完整 → 完全跳過,不重抓、不顯示(自管快取)
+    const first = await askSW({ type: 'offline-status' });                        // 先問:這版離線包是否已完整
+    if (first && first.done >= first.total) { finishWarm(first); return; }        // 已完整 → 完全跳過(自管快取)
     const data = await askSW({ type: 'offline-list' }); if (!data || !data.list) return;
-    const list = data.list, total = list.length; let done = 0; const t0 = Date.now();
-    const tick = () => { done++; if (done < total && Date.now() - t0 > 400) showOffline(done, total, false); };   // 真的在下載(>400ms)才顯示進度
-    for (let i = 0; i < total; i += 6) await Promise.all(list.slice(i, i + 6).map(u => fetch(u).then(() => {}, () => {}).then(tick)));   // 併發 6 條;已快取者秒過、只有缺的才下載
-    showOffline(total, total, true);
-    window.__offlineReady = true;
+    const total = data.list.length, t0 = Date.now();
+    let todo = (first && first.missing) || data.list;                             // 只補缺的
+    let last = null;
+    for (let pass = 0; pass < 3; pass++) {
+      let done = total - todo.length;
+      const tick = () => { done++; if (done < total && Date.now() - t0 > 400) showOffline(done, total, 'progress'); };
+      for (let i = 0; i < todo.length; i += 4) await Promise.all(todo.slice(i, i + 4).map(u => fetch(u).then(() => {}, () => {}).then(tick)));   // 併發 4(同字典站),留頻寬給首屏
+      last = await askSW({ type: 'offline-status' });
+      if (!last) break;
+      if (last.done >= last.total) { showOffline(total, total, 'ready'); finishWarm(last); return; }
+      if (last.missing.length >= todo.length) break;                              // 補不動了(多半是配額滿),別空轉
+      todo = last.missing;
+    }
+    showOffline(last ? last.done : 0, total, 'incomplete');                       // 說實話
+    finishWarm(last);
   }
-  function tryWarm() { if (warmed || !navigator.serviceWorker.controller) return; warmed = true; setTimeout(warmOffline, 1000); }
+  function finishWarm(st) {
+    window.__offlineStat = st ? { done: st.done, total: st.total, audioMissing: st.audioMissing } : null;
+    window.__offlineReady = !!(st && st.done >= st.total);   // 只有真的完整才是 true
+    window.__offlineSettled = true;                          // 不論成敗都會設,測試不用空等
+  }
+  function tryWarm() {
+    if (warmed || !navigator.serviceWorker.controller) return;
+    const n = navigator.connection;
+    if (n && (n.saveData || /(^|-)2g$/.test(n.effectiveType || ''))) return;   // 省流量/2G:不背景抓 28MB,玩到哪抓到哪
+    warmed = true;
+    (window.requestIdleCallback || (f => setTimeout(f, 1200)))(warmOffline, { timeout: 4000 });   // 等瀏覽器閒下來,別跟首屏搶頻寬
+  }
   navigator.serviceWorker.ready.then(tryWarm);
   navigator.serviceWorker.addEventListener('controllerchange', () => {
     if (updated && !refreshing) { refreshing = true; location.reload(); return; }   // 新 SW 真正接管才重載 → 拿到新快取的新圖

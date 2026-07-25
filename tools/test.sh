@@ -5,11 +5,15 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-echo "########## 1/2 design.html 對照 game.json ##########"
+echo "########## 1/3 design.html 對照 game.json ##########"
 python3 tools/check_design.py
 
 echo
-echo "########## 2/2 遊戲完整 E2E ##########"
+echo "########## 2/3 SW 部署存活(資產快取不被改版清掉)##########"
+node tools/sw-deploy.mjs
+
+echo
+echo "########## 3/3 遊戲完整 E2E ##########"
 if [[ "${1:-}" == "--live" ]]; then
   node tools/e2e.mjs --live
 else
