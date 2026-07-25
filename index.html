@@ -560,16 +560,17 @@ body.reduced .cine-nav{transition:none;opacity:1}
   <div class="loading">載入中…</div>
 </div></div>
 <script>
-if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').then(reg => {
-  // 偵測到新版(且已有舊 SW 在控制 = 這是更新)→ 自動重載,免手動硬重整
-  reg.addEventListener('updatefound', () => {
-    const nw = reg.installing;
-    if (!nw) return;
-    nw.addEventListener('statechange', () => {
-      if (nw.state === 'installed' && navigator.serviceWorker.controller) location.reload();
-    });
+if ('serviceWorker' in navigator) {
+  let updated = false, refreshing = false;
+  // 只在「已有舊 SW 在控制時偵測到新版」才算更新(首次造訪的初次接管不重載)
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (updated && !refreshing) { refreshing = true; location.reload(); }   // 新 SW 真正接管才重載 → 拿到新快取的新圖
   });
-}).catch(() => {});
+  navigator.serviceWorker.register('sw.js').then(reg => {
+    reg.addEventListener('updatefound', () => { if (navigator.serviceWorker.controller) updated = true; });
+    setInterval(() => reg.update(), 60 * 60 * 1000);            // 每小時主動檢查新版
+  }).catch(() => {});
+}
 addEventListener('beforeinstallprompt', e => { e.preventDefault(); window.__deferredInstall = e; });
 </script>
 <script src="engine.js"></script>
