@@ -258,9 +258,10 @@ const hasSave = () => !!localStorage.getItem(SAVE_KEY);
 // ---------- 工具 ----------
 const el = (html) => { const d = document.createElement('div'); d.innerHTML = html.trim(); return d.firstElementChild; };
 const esc = (s) => String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
-const PERSIST = new Set(['chrome', 'rain', 'lamp', 'fade']);   // 雨幕/燈火/黑幕/UI 跨場景保留,不隨 clear 移除
+const PERSIST = new Set(['chrome', 'rain', 'lamp', 'book', 'fade']);   // 雨幕/燈火/書光/黑幕/UI 跨場景保留,不隨 clear 移除
 const clear = () => {
   const l = document.getElementById('lamp'); if (l) l.classList.remove('on');   // 燈火呼吸只在題名
+  document.getElementById('book')?.classList.remove('on');                       // 書光呼吸只在題名
   [...stage.children].forEach(c => { if (!PERSIST.has(c.id)) c.remove(); });
 };
 const preload = (list) => Promise.all([...new Set(list)].map(src => new Promise(r => {
@@ -392,6 +393,7 @@ function sTitle() {
   bg.appendChild(menu);
   stage.appendChild(bg);
   document.getElementById('lamp')?.classList.add('on');           // 雨夜鐘樓燈火呼吸
+  document.getElementById('book')?.classList.add('on');           // 格物書呼吸暖金光
   [kicker, ...top.children, ...bottom.children, diffWrap, ...right.children].forEach((n, i) => { n.classList.add('slide-in'); n.style.animationDelay = (0.05 + i * 0.08) + 's'; });   // 進場動畫
 }
 
