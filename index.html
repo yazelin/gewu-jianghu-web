@@ -146,12 +146,12 @@ body.reduced #rain{display:none}
   color:var(--br);font-size:.95rem;letter-spacing:.35em}
 .t-top{position:absolute;left:8.5%;top:6%;max-width:60%;text-align:left;display:flex;flex-direction:column;align-items:flex-start;gap:.6rem}
 .t-bottom{position:absolute;left:8.5%;bottom:11%;max-width:56%;text-align:left;display:flex;flex-direction:column;align-items:flex-start;gap:.95rem}
-/* 右下角:新案入局 + 繼續 同一排,細金框直角,電影海報 CTA 感 */
+/* 右下角:新案入局 + 繼續 同一排;主鍵=常駐朱紅印(與安裝同為「動作=紅」),直角海報感 */
 .t-right{position:absolute;right:7%;bottom:12%;display:flex;flex-direction:row;align-items:center;gap:1.4rem;max-width:44%}
-.t-right .btn{padding:10px 34px;font-size:1.02rem;letter-spacing:.3em;border-radius:2px;
-  border-color:var(--gold);background:rgba(18,15,12,.5)}
-.t-right .btn:hover{background:var(--cin);border-color:var(--cin)}
-.t-right .btn.ghost{border-color:transparent;background:none;color:var(--br);
+.t-right .btn{padding:11px 36px;font-size:1.04rem;letter-spacing:.3em;border-radius:2px;
+  border:1px solid var(--cin);background:var(--cin);color:#fff;box-shadow:0 2px 14px rgba(168,50,42,.28)}
+.t-right .btn:hover{filter:brightness(1.12)}
+.t-right .btn.ghost{border-color:transparent;background:none;color:var(--br);box-shadow:none;
   letter-spacing:.24em;padding:10px 6px;opacity:.82}
 .t-right .btn.ghost:hover{background:none;color:var(--gold);opacity:1;text-decoration:underline;text-underline-offset:6px}
 .t-right .btn.ghost:disabled{opacity:.3;text-decoration:none}
@@ -175,7 +175,8 @@ body.reduced #rain{display:none}
   font-size:1.05rem;letter-spacing:.22em;padding:9px 30px;cursor:pointer;transition:background .2s,color .2s}
 .tseg-btn:last-child{border-right:0}
 .tseg-btn:hover{color:#f0e6d2}
-.tseg-btn.on{background:var(--cin);color:#fff;text-shadow:0 1px 6px rgba(0,0,0,.4)}
+/* 選中心法:沉穩銅色填色(把「紅」讓給安裝與 CTA;選取態靠銅色+亮字表達)*/
+.tseg-btn.on{background:var(--br);color:#f6eed9;text-shadow:0 1px 6px rgba(0,0,0,.4)}
 .tseg-desc{color:var(--br);font-size:.86rem;letter-spacing:.06em;min-height:1.2em}
 /* 暗色主題捲軸(面板/名錄/彈窗內可捲區)*/
 .plbl,.sheet,.pboard{scrollbar-width:thin;scrollbar-color:rgba(138,107,58,.55) transparent}
