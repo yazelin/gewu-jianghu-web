@@ -408,7 +408,7 @@ function sTitle() {
     mlink('格物先賢譜', () => scientistAtlas()),
     mlink('劇情前導', () => replayIntro()),
     mlink('分享', () => shareContent('武俠懸疑包裝的物理解謎 RPG——《格物江湖錄:天理殘卷》，可離線遊玩。', G.title_keyart)),
-    mlink('素材與製作名錄', () => creditsPanel()),      // 併入同一排(分享右邊),不再孤立於角落
+    mlink('殺青片尾', () => creditsPanel()),      // 併入同一排(分享右邊),不再孤立於角落
   ];
   items.forEach((it, i) => { if (i) menu.appendChild(el(`<span class="sep">·</span>`)); menu.appendChild(it); });
   bg.appendChild(menu);
@@ -1097,7 +1097,7 @@ function endingGallery() {
   board.appendChild(pBtn('收起圖鑑', 440, 596, 220, 40, true, close));
 }
 
-// ---------- 素材與製作名錄:電影式滾動片尾(片尾曲清單循環 + 劇照散落隨捲 + 片尾合照 + 可暫停/前後翻)----------
+// ---------- 殺青片尾:電影式滾動片尾(片尾曲清單循環 + 劇照散落隨捲 + 片尾合照 + 可暫停/前後翻)----------
 function creditsPanel() {
   sfx('paper', 1.0, 0.5);
   const reduced = isReduced();
