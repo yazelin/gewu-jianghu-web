@@ -425,7 +425,7 @@ function startLightning(el) {
   const tick = () => {
     if (!el.isConnected) return;                                  // 已離開題名 → 停止排程
     el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
-    setTimeout(tick, 5000 + Math.random() * 11000);               // 下次 5–16 秒
+    setTimeout(tick, 5000 + Math.random() * 20000);               // 下次 5–25 秒
   };
   setTimeout(tick, 2500 + Math.random() * 4500);                  // 首次 2.5–7 秒
 }
