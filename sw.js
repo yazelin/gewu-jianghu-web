@@ -2,7 +2,7 @@
 //   殼(HTML/JS/data,約 0.4MB)每次部署 bump;資產(assets/,約 33MB)只有同名檔換內容才 bump。
 //   舊做法把 33MB 和殼放同一個 CACHE,每次部署 activate 整包刪掉重抓——不只浪費頻寬,更會反覆
 //   製造「重寫 33MB」的窗口,而寫入失敗(配額/SW 被回收)是靜默的,尾端最大的音檔最容易掉。
-const SHELL_CACHE="gewu-shell-v103";   // ← 每次部署 bump 這行(觸發新 SW + 自動重整)
+const SHELL_CACHE="gewu-shell-v104";   // ← 每次部署 bump 這行(觸發新 SW + 自動重整)
 // ponytail: 新增/改名的資產 URL 變了就自動抓;只有「同名檔換內容」才要手動 bump 這行
 // (本 repo 慣例是檔名帶 _vNN,如 title_keyart_v14.webp,平常不用動)。
 // 上限=靠人記得 bump;要根治就資產改雜湊檔名 + build step,見 NOTES.md。

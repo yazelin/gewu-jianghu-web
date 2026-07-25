@@ -158,6 +158,16 @@ const escClose = async (openLabel) => {
 };
 await page.evaluate(() => go('title')); await page.waitForTimeout(900);
 ok('ESC 關掉成就譜(.povl)', await escClose('江湖成就譜'));
+
+// 視窗是單例:連按同一個鈕、或 ESC 後焦點留在鈕上再按空白,都不該疊出好幾個
+const winCount = () => page.evaluate(() => document.querySelectorAll('.povl,.modal,.roll-ov').length);
+for (let i = 0; i < 3; i++) { await page.evaluate(() => [...document.querySelectorAll('.tmenu button')].find(x => x.textContent.includes('殺青片尾'))?.click()); await page.waitForTimeout(700); }
+ok('連按三次只開一個視窗', (await winCount()) === 1, `${await winCount()} 個`);
+await page.keyboard.press('Escape'); await page.waitForTimeout(500);
+ok('關窗後焦點回到開啟它的按鈕', await page.evaluate(() => (document.activeElement?.textContent || '').includes('殺青片尾')));
+for (let i = 0; i < 4; i++) { await page.keyboard.press('Space'); await page.waitForTimeout(450); }
+ok('ESC 後連按空白鍵不會疊出多個', (await winCount()) <= 1, `${await winCount()} 個`);
+await page.evaluate(() => document.querySelectorAll('.povl,.modal,.roll-ov').forEach(x => x.remove()));
 ok('ESC 關掉殺青片尾(.roll-ov)', await escClose('殺青片尾'));
 
 // ---- 5) 離線:Service Worker 全量 precache + 斷網重載 + 未播音檔命中 ----

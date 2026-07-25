@@ -563,6 +563,30 @@ function chapterSelect() {
   sheet.appendChild(grid);
   stage.appendChild(m);
 }
+// 視窗一次只開一個。原本連按同一個鈕會疊出好幾個(點三次開三個),
+// 而且 ESC 關掉之後焦點還留在開啟它的按鈕上,按空白鍵就能一直重複觸發。
+// 關閉一律走各視窗自己的關閉鈕,否則 boardOverlay 的 onOutside(分享視窗、
+// 好感面板的收尾、片尾還原配樂)會被繞過。
+function closeAllWindows() {
+  stage.querySelectorAll('.povl, .modal, .roll-ov').forEach(w => {
+    const x = w.querySelector('.pclose');
+    if (x) x.click(); else w.remove();
+  });
+}
+// 開窗把焦點移進去、關窗再還給開啟它的元素:不還會讓鍵盤使用者迷路,
+// 還了又不設上限就會被空白鍵連開——所以要和 closeAllWindows 一起用才完整。
+let _opener = null;
+function takeFocus(win) {
+  _opener = document.activeElement;
+  // 焦點落在視窗本體而不是 ✕:開視窗不該把「關掉」設成 Enter/空白的預設動作。
+  // tabindex=-1 讓容器可被程式聚焦但不進 Tab 順序;Tab 仍會走到裡面的 ✕ 與內容。
+  win.setAttribute('tabindex', '-1');
+  win.focus?.({ preventScroll: true });
+}
+function giveBackFocus() {
+  const o = _opener; _opener = null;
+  if (o && document.contains(o)) o.focus?.({ preventScroll: true });
+}
 // ESC = 關掉最上層的視窗,反應與按該視窗的 X 完全一致。
 // 關鍵是「走各視窗自己的關閉路徑」而不是直接 remove():boardOverlay 的 X 走的是
 // onOutside || close,分享視窗、好感面板等靠 onOutside 做收尾,繞過去會漏掉。
@@ -583,14 +607,16 @@ function initEscClose() {
 // 選單/確認框的共用外殼:與 .pboard 同一套語言(銅色標題 → 小注 → 朱砂細線 → 圓形 X)。
 // X 沿用 .pclose,ESC 的全域處理才會走同一條關閉路徑。
 function modalShell(title, sub, maxw = 460) {
+  closeAllWindows();                                            // 一次只開一個
   const m = el(`<div class="modal"><div class="sheet" style="max-width:${maxw}px"></div></div>`);
   const sheet = m.querySelector('.sheet');
   const x = el(`<button class="pclose" title="關閉">✕</button>`);
-  x.onclick = () => m.remove();
+  x.onclick = () => { m.remove(); giveBackFocus(); };
   sheet.append(x, el(`<div class="mtitle">${esc(title)}</div>`));
   if (sub) sheet.append(el(`<div class="msub">${esc(sub)}</div>`));
   sheet.append(el(`<div class="mrule"></div>`));
-  m.onclick = (e) => { if (e.target === m) m.remove(); };
+  m.onclick = (e) => { if (e.target === m) { m.remove(); giveBackFocus(); } };
+  queueMicrotask(() => { if (document.contains(m)) takeFocus(sheet); });   // 等呼叫端 append 到 stage 之後再接手焦點
   return { m, sheet };
 }
 // 卷宗式清單的一列:名稱在左、狀態在右、收尾記號
@@ -1188,15 +1214,17 @@ function investigate({ key, background, title, clues, min, onDone, failable, onF
 
 // ===== 忠實還原原作三大 overlay 面板(固定 1280×720 座標,對齊原作 _panel/_label 佈局)=====
 function boardOverlay(x, y, w, h, z, onOutside) {
+  closeAllWindows();                                            // 一次只開一個
   const ov = el(`<div class="povl" style="z-index:${z}"></div>`);
   const board = el(`<div class="pboard" style="left:${x}px;top:${y}px;width:${w}px;height:${h}px"></div>`);
-  const close = () => ov.remove();
+  const close = () => { ov.remove(); giveBackFocus(); };
   const xBtn = el(`<button class="pclose" title="關閉">✕</button>`);   // 右上角 X:與遊戲內視窗統一;wired 到 onOutside(保留各視窗 cleanup)
   xBtn.onclick = () => (onOutside || close)();
   board.appendChild(xBtn);
   ov.appendChild(board);
   ov.addEventListener('click', e => { if (e.target === ov) (onOutside || close)(); });
   stage.appendChild(ov);
+  takeFocus(board);
   return { ov, board, close };
 }
 const pLbl = (text, x, y, w, size, color, o = {}) =>
@@ -1436,6 +1464,7 @@ function creditsPanel() {
   const onEnded = () => playNext();
   playNext();
   if (_audio) { _audio.loop = false; _audio.addEventListener('ended', onEnded); }
+  closeAllWindows();                                            // 一次只開一個
   const ov = el(`<div class="roll-ov"></div>`);
   const track = el(`<div class="roll-track"></div>`);
   const sci = (G.scientists.chrono || G.scientists.order).map(id => {
@@ -1527,8 +1556,10 @@ function creditsPanel() {
     if (_audio) { _audio.removeEventListener('ended', onEnded); _audio.loop = true; }
     playMusic(MUSIC.ambient);                        // 還原題名背景樂
     ov.remove();
+    giveBackFocus();
   };
   closeBtn.onclick = close;
+  takeFocus(ov);                                   // 焦點移進視窗,免得留在開啟它的按鈕上被空白鍵連按
 }
 
 // ================= 破局戰(氣勢答題) =================

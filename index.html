@@ -482,6 +482,9 @@ body.reduced .cine-nav{transition:none;opacity:1}
 .cluebody h3{font-size:1.4rem;color:#f3ead6;margin-bottom:.6rem;padding-right:24px}
 .cluebody .body{font-size:1.05rem;line-height:1.85;color:#d6cbb4;margin-bottom:1rem}
 .cluebody .q{font-weight:700;color:#f3ead6;font-size:1.14rem;margin-bottom:.7rem}
+/* 程式聚焦視窗容器時不要畫外框(它只是焦點的落點,不是可操作元件) */
+.povl:focus,.modal .sheet:focus,.pboard:focus,.roll-ov:focus{outline:none}
+.pclose:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 .pclose{position:absolute;top:14px;right:16px;width:30px;height:30px;border-radius:50%;
   background:rgba(40,34,26,.9);border:1px solid var(--br);color:var(--pa2);cursor:pointer;
   font-size:.95rem;line-height:1;z-index:6;transition:.12s;padding:0}
