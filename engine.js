@@ -110,7 +110,7 @@ function initWeather() {
   if (!cv) return;
   const ctx = cv.getContext('2d');
   // 三層景深:遠(慢短暗細)→ 近(快長亮粗),視差營造縱深
-  const LAYERS = [{ n: 55, vy: 430, len: 11, w: 0.7, a: 0.07 }, { n: 66, vy: 640, len: 17, w: 1.0, a: 0.11 }, { n: 56, vy: 900, len: 25, w: 1.5, a: 0.17 }];
+  const LAYERS = [{ n: 55, vy: 430, len: 11, w: 0.7, a: 0.045 }, { n: 66, vy: 640, len: 17, w: 1.0, a: 0.07 }, { n: 56, vy: 900, len: 25, w: 1.5, a: 0.11 }];   // alpha 調降:177 條雨絲鋪滿整幅,原值讓全畫面平均亮度 +3.3(灰霧來源之一)
   const rain = [];
   LAYERS.forEach((L, li) => { for (let k = 0; k < L.n; k++) rain.push({ L, li, k, x: (li * 313 + k * 197) % 1280, y: (li * 271 + k * 149) % 720 }); });
   const dust = Array.from({ length: 42 }, (_, i) => ({ x: (i * 331) % 1280, y: (i * 149) % 720, i }));
@@ -134,7 +134,7 @@ function initWeather() {
       if (m.y < -8) { m.y = 728; m.x = (m.i * 331 + (t * 0.02 | 0)) % 1280; }
       const r = 1.6 + (m.i % 3) * 0.9;                         // 半徑放大些(1.6~3.4),有大有小
       ctx.shadowBlur = 4 + r * 1.7;                            // 越大越亮的柔光暈
-      ctx.fillStyle = `rgba(224,206,150,${0.06 + (m.i % 3) * 0.03})`;
+      ctx.fillStyle = `rgba(224,206,150,${0.04 + (m.i % 3) * 0.02})`;   // 同上:浮塵帶光暈,鋪滿整幅時是一層霧
       ctx.beginPath(); ctx.arc(m.x, m.y, r, 0, 6.283); ctx.fill();
     }
     ctx.shadowBlur = 0;                                        // 歸零,別讓光暈汙染下一幀雨絲
@@ -591,7 +591,7 @@ function initMenu() {
 function sTitle() {
   playMusic(MUSIC.ambient);
   const bg = el(`<div class="layer fade"></div>`);
-  bg.appendChild(el(`<div class="bg" style="background-image:url('${G.title_keyart}');filter:brightness(.9)"></div>`));
+  bg.appendChild(el(`<div class="bg" style="background-image:url('${G.title_keyart}')"></div>`));   // 調色交給 .bg 類別統一管,別在這裡用行內 filter 蓋掉
   const storm = el(`<div class="tstorm"></div>`);          // 可控暗幕:平常壓黑,閃電時掀開
   bg.appendChild(storm);
   // 置中上緣:與底部連結列對稱(海報上下框)

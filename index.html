@@ -56,7 +56,7 @@ html,body{height:100%;background:#000;overflow:hidden;
 @media (orientation:portrait) and (max-width:900px){#rotate{display:flex}}
 
 .layer{position:absolute;inset:0}
-.bg{position:absolute;inset:0;background-size:cover;background-position:center;filter:brightness(.9);
+.bg{position:absolute;inset:0;background-size:cover;background-position:center;filter:brightness(.86) contrast(1.1) saturate(1.08);
   transform-origin:center;animation:kenburns 24s ease-in-out infinite}
 @keyframes kenburns{0%,100%{transform:scale(1.02)}50%{transform:scale(1.052)}}
 /* 雨幕(還原原作 rain_overlay)+ 浮塵層 */
@@ -85,7 +85,7 @@ body.reduced #rain{display:none}
 .scrim{position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,8,6,.15),rgba(10,8,6,.55))}
 /* 首頁暴風暗幕:平常壓黑(較淡,主角臉不黑),閃電時透明度瞬掀讓亮圖透出=被閃電照亮 */
 .tstorm{position:absolute;inset:0;z-index:6;pointer-events:none;
-  background:linear-gradient(180deg,rgba(6,8,12,.20),rgba(3,5,9,.50))}
+  background:linear-gradient(180deg,rgba(8,6,6,.18),rgba(4,3,4,.52))}   /* 中性偏暖:原本藍黑 veil 讓整幅去飽和發灰 */
 .tstorm.flash{animation:tstormFlash .95s ease-out}
 @keyframes tstormFlash{0%{opacity:1}6%{opacity:.05}13%{opacity:.72}20%{opacity:.12}32%{opacity:1}100%{opacity:1}}
 body.reduced .tstorm.flash{animation:none}
