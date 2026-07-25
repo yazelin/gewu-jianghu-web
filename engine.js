@@ -418,25 +418,41 @@ async function makeShareCard(bgUrl, headline, prof) {
 // 分享視窗:卡片預覽 + 複製文字/連結 + 下載圖片 + (手機)系統分享
 async function shareContent(text, imageUrl) {
   const sv = loadSave() || S;                                    // 稱號/進度以存檔為準(題名進來時 S 尚空)
-  const eqTitle = sv.equipped_title || DEFAULT_TITLE;
-  const prof = { title: eqTitle, achN: Object.values(sv.achievements || {}).filter(Boolean).length, endN: (sv.seen_normal || []).length + (sv.seen_finale || []).length };
-  const prefix = (eqTitle !== DEFAULT_TITLE) ? `以【${eqTitle}】之名，` : '';
-  const fullText = prefix + text + '\n' + SHARE_URL;
-  let blob = null; try { blob = await makeShareCard(imageUrl, text, prof); } catch (e) { }
-  const cardUrl = blob ? URL.createObjectURL(blob) : imageUrl;
-  const { ov, board, close } = boardOverlay(300, 58, 680, 600, 120, () => done());
+  const titlesEarned = (m) => { const t = [DEFAULT_TITLE]; for (const id of G.achievements.ordered) { const it = G.achievements.items[id]; if (it.title_reward && (m || {})[id] && !t.includes(it.title_reward)) t.push(it.title_reward); } return t; };
+  const titles = titlesEarned(sv.achievements);
+  const prof = { title: DEFAULT_TITLE, achN: Object.values(sv.achievements || {}).filter(Boolean).length, endN: (sv.seen_normal || []).length + (sv.seen_finale || []).length };
+  let curTitle = titles.includes(sv.equipped_title) ? sv.equipped_title : DEFAULT_TITLE;
+  let blob = null, cardUrl = imageUrl, fullText = '';
+  const setEquipped = (name) => { const s = loadSave(); if (s) { s.equipped_title = name; localStorage.setItem(SAVE_KEY, JSON.stringify(s)); } S.equipped_title = name; };   // 只改稱號欄,保留其餘存檔
+  const { ov, board, close } = boardOverlay(300, 48, 680, 618, 120, () => done());
   const done = () => { if (blob) URL.revokeObjectURL(cardUrl); close(); };
   const box = el(`<div class="share-box">
     <div class="share-h">分享</div>
-    <img class="share-card" src="${cardUrl}" alt="分享卡片">
-    <div class="share-text">${esc(fullText)}</div>
+    <img class="share-card" alt="分享卡片">
+    <div class="share-titles"></div>
+    <div class="share-text"></div>
     <div class="share-btns"></div></div>`);
-  const btns = box.querySelector('.share-btns');
+  const imgEl = box.querySelector('.share-card'), textEl = box.querySelector('.share-text'), titleRow = box.querySelector('.share-titles'), btns = box.querySelector('.share-btns');
+  const render = async () => {
+    prof.title = curTitle;
+    const prefix = (curTitle !== DEFAULT_TITLE) ? `以【${curTitle}】之名，` : '';
+    fullText = prefix + text + '\n' + SHARE_URL;
+    textEl.textContent = fullText;
+    titleRow.querySelectorAll('.tchip').forEach(c => c.classList.toggle('on', c.dataset.t === curTitle));
+    if (blob) { URL.revokeObjectURL(cardUrl); blob = null; }
+    imgEl.style.opacity = '.5';
+    try { blob = await makeShareCard(imageUrl, text, prof); cardUrl = URL.createObjectURL(blob); imgEl.src = cardUrl; } catch (e) { imgEl.src = imageUrl; }
+    imgEl.style.opacity = '1';
+  };
+  if (titles.length > 1) {                                        // 有多個稱號才顯示切換列
+    titleRow.appendChild(el(`<span class="st-label">佩印稱號</span>`));
+    titles.forEach(t => { const c = el(`<button class="tchip">${esc(t)}</button>`); c.dataset.t = t; c.onclick = () => { curTitle = t; setEquipped(t); render(); sfx('paper', 1.1, 0.3); }; titleRow.appendChild(c); });
+  } else titleRow.style.display = 'none';
   const mk = (label, fn) => { const b = el(`<button class="btn sm">${label}</button>`); b.onclick = fn; btns.appendChild(b); };
   const copy = async (t, msg) => { try { await navigator.clipboard.writeText(t); toast(msg); } catch (e) { toast('複製失敗,請長按選取'); } };
-  mk('複製文字', () => copy(fullText, '已複製分享文字' + (prefix ? '(含稱號)' : '')));
+  mk('複製文字', () => copy(fullText, '已複製分享文字' + (curTitle !== DEFAULT_TITLE ? '(含稱號)' : '')));
   mk('複製連結', () => copy(SHARE_URL, '已複製連結'));
-  if (blob) mk('下載圖片', () => { const a = document.createElement('a'); a.href = cardUrl; a.download = 'gewu-card.webp'; a.click(); toast('已下載分享圖'); });
+  mk('下載圖片', () => { if (!blob) return; const a = document.createElement('a'); a.href = cardUrl; a.download = 'gewu-card.webp'; a.click(); toast('已下載分享圖'); });
   if (navigator.share) mk('系統分享', async () => {
     try {
       const data = { title: '格物江湖錄:天理殘卷', text: fullText, url: SHARE_URL };
@@ -446,6 +462,7 @@ async function shareContent(text, imageUrl) {
   });
   mk('關閉', done);
   board.appendChild(box);
+  await render();
 }
 function shareBtn(label, text, imageUrl) {
   const b = el(`<button class="btn sm ghost">${esc(label)}</button>`);
@@ -557,7 +574,7 @@ function sTitle() {
     mlink('配樂鑑賞', () => withSave(musicGallery), true),
     mlink('格物先賢譜', () => scientistAtlas()),
     mlink('劇情前導', () => replayIntro()),
-    mlink('分享', () => shareContent('武俠懸疑包裝的物理解謎 RPG——《格物江湖錄:天理殘卷》，可離線遊玩。', G.title_keyart)),
+    mlink('分享', () => shareContent('武俠懸疑・物理解謎 RPG——《格物江湖錄:天理殘卷》，可離線遊玩。', G.title_keyart)),
     mlink('殺青片尾', () => creditsPanel()),      // 併入同一排(分享右邊),不再孤立於角落
   ];
   items.forEach((it, i) => { if (i) menu.appendChild(el(`<span class="sep">·</span>`)); menu.appendChild(it); });
