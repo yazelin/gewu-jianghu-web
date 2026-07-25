@@ -623,7 +623,7 @@ function sTitle() {
   // 上左:標題組(整體偏上)
   const top = el(`<div class="t-top">
     <img class="tlockup" src="assets/img/title_lockup_v1.webp" alt="格物江湖錄:天理殘卷" decoding="async">
-    <div class="tomen">巨鐘未落，真相已先被定罪。<img class="tseal" src="assets/seal.svg" alt="" aria-hidden="true"></div>
+    <div class="tomen">巨鐘未落，真相已先被定罪<img class="tseal" src="assets/seal.svg" alt="。" title="格物天理"></div>
   </div>`);
   // 心法(難度):三檔以提示詳略區分,用武俠語言(還原原作三心法:說書/行俠/宗師)
   // 心法(難度):平時收合成一顆 chip(與安裝同大小),點擊才展開三檔切換;說明只在展開時出現(全形標點)
