@@ -227,8 +227,8 @@ function musicGallery() {
 
   const { ov, board, close: closeBoard } = boardOverlay(90, 40, 1100, 640, 110, () => done());
   board.append(
-    pLbl('配樂鑑賞', 40, 24, 1020, 30, 'var(--br)', { align: 'center', bold: true }),
-    pLbl('點播放即自動開聲；♥ 收藏，可切「全部／收藏」，播完自動接下一首', 40, 58, 1020, 14, 'var(--pa2)', { align: 'center' }));
+    el(`<div></div>`));
+  boardHeader(board, '配樂鑑賞', '點播放即自動開聲；♥ 收藏，可切「全部／收藏」，播完自動接下一首', 1100);
 
   const now = el(`<div class="mp-now">
     <div class="mp-cover-lg"></div>
@@ -1210,11 +1210,19 @@ function pBtn(text, x, y, w, h, primary, onClick, disabled) {
   return b;
 }
 // 統一外框 + 內部捲動內容區(給長清單面板:成就譜/配樂鑑賞,與固定板同一視覺語言)
+// 視窗表頭:銅色標題 → 小注 → 朱砂細線。朱砂線是整套設計的簽名元素,
+// 各視窗自己手刻就會漏(配樂鑑賞/結局圖鑑/先賢譜原本都少了它),所以抽成一支共用。
+// 回傳表頭底部的 y,內容從那裡往下排。
+function boardHeader(board, title, sub, w, x = 40, y = 22) {
+  board.append(pLbl(esc(title), x, y, w - x * 2, 28, 'var(--br)', { bold: true, align: 'center' }));
+  if (sub) board.append(pLbl(esc(sub), x, y + 36, w - x * 2, 13, 'var(--pa2)', { align: 'center' }));
+  const ruleY = y + (sub ? 62 : 46);
+  board.append(pRule(x, ruleY, w - x * 2));
+  return ruleY + 12;
+}
 function boardScroll(w, h, title, sub) {
   const { board, close } = boardOverlay((1280 - w) / 2, (720 - h) / 2, w, h, 108);
-  board.append(pLbl(esc(title), 40, 24, w - 80, 27, 'var(--br)', { bold: true, align: 'center' }));
-  if (sub) board.append(pLbl(esc(sub), 40, 60, w - 80, 13, 'var(--pa2)', { align: 'center' }));
-  board.append(pRule(40, sub ? 84 : 68, w - 80));
+  boardHeader(board, title, sub, w, 40, 24);
   const content = el(`<div class="pscroll" style="left:34px;right:22px;top:${sub ? 98 : 82}px;bottom:24px"></div>`);
   board.append(content);                                        // 關閉改用右上角 X(boardOverlay 已加)
   return { board, content, close };
@@ -1344,15 +1352,15 @@ function scientistAtlas() {
   const { board, close } = boardOverlay(75, 45, 1130, 635, 115);
   const sc = G.scientists;
   const reduced = isReduced();
-  board.append(pLbl('格物先賢譜｜物理科學家關係圖', 35, 20, 1060, 29, 'var(--br)', { align: 'center', bold: true }));
+  boardHeader(board, '格物先賢譜', '', 1130, 35);   // 這頁本來就有圖例列,不再加副標(會重複也會撞版)
   // 圖例:青線＝概念承接、朱線＝同期爭論/競逐;由左至右依年代;點擊看生平與章回應用
-  board.append(el(`<div class="atlas-legend" style="position:absolute;left:40px;top:62px;width:1050px">
+  board.append(el(`<div class="atlas-legend" style="position:absolute;left:40px;top:84px;width:1050px">
     <span class="lg"><span class="sw" style="color:var(--jade);background:linear-gradient(90deg,var(--jade),#8fd4b4)"></span>概念承接</span>
     <span class="lg"><span class="sw" style="color:var(--cin);background:linear-gradient(90deg,var(--cin),#e07a5f)"></span>同期爭論／競逐</span>
     <span class="lg"><span style="display:inline-block;width:13px;height:13px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#ffe9ad,#c9a24b 70%);box-shadow:0 0 8px rgba(201,162,75,.75)"></span>鎏金＝本回相關先賢</span>
     <span class="lg" style="opacity:.72">由左至右依年代先後</span>
     <span class="lg" style="opacity:.72">點擊人物看生平與章回應用</span></div>`));
-  const graph = el(`<div class="atlas-wrap" style="left:45px;top:100px;width:1040px;height:330px"></div>`);
+  const graph = el(`<div class="atlas-wrap" style="left:45px;top:116px;width:1040px;height:330px"></div>`);
   // 由左到右依年代先後排列(墨家最早→馬克士威最晚),上下交錯避免擁擠;連線改由節點中心即時算
   const CHRONO = sc.chrono || sc.order, STEP = 108.75;
   const pos = {};
@@ -1376,7 +1384,7 @@ function scientistAtlas() {
   parts.push('</svg>');
   graph.innerHTML = parts.join('');
   // 銘刻式詳情牌(置於圖下方)
-  const detail = el(`<div class="atlas-detail" style="left:60px;top:448px;width:1010px;min-height:76px"></div>`);
+  const detail = el(`<div class="atlas-detail" style="left:60px;top:462px;width:1010px;min-height:76px"></div>`);
   detail.textContent = '先賢譜不是背人名：每條線都要回到可觀察的現象與可驗證的模型。';
   const active = (sc.active_by_chapter[String(S.chapter)]) || sc.active_default;
   let selBtn = null;
@@ -1400,9 +1408,9 @@ function endingGallery() {
   const { board, close } = boardOverlay(90, 42, 1100, 636, 110);
   const seenN = new Set(S.seen_normal || []), seenF = new Set(S.seen_finale || []);
   board.append(
-    pLbl('天理殘卷・結局圖鑑', 40, 20, 1020, 30, 'var(--br)', { align: 'center', bold: true }),
-    pLbl(`普通結局 ${seenN.size}／4　｜　完整版結局 ${seenF.size}／4　（圖鑑會跨越命運回折保留）`, 40, 60, 1020, 14, 'var(--pa2)', { align: 'center' }));
-  [['第九章・普通結局', G.endings_ch9, seenN, 84], ['第十一章・完整版結局', G.endings_finale, seenF, 340]].forEach(([label, ends, seen, y]) => {
+    el(`<div></div>`));
+  boardHeader(board, '天理殘卷・結局圖鑑', `普通結局 ${seenN.size}／4　｜　完整版結局 ${seenF.size}／4　（圖鑑跨越命運回折保留）`, 1100);
+  [['第九章・普通結局', G.endings_ch9, seenN, 102], ['第十一章・完整版結局', G.endings_finale, seenF, 356]].forEach(([label, ends, seen, y]) => {
     board.appendChild(pLbl(label, 42, y, 400, 15, 'var(--jade)', { bold: true }));
     Object.entries(ends).forEach(([id, e], i) => {
       const on = seen.has(id), x = 42 + i * 258;

@@ -76,7 +76,68 @@ check(f'成就齊備({len(ach_titles)} 條)', not miss_ach, '缺:' + '、'.join(
 miss_rom = [n for n in G['romance']['candidates'] if e(n) not in DOC]
 check('情緣候選齊備', not miss_rom, '缺:' + '、'.join(miss_rom) if miss_rom else '、'.join(G['romance']['candidates']))
 
-# 7) 原作者出處與贊助連結在(公式站保留原作者致謝)
+# 7) 人物誌:10 張人物卡齊備,且好感增減列數 == game.json 推導的出處總數
+names = ['沈硯'] + [p['name'] for p in G['people']]
+miss_p = [n for n in names if f'<h4>{e(n)}</h4>' not in DOC]
+check(f'人物卡齊備({len(names)} 張)', not miss_p, '缺:' + '、'.join(miss_p) if miss_p else '沈硯 + 9 名同行者')
+n_rel = sum(1 for o in (G['prologue'].get('choice') or {}).get('options', []) if o.get('relationship'))
+n_rel += sum(1 for o in (G['prologue'].get('final_choice') or {}).get('options', []) if o.get('rel'))
+for c in G['chapters']:
+    n_rel += sum(1 for o in (c.get('dialogue_choice') or {}).get('options', []) if o.get('relationship'))
+    for key in ('a', 'b'):
+        n_rel += len(G['logic']['final_effects'].get(str(c['id']), {}).get(key, {}).get('rel') or {})
+got_rel = len(re.findall(r'<td class="d(?: neg)?">', DOC))
+check('好感增減出處齊備', got_rel == n_rel, f'列出 {got_rel} / 應有 {n_rel}')
+
+# 8) 先賢譜 9 位齊備
+sages = [n['name'] for n in G['scientists']['nodes'].values()]
+miss_s = [n for n in sages if e(n) not in DOC]
+check(f'先賢譜齊備({len(sages)} 位)', not miss_s, '缺:' + '、'.join(miss_s) if miss_s else '9 位全列')
+
+# 9) 真結局路線:把頁面上那張表讀回來,用 game.json 的規則獨立重算一次真結局條件
+sec = DOC[DOC.find('id="route"'):DOC.find('id="ab"')]
+picked = re.findall(r'<tr><td>([^<]*)</td><td>([^<]*)</td><td>([^<]*)</td><td>[^<]*</td></tr>', sec)
+rel, flags, chosen = {}, {}, {}
+for ch_title, dlg_text, fin_text in picked:
+    node = G['prologue'] if ch_title == '序章' else next((c for c in G['chapters'] if e(c['title']) == ch_title), None)
+    if not node: continue
+    cid = 'p' if ch_title == '序章' else node['id']
+    for o in (node.get('dialogue_choice') or node.get('choice') or {}).get('options', []):
+        if e(o['text']) != dlg_text: continue
+        rel[o['relationship']] = max(-5, min(5, rel.get(o['relationship'], 0) + o.get('delta', 0)))
+        if o.get('flag'): flags[o['flag']] = True
+    if cid == 'p':
+        for o in G['prologue']['final_choice']['options']:
+            if e(o['text']) != fin_text: continue
+            rel[o['rel']] = max(-5, min(5, rel.get(o['rel'], 0) + o['delta']))
+            flags['prologue_case_strong'] = True
+            flags['keeper_saved' if o['id'] == 'rescue' else 'copper_seal'] = True
+    else:
+        for key in ('a', 'b'):
+            if e(node['final_choice'][key]['title']) != fin_text: continue
+            chosen[node['id']] = node['final_choice'][key]['id']
+            eff = G['logic']['final_effects'][str(node['id'])].get(key, {})
+            for n, d in (eff.get('rel') or {}).items(): rel[n] = max(-5, min(5, rel.get(n, 0) + d))
+            flags.update(eff.get('flags') or {})
+L = G['logic']
+pos = [n for n in L['camp_map'] if rel.get(n, 0) >= 2]
+modest = sum(1 for n, v in rel.items() if n != '裴無咎' and v >= 1)
+seal_people = (len(pos) >= 3 and len({L['camp_map'][n] for n in pos}) >= 2) or (rel.get('裴無咎', 0) >= 4 and modest >= 2)
+seal_frag = (sum(1 for f in L['people_flags'] if flags.get(f)) >= 2
+             and sum(1 for f in L['standard_flags'] if flags.get(f)) >= 2
+             and any(flags.get(f) for f in L['late_keys']))
+deep = sum(1 for v in rel.values() if v >= 3)
+true_end = (seal_people and seal_frag and chosen.get(9) == 'reversible_shutdown'
+            and flags.get('veto_clause_restored') and flags.get('allies_crosschecked_final')
+            and chosen.get(11) == 'open_shared_standard' and deep >= 3 and rel.get('裴無咎', 0) >= 1)
+check('真結局路線可重現(照表重算)', len(picked) == 12 and bool(true_end),
+      f'{len(picked)} 章；三印人和={seal_people} 殘卷={seal_frag}；深交 {deep} 人；裴無咎 {rel.get("裴無咎", 0):+d}')
+
+# 10) 成就解法齊備(每條成就都有解法欄)
+check('成就解法齊備(30 條)', DOC.count('<td class="sol">') == len(ach_titles),
+      f'{DOC.count(chr(60) + "td class=" + chr(34) + "sol" + chr(34) + ">")} / {len(ach_titles)}')
+
+# 11) 原作者出處與贊助連結在(公式站保留原作者致謝)
 check('保留原作者致謝/贊助連結', 'changyi123456' in DOC and 'aiphysicsteacher' in DOC)
 
 print(f'\n=== {len(questions)+6-len(fails) if False else ""}對照完成:{"全部一致" if not fails else str(len(fails))+" 項落差"} ===')
