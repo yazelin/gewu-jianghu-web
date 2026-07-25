@@ -345,22 +345,22 @@ body.reduced .m-eq span{animation:none;height:11px}
 .t-diff .tseg-desc{font-size:.82rem;letter-spacing:.04em;white-space:nowrap;text-align:right}
 .gtitle{font-size:4.2rem;letter-spacing:.3em;color:#f3ead6;text-shadow:0 4px 30px #000,0 0 8px rgba(168,50,42,.4);animation:titleGlow 7.5s ease-in-out infinite}
 /* 題名毛筆字改用圖(字型排不出這個筆觸);光暈改 drop-shadow,text-shadow 對 img 無效 */
-.tlockup{width:30rem;max-width:100%;height:auto;display:block;animation:lockupGlow 7.5s ease-in-out infinite}
+
 /* drop-shadow 吃 alpha 形狀(box-shadow 吃矩形邊框,透明 PNG 會變方框)。
    疊三層:貼著筆畫的芯 → 中層 → 外擴暈,最後一層黑影是壓在亮背景上的可讀性保險。 */
 /* 三層都用同一個金 rgb(201,162,75)=--gold,只讓 alpha 與擴散半徑呼吸。
    先前三層各用不同色相(淺香檳→金→青銅),脈動時色相也在變,看起來像多色切換。 */
-@keyframes lockupGlow{
-  0%,100%{filter:drop-shadow(0 0 3px rgba(201,162,75,.55)) drop-shadow(0 0 11px rgba(201,162,75,.38))
-          drop-shadow(0 0 26px rgba(201,162,75,.22)) drop-shadow(0 5px 26px rgba(0,0,0,.85))}
-  50%    {filter:drop-shadow(0 0 4px rgba(201,162,75,.78)) drop-shadow(0 0 17px rgba(201,162,75,.56))
-          drop-shadow(0 0 40px rgba(201,162,75,.34)) drop-shadow(0 5px 30px rgba(0,0,0,.85))}}
+
 /* 關掉動態時仍要有靜態光暈,不能整個消失 */
-body.reduced .tlockup{filter:drop-shadow(0 0 3px rgba(201,162,75,.55)) drop-shadow(0 0 11px rgba(201,162,75,.38))
-  drop-shadow(0 0 26px rgba(201,162,75,.22)) drop-shadow(0 5px 26px rgba(0,0,0,.85))}
+
 @keyframes titleGlow{0%,100%{text-shadow:0 4px 30px #000,0 0 8px rgba(168,50,42,.4)}50%{text-shadow:0 4px 34px #000,0 0 17px rgba(201,162,75,.5)}}
 .gsub{font-size:1.4rem;letter-spacing:.5em;color:var(--pa2)}
 .tkicker{font-size:.95rem;letter-spacing:.35em;color:var(--br);margin-bottom:-.4rem}
+.tlockup{width:30rem;max-width:100%;height:auto;display:block;
+  /* 靜態光暈,兩道就夠。原本四道再加無限動畫,每一幀都要把整張 2100x640 重做四次模糊,
+     實測首頁 16.4fps、最慢一幀 117ms。改成單層兩道靜態:60.2fps、最慢一幀 16.8ms。
+     呼吸效果的代價是 10fps 和 7 倍的最慢幀,不划算——首頁還有雨幕在動,順比脈動重要。 */
+  filter:drop-shadow(0 0 10px rgba(201,162,75,.5)) drop-shadow(0 4px 22px rgba(0,0,0,.85))}
 .tomen{font-size:1.05rem;letter-spacing:.08em;color:#c9bda3;margin-top:-.3rem}
 .tseal{width:1.45em;height:1.45em;vertical-align:-.36em;margin-left:.2em;opacity:.92}   /* 標語末尾的朱印:取代句號,所以貼緊前一字 */
 .ttag{font-size:1.02rem;letter-spacing:.1em;color:#e8dcc0;margin-top:.4rem}
