@@ -318,10 +318,10 @@ body.reduced .m-eq span{animation:none;height:11px}
 /* 海報式分區:上緣置中 kicker / 左上標題 / 左下主要動作 / 右側繼續 / 底部 billing */
 .t-kicker{position:absolute;top:16px;left:0;right:0;z-index:20;text-align:center;
   color:var(--br);font-size:.95rem;letter-spacing:.35em}
-.t-top{position:absolute;left:8.5%;top:6%;max-width:60%;text-align:left;display:flex;flex-direction:column;align-items:flex-start;gap:.6rem}
-.t-bottom{position:absolute;left:8.5%;bottom:11%;max-width:56%;text-align:left;display:flex;flex-direction:column;align-items:flex-start;gap:.95rem}
+.t-top{position:absolute;left:8.5%;top:6%;max-width:60%;text-align:left;display:flex;flex-direction:column;align-items:flex-start;gap:.6rem;z-index:20}
+.t-bottom{position:absolute;left:8.5%;bottom:11%;max-width:56%;text-align:left;display:flex;flex-direction:column;align-items:flex-start;gap:.95rem;z-index:20}
 /* 右下角:新案入局 + 繼續 同一排;主鍵=常駐朱紅印(與安裝同為「動作=紅」),直角海報感 */
-.t-right{position:absolute;right:7%;bottom:12%;display:flex;flex-direction:row;align-items:center;gap:1.4rem;max-width:44%}
+.t-right{position:absolute;right:7%;bottom:12%;display:flex;flex-direction:row;align-items:center;gap:1.4rem;max-width:44%;z-index:20}
 .t-right .btn{padding:11px 36px;font-size:1.04rem;letter-spacing:.3em;border-radius:2px;
   border:1px solid var(--cin);background:var(--cin);color:#fff;box-shadow:0 2px 14px rgba(168,50,42,.28)}
 .t-right .btn:hover{filter:brightness(1.12)}

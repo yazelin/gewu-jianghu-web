@@ -552,8 +552,8 @@ function sTitle() {
   bottom.append(
     el(`<div class="ttag">看懂世界如何運作，才有資格改變命運。</div>`),
     el(`<div class="troute">十一章懸案｜雙走向承接｜多重結局｜三線情緣</div>`));
-  const savedTitle = (loadSave() || {}).equipped_title;      // 佩印稱號(讀存檔)
-  if (savedTitle && savedTitle !== DEFAULT_TITLE) bottom.append(el(`<div class="ttitle">佩印稱號｜${esc(savedTitle)}</div>`));
+  const savedTitle = (loadSave() || {}).equipped_title || DEFAULT_TITLE;   // 佩印稱號(讀存檔;預設也固定顯示)
+  bottom.append(el(`<div class="ttitle">佩印稱號｜${esc(savedTitle)}</div>`));
   // 右下角:只放新案入局 + 繼續
   const bCont = el(`<button class="btn ghost">繼續</button>`);
   bCont.disabled = !hasSave();
