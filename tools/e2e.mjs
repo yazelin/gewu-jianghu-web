@@ -357,6 +357,28 @@ ok('斷網後大音檔真的能解碼播放(1.1MB,Range→206)', bigTrack.starts
   });
   ok('攻略站沒有破圖', gm.broken === 0 && img404 === 0, `${gm.n} 張,破圖 ${gm.broken},4xx ${img404}`);
   ok('攻略站每張圖都有 width/height(否則捲動時版面一路跳)', gm.noDim === 0, `缺 ${gm.noDim} 張`);
+  // 光驗「屬性存在」不夠 —— v114 就是這樣漏的:加了 width/height 屬性但 CSS 只寫 width:100%
+  // 沒寫 height:auto,高度照屬性鎖死,寬度隨容器縮 → 113 張裡 91 張被拉扁。
+  // 所以要驗「顯示比例 == 原圖比例」,而且三種視窗都要驗(當時只截了 .who 那段,剛好是唯一沒事的一組)。
+  const aspectBad = async (page) => page.evaluate(() => {
+    const bad = [];
+    for (const i of document.querySelectorAll('img')) {
+      if (!i.complete || !i.naturalWidth) continue;
+      const c = i.getBoundingClientRect();
+      if (c.width < 1 || c.height < 1) continue;
+      const nat = i.naturalWidth / i.naturalHeight, shown = c.width / c.height;
+      if (Math.abs(nat - shown) / nat > 0.02) bad.push(i.src.split('/').pop());
+    }
+    return bad;
+  });
+  ok('攻略站圖片比例沒被拉壞(桌機)', (await aspectBad(gp)).length === 0, (await aspectBad(gp)).slice(0, 3).join(' '));
+  for (const [label, vp] of [['直向 390', { width: 390, height: 844 }], ['橫向 844', { width: 844, height: 390 }]]) {
+    await gp.setViewportSize(vp);
+    await gp.waitForTimeout(500);
+    const bad = await aspectBad(gp);
+    ok(`攻略站圖片比例沒被拉壞(手機${label})`, bad.length === 0, bad.slice(0, 3).join(' '));
+  }
+  await gp.setViewportSize({ width: 1280, height: 720 });
   ok('攻略站整頁圖量 < 6.5MB', imgBytes < 6.5 * 1048576, `${(imgBytes / 1048576).toFixed(2)}MB`);
   await gp.close();
 }

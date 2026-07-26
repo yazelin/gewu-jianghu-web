@@ -550,11 +550,13 @@ h4{margin:.5rem 0 .3rem;font-size:1rem}
 .lede,.sub,.meta{color:var(--pa2)}.sub{margin:.2rem 0 .8rem}
 .meta{font-size:.85rem;border-block:1px solid #3a332a;padding:.5rem 0;line-height:1.8}
 .toc{background:#1d1913;border:1px solid #332c22;border-radius:8px;padding:.8rem 1rem;font-size:.9rem;margin:1rem 0;line-height:2}
-img.bg{width:100%;border-radius:6px;display:block;margin:.5rem 0}
+/* height:auto 必留:<img> 帶 width/height 屬性時,CSS 只覆蓋 width 的話高度會照屬性鎖死,
+   寬度隨容器縮而高度不動 → 比例被拉壞(v114 踩過,113 張裡 91 張變形)。 */
+img.bg{width:100%;height:auto;border-radius:6px;display:block;margin:.5rem 0}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:1.2rem}
 .battles{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1rem}
 article{background:#1d1913;border:1px solid #332c22;border-radius:8px;padding:1rem}
-article img{width:100%;border-radius:5px;margin-bottom:.5rem;display:block}
+article img{width:100%;height:auto;border-radius:5px;margin-bottom:.5rem;display:block}
 .pin{display:block;font-size:.75rem;color:var(--br);margin-top:.3rem}
 .body{font-size:.9rem;color:#d6cbb4}
 .q{font-weight:700;color:#f3ead6;margin:.6rem 0 .3rem}
