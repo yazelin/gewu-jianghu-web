@@ -1,11 +1,36 @@
 #!/usr/bin/env python3
 # 產生 design.html —— 完整設計/公式站(劇情/分支/答案/結局/成就),讀 data/game.json
-import json, html, os
+import json, html, os, re
 
 R = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 G = json.load(open(os.path.join(R, 'data/game.json'), encoding='utf-8'))
 e = lambda s: html.escape(str(s if s is not None else ''))
 CN = ['零', '一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一']
+
+# 攻略站縮圖:全解析度美術當小圖用,整頁滑完要多載好幾 MB(實測 9.3MB → 5.1MB)。
+# 尺寸=2×實測顯示尺寸(2x 螢幕剛好夠)。data-thumb-kind 讓 gen_thumbs.py 知道照哪組規格縮,
+# width/height 一併寫進標籤:瀏覽器才算得出版面、捲動時不會一路跳,也是 gen_thumbs.py 的驗收基準。
+# 改了版面就要重量顯示尺寸(見 tools/gen_thumbs.py 註解)。
+THUMB_2X = {'who': (208, 284), 'ending': (692, 389)}
+
+
+def imgtag(src, cls=''):
+    """原尺寸就用的圖(證物切格 440x372 顯示 346px、章節背景 1672x941 顯示 1178px,
+    都只有 1.3~1.4 倍,縮了在 2x 螢幕會軟,所以不縮)。但一定要寫 width/height:
+    沒寫的話瀏覽器算不出版面,113 張 lazy 圖一路載進來時整頁會不停跳,
+    看起來就像「一直在載」——這比實際位元組數更像卡。"""
+    from PIL import Image as _I
+    w, h = _I.open(os.path.join(R, src)).size
+    c = f' class="{cls}"' if cls else ''
+    return f'<img{c} src="{src}" width="{w}" height="{h}" loading="lazy" decoding="async">'
+
+
+def thumb(src, kind, alt=''):
+    w, h = THUMB_2X[kind]
+    a = ' alt="' + alt + '"' if alt else ''
+    return (f'<img src="assets/thumb/{os.path.basename(src)}" data-thumb-kind="{kind}"'
+            f' width="{w}" height="{h}" loading="lazy" decoding="async"{a}>')
+
 
 def qbox(q, opts, correct, note='', concept=''):
     li = ''.join(f'<li class="{"ok" if i == correct else ""}">{e(o)}</li>' for i, o in enumerate(opts))
@@ -109,7 +134,7 @@ for name in ['沈硯'] + [p['name'] for p in G['people']]:
             f'但好感夾在 {G["affinity_range"][0]}～{G["affinity_range"][1]}；同章對白與章末各算一次，A／B 只能擇一)</p>') if rows else \
            ('<p class="note">沈硯是玩家視角，沒有自己的好感值；'
             '所有抉擇改變的是別人怎麼看他。</p>' if name == '沈硯' else '<p class="note">全章沒有好感增減出處。</p>')
-    out.append(f'<article><div class="who"><img src="{G["portraits"][name]}" loading="lazy" alt="{e(name)}">'
+    out.append(f'<article><div class="who">{thumb(G["portraits"][name], "who", e(name))}'
                f'<div><h4>{e(name)}</h4><p class="pin">{e(pos)}<br>{e(meta)}</p></div></div>'
                f'<p class="qt">{e(line)}</p>{tail}</article>')
 out.append('</div></section>')
@@ -134,7 +159,7 @@ out.append('</ul>')
 out.append('<h3>先賢卡(圖上由左至右依年代)</h3><div class="grid">')
 for sid in SC.get('chrono', SC['order']):
     n = SC['nodes'][sid]
-    out.append(f'<article><div class="who"><img src="assets/img/sage_{sid}.webp" loading="lazy" alt="{e(n["name"])}">'
+    out.append(f'<article><div class="who">{thumb(f"assets/img/sage_{sid}.webp", "who", e(n["name"]))}'
                f'<div><h4>{e(n["name"])}</h4><p class="pin">{e(n["years"])}<br>{e(n["chapter"])}</p></div></div>'
                f'<p class="body">{e(n["detail"])}</p></article>')
 out.append('</div></section>')
@@ -145,7 +170,7 @@ out.append('<section><h2>序章・鐘樓墜案</h2>')
 out.append('<div class="dlg">' + ''.join(f'<p><b>{e(l["speaker"])}</b>{e(l["text"])}</p>' for l in p['narration']) + '</div>')
 out.append('<div class="grid">')
 for h in p['hotspots']:
-    out.append(f'''<article><img src="{h["cell"]}" loading="lazy">
+    out.append(f'''<article>{imgtag(h["cell"])}
     <h4>{e(h["name"])}</h4><p class="body">{e(h["body"])}</p>
     {qbox(h["question"], h["options"], h["correct"], h.get("note"), h.get("concept"))}
     <p class="ev">證據：{e(h["evidence"])}</p></article>''')
@@ -185,7 +210,7 @@ out.append('</section>')
 for c in G['chapters']:
     fe = G['logic']['final_effects'].get(str(c['id']), {})
     out.append(f'<section id="c{c["id"]}"><h2>{e(c["title"])}</h2><p class="sub">{e(c["subtitle"])}</p>')
-    out.append(f'<img class="bg" src="{c["background"]}" loading="lazy">')
+    out.append(imgtag(c["background"], 'bg'))
     out.append(f'<p class="meta">地點 {e(c["location"])}｜至少 {c["min_evidence"]} 證進破局｜'
                f'A 線「{e(c["route_a_name"])}」／B 線「{e(c["route_b_name"])}」'
                f'{"｜目標：" + e(c["goal"]) if c.get("goal") else ""}</p>')
@@ -208,7 +233,7 @@ for c in G['chapters']:
             extra += ''.join(f'<p class="route"><b>{r} 線</b>{e(t)}</p>' for r, t in rt.items())
         if cl.get('loss'):
             extra += f'<p class="loss">答錯：{e(cl["loss"])}</p>'
-        out.append(f'''<article><img src="{cl["cell"]}" loading="lazy">
+        out.append(f'''<article>{imgtag(cl["cell"])}
         <h4>{e(cl["name"])}</h4><p class="body">{e(cl["body"])}</p>
         {qbox(cl["question"], cl["options"], cl["correct"], cl.get("note"), cl.get("concept"))}
         <p class="ev">證據：{e(cl["evidence"])}</p>{extra}</article>''')
@@ -238,7 +263,7 @@ out.append('<p class="meta">未選「可逆止機」→ 無名灰燼;否則比�
            '人證(柳照微+江濯月+霍離)、入庫(顧玄策+寧觀瀾+零度母尺×3)、歸山(裴無咎×2+天理母鏡×2),最高者勝。'
            '第十章需「可逆止機 且 三印≥2」才解鎖。</p><div class="grid">')
 for eid, en in G['endings_ch9'].items():
-    out.append(f'<article><img src="{en["image"]}" loading="lazy"><h4>{e(en["title"])}</h4>'
+    out.append(f'<article>{thumb(en["image"], "ending")}<h4>{e(en["title"])}</h4>'
                f'<p class="sub">{e(en["subtitle"])}</p><p class="body">{e(en["text"])}</p>'
                f'<p class="note">{e(en.get("epilogue"))}</p></article>')
 out.append('</div>')
@@ -248,7 +273,7 @@ out.append('<p class="meta">真結局「天地共衡」條件(缺一不可):三�
            '否則:選萬手共衡→公議新尺;選四鑰定衡→四鑰守衡;其餘→無主長路。</p><div class="grid">')
 for eid, en in G['endings_finale'].items():
     tag = '（真結局）' if eid == 'heaven_earth_shared' else ''
-    out.append(f'<article><img src="{en["image"]}" loading="lazy"><h4>{e(en["title"])}{tag}</h4>'
+    out.append(f'<article>{thumb(en["image"], "ending")}<h4>{e(en["title"])}{tag}</h4>'
                f'<p class="sub">{e(en["subtitle"])}</p><p class="body">{e(en["text"])}</p>'
                f'<p class="note">{e(en.get("epilogue"))}</p></article>')
 out.append('</div></section>')
@@ -273,7 +298,7 @@ out.append('<h3>三人的四段情話 + 結局</h3><div class="grid">')
 for name in ROM['order']:
     r = ROM['candidates'][name]
     fch = '序章登場' if r['first_chapter'] == 0 else '第' + CN[r['first_chapter']] + '章登場'
-    out.append(f'<article><div class="who"><img src="{G["portraits"][name]}" loading="lazy" alt="{e(name)}">'
+    out.append(f'<article><div class="who">{thumb(G["portraits"][name], "who", e(name))}'
                f'<div><h4>{e(name)}</h4><p class="pin">{e(r["role"])}<br>{fch}｜'
                f'可達上限 +{min(rel_max(name), G["affinity_range"][1])}</p></div></div>'
                f'<p class="qt">{e(r["mid"])}</p><p class="qt">{e(r["near"])}</p><p class="qt">{e(r["after"])}</p>'
@@ -558,6 +583,9 @@ table.rel td:first-child{color:#b9ad93;white-space:nowrap}
 table.rel td.d{text-align:right;white-space:nowrap;color:#8fd6b0}table.rel td.d.neg{color:#a8756e}
 '''
 OG = 'https://yazelin.github.io/gewu-jianghu-web'
+# OG 圖換內容要換檔名(FB/LINE 各自照 URL 快取,同名換內容抓不到新的),
+# 所以這裡不能寫死 'og.jpg' —— 從 index.html 讀,單一事實來源在那邊。
+OG_IMG = re.search(r'og:image" content="[^"]*/(og[^"]*\.jpg)"', open(os.path.join(R, 'index.html'), encoding='utf-8').read()).group(1)
 HEAD = (
     '<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8">'
     '<meta name="viewport" content="width=device-width,initial-scale=1">'
@@ -567,14 +595,16 @@ HEAD = (
     '<meta property="og:type" content="article">'
     '<meta property="og:title" content="格物江湖錄:天理殘卷 — 設計與公式站">'
     '<meta property="og:description" content="完整劇情、答案、A/B 分支、結局判定與 30 成就條件。">'
-    '<meta property="og:image" content="' + OG + '/assets/og.jpg">'
+    '<meta property="og:image" content="' + OG + '/assets/' + OG_IMG + '">'
     '<meta property="og:url" content="' + OG + '/design.html">'
     '<meta name="twitter:card" content="summary_large_image">'
     '<meta name="twitter:title" content="格物江湖錄:天理殘卷 — 設計與公式站">'
-    '<meta name="twitter:image" content="' + OG + '/assets/og.jpg">'
+    '<meta name="twitter:image" content="' + OG + '/assets/' + OG_IMG + '">'
     '<style>' + CSS + '</style></head><body>')
 SW = ("\n<!-- 公式站也要自己註冊 SW:第一次從這頁進來的人,否則永遠不會有離線包 -->\n"
       "<script>if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});</script>\n")
 doc = HEAD + '\n'.join(out) + SW + '</body></html>'
 open(os.path.join(R, 'design.html'), 'w', encoding='utf-8').write(doc)
 print('wrote design.html', len(doc) // 1024, 'KB')
+# design.html 引用 assets/thumb/,那些檔要另外產;忘了跑就會整頁破圖。
+print('接著跑:python3 tools/gen_thumbs.py')

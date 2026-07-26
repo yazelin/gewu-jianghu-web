@@ -339,6 +339,28 @@ ok('斷網後大音檔真的能解碼播放(1.1MB,Range→206)', bigTrack.starts
   ok('第11章章末抉擇連點不會重複結算好感', dbl['11x1'] === dbl['11x3'], `1下 ${dbl['11x1']} / 3下 ${dbl['11x3']}`);
 }
 
+{ // 攻略站的圖量:全解析度美術當小圖用時整頁要載 9.3MB,回報過「載很久」。
+  // 縮圖(assets/thumb)+ 每張都寫 width/height 是修法,這裡擋住它被改回去。
+  const gp = await ctx.newPage();
+  let imgBytes = 0, img404 = 0;
+  gp.on('response', r => {
+    if (/\.(webp|png|jpg)$/.test(r.url())) imgBytes += +(r.headers()['content-length'] || 0);
+    if (r.status() >= 400) img404++;
+  });
+  await gp.goto(BASE + 'design.html', { waitUntil: 'load' });
+  await gp.evaluate(() => document.querySelectorAll('img').forEach(i => { i.loading = 'eager'; }));
+  await gp.waitForTimeout(6000);
+  const gm = await gp.evaluate(() => {
+    const a = [...document.querySelectorAll('img')];
+    return { n: a.length, broken: a.filter(i => i.complete && i.naturalWidth === 0).length,
+      noDim: a.filter(i => !i.getAttribute('width') || !i.getAttribute('height')).length };
+  });
+  ok('攻略站沒有破圖', gm.broken === 0 && img404 === 0, `${gm.n} 張,破圖 ${gm.broken},4xx ${img404}`);
+  ok('攻略站每張圖都有 width/height(否則捲動時版面一路跳)', gm.noDim === 0, `缺 ${gm.noDim} 張`);
+  ok('攻略站整頁圖量 < 6.5MB', imgBytes < 6.5 * 1048576, `${(imgBytes / 1048576).toFixed(2)}MB`);
+  await gp.close();
+}
+
 const dp = await ctx.newPage();   // 缺 ignoreSearch 的話,這頁斷網會開成遊戲
 await dp.goto(BASE + 'design.html?utm_source=fb', { waitUntil: 'domcontentloaded' }).catch(() => {});
 ok('斷網開 design.html?utm_source=fb 不會開成遊戲', (await dp.title()).includes('設計與公式站'));

@@ -53,6 +53,15 @@ VERIFICATION.md                                   通關與功能驗證報告(�
 python3 -m http.server 8099   # 於 repo 根目錄,開 http://localhost:8099
 ```
 
+## 重新產生攻略站
+
+```bash
+python3 tools/gen_design.py    # 由 data/game.json 產 design.html
+python3 tools/gen_thumbs.py    # 產 design.html 用的縮圖(assets/thumb/),務必接著跑
+```
+
+第二支不能省:攻略站把立繪與結局圖縮成小圖顯示,直接用全解析度原圖整頁要載 9.3 MB。
+
 ## 自動化測試
 
 ```bash
