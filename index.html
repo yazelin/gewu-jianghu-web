@@ -11,6 +11,7 @@
 <link rel="icon" type="image/png" sizes="512x512" href="assets/icons/icon-512-v2.png">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon-v2.png">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="格物江湖錄">
@@ -519,6 +520,12 @@ body.reduced .cine-nav{transition:none;opacity:1}
 .concept{color:var(--steel);font-size:.88rem;margin-top:.4rem}
 .reveal{color:#cfc4ab;font-size:.95rem;line-height:1.7;margin-top:.5rem}
 .reveal .spk{color:var(--cin);font-weight:700}
+/* 破局結果雙欄:左為物理解讀(算式),右為現場結果/劇情代價。舞台固定 1280×720
+   等比縮放,不會有窄螢幕情境,所以不需要斷點。 */
+.rescols{display:grid;grid-template-columns:1fr 1fr;gap:1.1rem;margin-top:.2rem}
+.rescols>div{min-width:0}
+.rescols>div+div{border-left:1px solid var(--line);padding-left:1.1rem}
+.rlab{color:var(--br);font-size:.76rem;letter-spacing:.22em;margin-bottom:.35rem}
 
 /* choices (dialogue_choice / final_choice) */
 .choicebox{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:760px;max-width:88%;
@@ -601,6 +608,9 @@ body.reduced #loadbar::before{animation:none;left:0;width:100%;opacity:.5}
   color:var(--pa);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0}
 #gmute:hover{border-color:var(--cin);color:#fff}
 #gmute.muted{color:var(--danger);border-color:var(--danger)}
+/* 版本徽記:右下角,壓在所有場景之上但不擋點擊。用來一眼確認拿到的是不是新版。 */
+#ver{position:absolute;right:10px;bottom:8px;z-index:60;pointer-events:none;
+  font-size:11px;letter-spacing:.16em;color:rgba(214,197,163,.34);font-variant-numeric:tabular-nums}
 #ginstall{height:40px;display:flex;align-items:center;padding:0 16px;border-radius:20px;background:var(--cin);
   border:1px solid var(--cin);color:#fff;cursor:pointer;font-size:.9rem;letter-spacing:.05em}
 #ginstall:hover{filter:brightness(1.12)}
@@ -625,6 +635,7 @@ body.reduced #loadbar::before{animation:none;left:0;width:100%;opacity:.5}
 </div>
 <div id="ambient"></div>
 <div id="wrap"><div id="stage">
+  <div id="ver">v109</div>
   <div id="lamp"></div>
   <div id="book"></div>
   <canvas id="rain" width="1280" height="720"></canvas>

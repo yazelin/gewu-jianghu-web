@@ -256,6 +256,30 @@ ok('斷網後大音檔真的能解碼播放(1.1MB,Range→206)', bigTrack.starts
   await vctx.close();
 }
 
+{ // 補回原作有、我們一直沒演的內容:破局現場結果/劇情代價、路線名、情緣後日談。
+  // 這些資料一直躺在 game.json 裡沒有渲染路徑,壞掉時畫面照跑,只有內容悄悄消失 → 要有擋板。
+  const r = await page.evaluate(() => {
+    const c1 = G.chapters[0], bt = c1.battles[0], be = c1.battle_beats[0];
+    const noBeatCh = G.chapters.find(c => !(c.battle_beats || []).length);
+    const okH = battleResultHTML(bt, be, true), badH = battleResultHTML(bt, be, false);
+    const keep = S.romance;
+    S.romance = '蘇檀'; const paired = romanceEpilogue('normal'), pairedF = romanceEpilogue('finale');
+    S.romance = ''; const solo = romanceEpilogue('normal'), soloF = romanceEpilogue('finale');
+    S.romance = keep;
+    return { okH, badH, noBeat: battleResultHTML(noBeatCh.battles[0], undefined, true),
+      action: be.action, failure: be.failure,
+      rA: routeName(c1, 'A'), rB: routeName(c1, 'B'), rNone: routeName(null, 'A'),
+      paired, pairedF, solo, soloF };
+  });
+  ok('破局答對:現場結果與算式並列', r.okH.includes('現場結果') && r.okH.includes(r.action.slice(0, 12)));
+  ok('破局答錯:劇情代價與算式並列', r.badH.includes('劇情代價') && r.badH.includes(r.failure.slice(0, 12)));
+  ok('沒有 beats 的章節不出空欄', !r.noBeat.includes('rescols'));
+  ok('路線顯示資料裡的名字而不是 A/B', r.rA === '護鐘線' && r.rB === '循印線', `${r.rA} / ${r.rB}`);
+  ok('章節沒填路線名才退回字母', r.rNone === 'A 線');
+  ok('情緣後日談:許心意取該人的,普通/完整版不同文', r.paired.name === '蘇檀' && r.paired.text !== r.pairedF.text);
+  ok('情緣後日談:未許心意取獨行版', r.solo.name === '獨行' && r.solo.text !== r.soloF.text);
+}
+
 const dp = await ctx.newPage();   // 缺 ignoreSearch 的話,這頁斷網會開成遊戲
 await dp.goto(BASE + 'design.html?utm_source=fb', { waitUntil: 'domcontentloaded' }).catch(() => {});
 ok('斷網開 design.html?utm_source=fb 不會開成遊戲', (await dp.title()).includes('設計與公式站'));

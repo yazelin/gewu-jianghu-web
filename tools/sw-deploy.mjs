@@ -68,6 +68,13 @@ const AUDIO_N = (src.match(/"assets\/audio\/[^"]+"/g) || []).length;
 await page.goto(BASE, { waitUntil: 'load' }); await settle();
 const cold = spent();
 const s1 = await stat();
+// 畫面右下的版本號要跟 SHELL_CACHE 同號,否則玩家看到的 vXXX 是騙人的
+{
+  const swv = (readFileSync(join(REPO, 'sw.js'), 'utf8').match(/SHELL_CACHE\s*=\s*"gewu-shell-(v\d+)"/) || [])[1];
+  const uiv = (readFileSync(join(REPO, 'index.html'), 'utf8').match(/<div id="ver">(v\d+)<\/div>/) || [])[1];
+  ok('畫面版本號與 SHELL_CACHE 同號', !!swv && swv === uiv, `sw=${swv} ui=${uiv}`);
+}
+
 ok('首次造訪:離線包完整', !!s1 && s1.done === s1.total, s1 ? `${s1.done}/${s1.total}、${MB(cold.b)}` : '無回報');
 ok('首次造訪:音檔全進快取', (await audioCached(ASSET_CACHE)) === AUDIO_N, `${await audioCached(ASSET_CACHE)}/${AUDIO_N}`);
 

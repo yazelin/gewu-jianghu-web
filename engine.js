@@ -421,7 +421,7 @@ function checkpoint() {
 // ---------- 工具 ----------
 const el = (html) => { const d = document.createElement('div'); d.innerHTML = html.trim(); return d.firstElementChild; };
 const esc = (s) => String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
-const PERSIST = new Set(['chrome', 'rain', 'lamp', 'book', 'fade']);   // 雨幕/燈火/書光/黑幕/UI 跨場景保留,不隨 clear 移除
+const PERSIST = new Set(['chrome', 'rain', 'lamp', 'book', 'fade', 'ver']);   // 雨幕/燈火/書光/黑幕/UI/版本號 跨場景保留,不隨 clear 移除
 const clear = () => {
   const l = document.getElementById('lamp'); if (l) l.classList.remove('on');   // 燈火呼吸只在題名
   document.getElementById('book')?.classList.remove('on');                       // 書光呼吸只在題名
@@ -1190,7 +1190,7 @@ function investigate({ key, background, title, clues, min, onDone, failable, onF
         ${cl.note ? `<div class="concept">${esc(cl.concept)}</div><div>${esc(cl.note)}</div>` : ''}
         ${cl.reveal ? `<div class="reveal"><span class="spk">${esc(cl.reveal_speaker)}</span>　${esc(cl.reveal)}</div>` : ''}
         ${cl.response ? `<div class="reveal">${esc(cl.response)}</div>` : ''}
-        ${rt ? `<div class="reveal"><span class="spk">${S.route} 線</span>　${esc(rt)}</div>` : ''}</div>`;
+        ${rt ? `<div class="reveal"><span class="spk">${esc(routeName(chById(S.chapter)))}</span>　${esc(rt)}</div>` : ''}</div>`;
     }
     const lossText = cl.loss || (G.failure_texts[cl.id]) || '此證物已滅失，無法在本章重驗。';
     return `<div class="result bad">證物滅失｜${esc(lossText)}
@@ -1217,7 +1217,7 @@ function investigate({ key, background, title, clues, min, onDone, failable, onF
         const mrt = ms.route_text && ms.route_text[S.route];
         content.appendChild(el(`<div class="reveal" style="border-top:1px solid var(--br);margin-top:.6rem;padding-top:.6rem">
           <span class="spk">${esc(ms.speaker || '推進')}</span>　${esc(ms.text)}
-          ${mrt ? `<div style="margin-top:.3rem"><span class="spk">${S.route} 線</span>　${esc(mrt)}</div>` : ''}</div>`));
+          ${mrt ? `<div style="margin-top:.3rem"><span class="spk">${esc(routeName(c))}</span>　${esc(mrt)}</div>` : ''}</div>`));
       }
     } else {
       S.lost[key].push(cl.id);
@@ -1620,7 +1620,26 @@ function creditsPanel() {
   takeFocus(ov);                                   // 焦點移進視窗,免得留在開啟它的按鈕上被空白鍵連按
 }
 
+// 路線名:資料裡每章都有 route_a_name/route_b_name(如「護鐘線」「循印線」),
+// 比「A 線／B 線」有意義得多。沒填的章節才退回字母。
+function routeName(c, r) {
+  r = r || S.route;
+  const n = c && (r === 'B' ? c.route_b_name : c.route_a_name);
+  return n || (r + ' 線');
+}
+
 // ================= 破局戰(氣勢答題) =================
+// 答完一題的結果:左欄永遠是物理解讀(算式),右欄是該題在現場造成的後果。
+// battle_beats 與 battles 逐題對齊(第 1~6 章各 4 題 4 筆);第 7~11 章沒有 beats,
+// 右欄就整個不出現,只留算式——所以這裡不能假設 beat 一定存在。
+function battleResultHTML(b, beat, ok) {
+  const side = beat && (ok ? beat.action : beat.failure);
+  if (!side) return `<div class="result ${ok ? 'ok' : 'bad'}">${esc(b.explanation)}</div>`;
+  return `<div class="result ${ok ? 'ok' : 'bad'}"><div class="rescols">
+    <div><div class="rlab">物理解讀</div>${esc(b.explanation)}</div>
+    <div><div class="rlab">${ok ? '現場結果' : '劇情代價'}</div>${esc(side)}</div>
+  </div></div>`;
+}
 function battle(c) {
   S.qishi = S.qishi_max;
   let bi = 0;
@@ -1659,7 +1678,7 @@ function battle(c) {
         if (ok) { S._battleCorrect++; sfx('correct', 0.94, 0.72); }   // 破局答對:鐘聲
         btn.classList.add(ok ? 'correct' : 'wrong');
         if (!ok) wrap.querySelectorAll('.opt')[b.correct].classList.add('correct');
-        panel.appendChild(el(`<div class="result ${ok ? 'ok' : 'bad'}">${esc(b.explanation)}</div>`));
+        panel.appendChild(el(battleResultHTML(b, (c.battle_beats || [])[bi], ok)));
         let saved = false;
         if (!ok) {
           S.qishi--;
@@ -1693,7 +1712,7 @@ function battleCleared(c) {
   const secured = (S.evidence[ckey()] || []).length;
   const got = grantChapterRewards(secured);
   const beats = c.battle_beats || [];
-  const lines = beats.map(b => ({ speaker: b.speaker || '', text: b.response || b.action || '' }))
+  const lines = beats.map(b => ({ speaker: b.speaker || '', text: b.response || '' }))   // action 已在各題結果的右欄演過
     .filter(l => l.text);
   if (got.length) lines.push({ speaker: '本章獎勵', text: got.join('、') + '　已收入行囊。' });
   save();
@@ -1790,7 +1809,7 @@ function chapterClearScreen(c) {
     <div style="color:var(--jade);letter-spacing:.3em;margin-bottom:.6rem">通　關</div>
     <div class="gtitle" style="font-size:2.2rem">${esc(c.title)}</div>
     <div class="gsub" style="font-size:1rem;margin:1rem 0">${esc(c.subtitle)}</div>
-    <div style="color:var(--pa2);margin-bottom:1.5rem">證據 ${secured}/6　${S.route} 線${perfect ? '　・格物無漏' : ''}</div>
+    <div style="color:var(--pa2);margin-bottom:1.5rem">證據 ${secured}/6　${esc(routeName(c))}${perfect ? '　・格物無漏' : ''}</div>
   </div>`);
   const row = el(`<div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap"></div>`);
   row.appendChild(shareBtn('分享通關', `我通關了《格物江湖錄:天理殘卷》${c.title}${perfect ? '（格物無漏！)' : ''}`, c.background));
@@ -1983,7 +2002,7 @@ function chapter9Endings(c) {
     sfx('door', 0.9, 0.62);         // 穿過隱藏門扉:開門聲(原版 play_sfx 'door'）
     toast('無名度量院的門扉在你身後開啟');
     S.chapter = 10; checkpoint(); save(); go('chapter');
-  } : null, '普通結局', unlocked ? '穿過隱藏門扉 ▸' : '回題名');
+  } : null, '普通結局', unlocked ? '穿過隱藏門扉 ▸' : '回題名', 'normal');
 }
 
 // 完整版真結局解鎖(忠實還原 true_ending_unlocked)
@@ -2008,12 +2027,23 @@ function finaleEndings(c) {
   S.finale_ending = id;
   S.seen_finale = [...new Set([...(S.seen_finale || []), id])];
   save(); reconcile();
-  showEnding(G.endings_finale[id], null, '完整版結局');   // 終局 → 回題名
+  showEnding(G.endings_finale[id], null, '完整版結局', null, 'finale');   // 終局 → 回題名
 }
 
 // ================= 結局播放 =================
-function showEnding(e, next, badge, label) {
+// 情緣後日談:結局正文之後,依 S.romance 接上該人的收梢;沒許心意就接獨行版。
+// 普通結局(第9章)用 normal,完整版結局用 finale——兩者文字不同,不可共用。
+function romanceEpilogue(kind) {
+  const R = G.romance || {}, who = S.romance;
+  const c = who && R.candidates && R.candidates[who];
+  if (c && c[kind]) return { name: who, text: c[kind] };
+  const solo = kind === 'finale' ? R.solo_finale : R.solo_normal;
+  return solo ? { name: '獨行', text: solo } : null;
+}
+
+function showEnding(e, next, badge, label, epiKind) {
   clear();
+  const epi = epiKind ? romanceEpilogue(epiKind) : null;
   preload([e.image]).then(() => {
     const lay = el(`<div class="layer fade"></div>`);
     lay.appendChild(el(`<div class="bg" style="background-image:url('${e.image}');--bgb:.55"></div>`));
@@ -2023,7 +2053,10 @@ function showEnding(e, next, badge, label) {
       <div class="intro-title" style="max-width:90%">${esc(e.title)}</div>
       <div style="color:var(--pa2);letter-spacing:.1em;margin-bottom:1.5rem">${esc(e.subtitle)}</div>
       <div class="intro-text" style="max-width:80%;font-size:1.15rem;max-height:280px;overflow:auto">${esc(e.text)}
-        <div style="margin-top:1.2rem;color:#b9ad93">${esc(e.epilogue || '')}</div></div>
+        <div style="margin-top:1.2rem;color:#b9ad93">${esc(e.epilogue || '')}</div>
+        ${epi ? `<div style="margin-top:1.4rem;padding-top:1rem;border-top:1px solid var(--line)">
+          <div class="rlab">情緣・${esc(epi.name)}</div>
+          <div style="color:#cfc4ab">${esc(epi.text)}</div></div>` : ''}</div>
     </div>`));
     const row = el(`<div style="position:absolute;right:60px;bottom:48px;display:flex;gap:12px;align-items:center"></div>`);
     row.appendChild(shareBtn('分享此結局', `我在《格物江湖錄:天理殘卷》走到了「${e.title}」`, e.image));

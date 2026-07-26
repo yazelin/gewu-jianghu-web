@@ -195,6 +195,30 @@ letterbox、印章全部關掉都沒差)。而且不是幾道的問題,是有沒
 注意 `#ambient` 有 `scale(1.18)` 做模糊溢出,量它只能用 `offsetHeight`,
 `getBoundingClientRect()` 會把 transform 算進去(401 ≠ 340)。
 
+## 資料裡有、卻沒有渲染路徑的欄位
+
+game.json 是從原作反編來的,欄位比我們演的多。**壞掉時畫面完全正常,只有內容悄悄消失**,
+一般 e2e 測不出來,所以每補一項就要留擋板。已補:
+
+- `battle_beats[].action` / `.failure` → 破局結果雙欄(左算式、右現場結果/劇情代價)。
+  與 `battles` 逐題對齊,但只有第 1~6 章有(各 4 題 4 筆),7~11 章沒有 → 不能假設 beat 存在。
+- `route_a_name` / `route_b_name` → 顯示「護鐘線／循印線」而不是「A 線／B 線」。
+- `romance.candidates.*.normal|finale` / `solo_normal|solo_finale` → 結局正文後的情緣後日談。
+  普通結局用 `normal`、完整版結局用 `finale`,**兩者文字不同不可共用**。
+
+稽核方法:走訪 game.json 找出「值是中文字串」的葉欄位,再比對 engine.js 有無引用。
+**注意這法子會誤報動態查表**——`G.failure_texts[cl.id]`、`G.achievements.items[id]` 這種
+是用變數取鍵,葉名(`bell`、`story_00_bell`)在程式碼裡當然找不到,但它們其實有在演。
+判準是看**父容器名**有沒有被引用,不是葉名。
+
+## 手機安裝與全螢幕
+
+- `display: standalone` 會留一條瀏覽器/系統列(回報過「橫向上下有白條」)。
+  橫式遊戲加 `display_override: ["fullscreen","standalone"]`,支援的走全螢幕、不支援的照舊。
+- Chrome 認的是 `mobile-web-app-capable`,`apple-mobile-web-app-capable` 已棄用(可並存)。
+- 畫面右下 `#ver` 版本號與 `SHELL_CACHE` 同號,sw-deploy 有擋板盯著別走鐘——
+  版本號騙人比沒有版本號更糟。
+
 ## 已知取捨(ponytail ceiling)
 - **配樂**取原作標示的 CC0 原始來源重編(非反解 PCK),見 `provenance/AUDIO.md`;**音效 SFX** 則以自寫 remuxer
   從原作 PCK 的 Godot 匯入串流(OggPacketSequence)抽出、8 個全接並進 precache。
