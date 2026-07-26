@@ -206,10 +206,24 @@ game.json 是從原作反編來的,欄位比我們演的多。**壞掉時畫面�
 - `romance.candidates.*.normal|finale` / `solo_normal|solo_finale` → 結局正文後的情緣後日談。
   普通結局用 `normal`、完整版結局用 `finale`,**兩者文字不同不可共用**。
 
-稽核方法:走訪 game.json 找出「值是中文字串」的葉欄位,再比對 engine.js 有無引用。
-**注意這法子會誤報動態查表**——`G.failure_texts[cl.id]`、`G.achievements.items[id]` 這種
-是用變數取鍵,葉名(`bell`、`story_00_bell`)在程式碼裡當然找不到,但它們其實有在演。
-判準是看**父容器名**有沒有被引用,不是葉名。
+第二輪再挖出來的:
+
+- `battle_beats[].route_text.A|B`(12)→ 戰後劇情多一句掛路線名的分歧走向。
+- `romance.candidates.*.after`(3)→ 許心意當下對方的回話,選完先播再往下走。
+- `milestones.*.thread`(12)→ 天理分頁,依取得順序插在第 2/4 條證據之後(青色 ◆ 與證據脈絡區分)。
+- `battle_beats[].thread`(24)→ 通關畫面的「本章脈絡」。破局全勝才走到那頁,所以到此都成立。
+
+**稽核方法別再用純靜態比對,我來回錯過兩次:**
+
+1. 用葉欄位名比對 → **漏掉動態取鍵**。`G.failure_texts[cl.id]`、`c[kind]`、`route_text[S.route]`
+   的葉名(`bell`、`normal`、`A`)在程式碼裡當然找不到,但它們有在演,結果誤報 100+ 條。
+2. 改成「祖先鏈上有動態取鍵就放行」 → **反向漏報**。`chapters[` 到處都是,底下什麼都被放行,
+   `battle_beats[].route_text` 就是這樣躲過去的。
+3. 再加 DOM 變數黑名單 → **又誤殺**。`b.explanation` 的 `b` 同時是常見 DOM 變數名。
+
+可用的做法:列出每個文字葉名 + 它在 engine.js 的**實際引用行**,人工掃一遍(約 110 行,很快)。
+剩下的 `✗` 只會是三組動態取鍵(`failure_texts.*`、`A`/`B`、`normal`/`finale`),逐一寫 runtime
+測試驗它真的印得出來。**「有引用」不等於「有演」**——`.after` 就撞到 DOM 的 `Element.after()`。
 
 ## 手機安裝與全螢幕
 

@@ -1331,17 +1331,27 @@ function evidenceModal(key, clues) {
   const NUM = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十'];
   const renderTianli = () => {
     body.innerHTML = '';
-    const threads = gotOrdered.filter(c => c.thread);
-    if (!threads.length) { body.appendChild(pLbl('尚無脈絡。每收錄一條證據,案情就多一句可以連起來的話。', 60, 40, 920, 19, 'var(--pa)', { align: 'center' })); return; }
-    threads.forEach((c, i) => {
-      const y = 4 + i * 62;
-      body.append(
-        pLbl(NUM[i] || String(i + 1), 48, y + 6, 40, 22, 'var(--br)', { bold: true }),
-        pLbl(esc(c.thread), 96, y + 4, 860, 17, 'var(--pa)', { wrap: true }),
-        el(`<div style="position:absolute;left:48px;top:${y + 50}px;width:908px;height:1px;background:rgba(46,40,32,.55)"></div>`));
+    // 兩種脈絡:證據自己的 thread,以及收滿第 2/4 條時里程碑的 thread(把前面幾條收攏成一句)。
+    // 里程碑以「已收錄第幾條」為鍵,所以要跟著取得順序走,不能用 threads 的索引。
+    const ms = (chById(S.chapter) || {}).milestones || {};
+    const rows = [];
+    gotOrdered.forEach((c, i) => {
+      if (c.thread) rows.push({ ms: false, text: c.thread });
+      const m = ms[String(i + 1)];
+      if (m && m.thread) rows.push({ ms: true, text: m.thread });
     });
-    const left = clues.filter(c => c.thread).length - threads.length;
-    if (left > 0) body.appendChild(pLbl(`還有 ${left} 條線索未串上`, 96, 4 + threads.length * 62 + 8, 860, 14, 'var(--pa2)'));
+    if (!rows.length) { body.appendChild(pLbl('尚無脈絡。每收錄一條證據,案情就多一句可以連起來的話。', 60, 40, 920, 19, 'var(--pa)', { align: 'center' })); return; }
+    let n = 0;
+    rows.forEach((r, i) => {
+      const y = 4 + i * 62;
+      if (r.ms) body.append(pLbl('◆', 48, y + 6, 40, 20, 'var(--jade)', { bold: true }),
+                            pLbl(esc(r.text), 96, y + 4, 860, 17, 'var(--jade)', { wrap: true }));
+      else { n++; body.append(pLbl(NUM[n - 1] || String(n), 48, y + 6, 40, 22, 'var(--br)', { bold: true }),
+                              pLbl(esc(r.text), 96, y + 4, 860, 17, 'var(--pa)', { wrap: true })); }
+      body.appendChild(el(`<div style="position:absolute;left:48px;top:${y + 50}px;width:908px;height:1px;background:rgba(46,40,32,.55)"></div>`));
+    });
+    const left = clues.filter(c => c.thread).length - gotOrdered.filter(c => c.thread).length;
+    if (left > 0) body.appendChild(pLbl(`還有 ${left} 條線索未串上`, 96, 4 + rows.length * 62 + 8, 860, 14, 'var(--pa2)'));
   };
 
   if (hasThread) {
@@ -1712,8 +1722,13 @@ function battleCleared(c) {
   const secured = (S.evidence[ckey()] || []).length;
   const got = grantChapterRewards(secured);
   const beats = c.battle_beats || [];
-  const lines = beats.map(b => ({ speaker: b.speaker || '', text: b.response || '' }))   // action 已在各題結果的右欄演過
-    .filter(l => l.text);
+  // action 已在各題結果的右欄演過;route_text 是該題的路線分歧走向,要另起一句掛路線名
+  const lines = [];
+  for (const b of beats) {
+    if (b.response) lines.push({ speaker: b.speaker || '', text: b.response });
+    const rt = b.route_text && b.route_text[S.route];
+    if (rt) lines.push({ speaker: routeName(c), text: rt });
+  }
   if (got.length) lines.push({ speaker: '本章獎勵', text: got.join('、') + '　已收入行囊。' });
   save();
   if (lines.length) playDialogue(c.background, lines, null, () => finalChoice(c));
@@ -1800,6 +1815,8 @@ function afterChapter(c) {
 function chapterClearScreen(c) {
   const secured = (S.evidence['ch' + c.id] || []).length;
   const perfect = !!(S.perfect || {})[c.id];
+  // 破局各題的 thread:整章全勝才走到這裡,所以到此為止的脈絡都已成立
+  const beatThreads = (c.battle_beats || []).map(b => b.thread).filter(Boolean);
   clear();
   sfx('gong', 0.7, 0.65);           // 過關:鑼聲
   const lay = el(`<div class="layer fade" style="display:flex;align-items:center;justify-content:center">
@@ -1810,6 +1827,10 @@ function chapterClearScreen(c) {
     <div class="gtitle" style="font-size:2.2rem">${esc(c.title)}</div>
     <div class="gsub" style="font-size:1rem;margin:1rem 0">${esc(c.subtitle)}</div>
     <div style="color:var(--pa2);margin-bottom:1.5rem">證據 ${secured}/6　${esc(routeName(c))}${perfect ? '　・格物無漏' : ''}</div>
+    ${beatThreads.length ? `<div style="text-align:left;max-width:640px;margin:0 auto 1.4rem">
+      <div class="rlab">本章脈絡</div>
+      ${beatThreads.map(t => `<div style="color:#cfc4ab;font-size:.95rem;line-height:1.8">・${esc(t)}</div>`).join('')}
+    </div>` : ''}
   </div>`);
   const row = el(`<div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap"></div>`);
   row.appendChild(shareBtn('分享通關', `我通關了《格物江湖錄:天理殘卷》${c.title}${perfect ? '（格物無漏！)' : ''}`, c.background));
@@ -1964,7 +1985,12 @@ function romanceSelect(phase, next) {
     const c = G.romance.candidates[n];
     const b = el(`<button class="choice"><b>${esc(n)}　<span class="pin">${esc(c.role)}</span></b>
       <small>${esc(phase === 'final' ? c.near : c.mid)}</small></button>`);
-    b.onclick = () => { S.romance = n; save(); reconcile(); next(); };
+    // 選定之後對方會回一句(candidates[].after)——原作有,不接的話許心意等於沒有回應
+    b.onclick = () => {
+      S.romance = n; save(); reconcile();
+      if (c.after) playDialogue(G.title_keyart, [{ speaker: n, text: c.after }], null, next);
+      else next();
+    };
     box.appendChild(b);
   });
   const solo = el(`<button class="choice"><b>此刻不許諾｜仍以同道相守</b><small>獨行亦非孤身，師友與同道仍在。</small></button>`);

@@ -278,6 +278,41 @@ ok('斷網後大音檔真的能解碼播放(1.1MB,Range→206)', bigTrack.starts
   ok('章節沒填路線名才退回字母', r.rNone === 'A 線');
   ok('情緣後日談:許心意取該人的,普通/完整版不同文', r.paired.name === '蘇檀' && r.paired.text !== r.pairedF.text);
   ok('情緣後日談:未許心意取獨行版', r.solo.name === '獨行' && r.solo.text !== r.soloF.text);
+
+  // 第二輪稽核挖出來的:許心意後的回話、破局的路線分歧、里程碑與破局的脈絡
+  const r2 = await page.evaluate(async () => {
+    const c = G.chapters[0];
+    S.chapter = 1; S.route = 'B'; S.affinity = { 蘇檀: 4 }; S.romance = '';
+    const beatLines = [];
+    for (const b of c.battle_beats) {
+      if (b.response) beatLines.push({ speaker: b.speaker || '', text: b.response });
+      const rt = b.route_text && b.route_text[S.route];
+      if (rt) beatLines.push({ speaker: routeName(c), text: rt });
+    }
+    romanceSelect('intent', () => {});
+    await new Promise(r => setTimeout(r, 350));
+    [...document.querySelectorAll('.choice')].find(x => x.textContent.includes('蘇檀'))?.click();
+    await new Promise(r => setTimeout(r, 500));
+    const said = document.querySelector('.dbox')?.textContent || '';
+    closeAllWindows();
+    S.evidence = { ch1: c.clues.filter(x => x.thread).slice(0, 4).map(x => x.id) };
+    evidenceModal('ch1', c.clues);
+    await new Promise(r => setTimeout(r, 350));
+    [...document.querySelectorAll('.ach-tab')].find(t => t.textContent.includes('天理'))?.click();
+    await new Promise(r => setTimeout(r, 250));
+    const tianli = document.querySelector('.pboard')?.textContent || '';
+    closeAllWindows();
+    chapterClearScreen(c);
+    await new Promise(r => setTimeout(r, 350));
+    return { said, tianli, clear: document.querySelector('.choicebox')?.textContent || '',
+      expectAfter: G.romance.candidates['蘇檀'].after, ms2: c.milestones['2'].thread,
+      routeLine: beatLines.find(l => l.speaker === '循印線')?.text || '',
+      beatThread: c.battle_beats[0].thread };
+  });
+  ok('許心意後對方會回話(candidates.after)', r2.said.includes(r2.expectAfter.slice(0, 14)));
+  ok('戰後劇情帶入破局的路線分歧', !!r2.routeLine, r2.routeLine.slice(0, 22));
+  ok('天理分頁串上里程碑脈絡', r2.tianli.includes(r2.ms2.slice(0, 12)), r2.ms2.slice(0, 18));
+  ok('通關畫面列出本章破局脈絡', r2.clear.includes('本章脈絡') && r2.clear.includes(r2.beatThread.slice(0, 10)));
 }
 
 const dp = await ctx.newPage();   // 缺 ignoreSearch 的話,這頁斷網會開成遊戲
