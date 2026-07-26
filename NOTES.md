@@ -225,11 +225,19 @@ game.json 是從原作反編來的,欄位比我們演的多。**壞掉時畫面�
 剩下的 `✗` 只會是三組動態取鍵(`failure_texts.*`、`A`/`B`、`normal`/`finale`),逐一寫 runtime
 測試驗它真的印得出來。**「有引用」不等於「有演」**——`.after` 就撞到 DOM 的 `Element.after()`。
 
-## 手機安裝與全螢幕
+## 手機安裝與全螢幕(2026-07-26 真機回報已修好)
 
-- `display: standalone` 會留一條瀏覽器/系統列(回報過「橫向上下有白條」)。
-  橫式遊戲加 `display_override: ["fullscreen","standalone"]`,支援的走全螢幕、不支援的照舊。
-- Chrome 認的是 `mobile-web-app-capable`,`apple-mobile-web-app-capable` 已棄用(可並存)。
+Android Pixel / Chrome 150 / Edge 150 上回報過兩個症狀,對應兩個修正,重裝後確認都正常:
+
+- **「Edge 裝成 App 橫向上下有白條」→ `display: standalone` 本來就會留一條系統列。**
+  橫式遊戲要加 `display_override: ["fullscreen","standalone"]`,支援的走真全螢幕、不支援的照舊。
+- **「Chrome 選單不出現安裝選項」→ 缺 `<meta name="mobile-web-app-capable">`。**
+  Chrome 認的是這個,`apple-mobile-web-app-capable` 已棄用(可並存)。
+  其餘硬性門檻當時逐條驗過全合格(icon 192/512 實際尺寸正確、SW 有 fetch handler、
+  `display: standalone`、無 `prefer_related_applications`),沒有別的候選。
+  **但兩個修正同一版上、回報者也是重裝後才測,所以因果不是鐵證。**
+
+**manifest 改動要移除重裝才生效**(安裝當下就烤進去),別以為改了推上去就會變。
 - 畫面右下 `#ver` 版本號與 `SHELL_CACHE` 同號,sw-deploy 有擋板盯著別走鐘——
   版本號騙人比沒有版本號更糟。
 

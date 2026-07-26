@@ -1,6 +1,6 @@
 # 通關與功能驗證報告
 
-**版本** v112 ｜ **日期** 2026-07-26 ｜ **結論** 8 個結局、30 個成就全部可由正常遊玩取得
+**版本** v113 ｜ **日期** 2026-07-26 ｜ **結論** 8 個結局、30 個成就全部可由正常遊玩取得
 
 驗證方式一律是**真的把遊戲玩完**——腳本操作真實 DOM(點熱點、答題、選抉擇),
 不是直接呼叫結局函式或塞狀態。每條路線都從新案入局開始,一路打到結局畫面出現為止。
@@ -130,13 +130,24 @@ manifest 另加 `display_override: ["fullscreen","standalone"]` 走真全螢幕�
 
 全部通過,console 零錯誤。
 
-## 六、還沒收的事
+## 六、安裝與全螢幕:已回報正常(2026-07-26)
 
-- **Edge 裝成 App 的白條**:`display_override` 要**移除重裝**才生效(manifest 是安裝當下烤進去的),
-  還沒有人回報重裝後的結果。
-- **Chrome 不給安裝**:硬性門檻逐條驗過全部合格(icon 192/512 尺寸正確、SW 有 fetch handler、
-  `display: standalone`、無 `prefer_related_applications`)。唯一補的是 `mobile-web-app-capable`
-  (原本只有已棄用的 `apple-` 版),但那通常只是警告不是阻擋,**所以我不敢說補了就會好**。
-  要確診請回報者開 DevTools → Application → Manifest,那頁會直接寫出 Chrome 拒絕的理由;
-  也要先確認他是不是裝過又移除(Chrome 裝過就不再送 `beforeinstallprompt`,得先移除應用程式)。
-- **無主長路的判定條件是推的**,見上面第三節。
+回報者(Android Pixel / Chrome 150 / Edge 150 / Android 17)重裝後確認 **Edge 與 Chrome 都正常**。
+兩個症狀對應兩個修正:
+
+| 症狀 | 修正 |
+|---|---|
+| Edge 裝成 App 橫向上下有白條 | manifest 加 `display_override: ["fullscreen","standalone"]`,走真全螢幕而不是 `standalone` 留一條系統列 |
+| Chrome 選單不出現安裝選項 | 補 `<meta name="mobile-web-app-capable">`(原本只有已棄用的 `apple-` 版) |
+
+**因果有保留**:兩個修正是同一版一起上的,回報者也是重裝後才測,
+所以不能斷定 Chrome 那項一定是 `mobile-web-app-capable` 修好的。
+其餘硬性門檻當時逐條驗過全部合格(icon 192/512 實際尺寸正確、SW 有 fetch handler、
+`display: standalone`、無 `prefer_related_applications`),沒有別的候選,所以判斷是它。
+
+**manifest 改動要移除重裝才生效**——manifest 是安裝當下烤進去的,已安裝的 PWA 不會更新。
+
+## 七、還沒收的事
+
+- **無主長路的判定條件是推的**,見上面第三節。原作那段在編譯後的 bytecode 裡,
+  反編出來的資料檔沒有;不修的話那個結局與「天地四卷」成就都永遠拿不到,所以判斷修比不修好。
