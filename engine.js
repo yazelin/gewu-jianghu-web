@@ -8,11 +8,20 @@ let S = null;   // 存檔狀態
 
 // ---------- 縮放 ----------
 function fit() {
-  const s = Math.min(innerWidth / 1280, innerHeight / 720);
+  // 用 visualViewport 而不是 innerHeight:手機瀏覽器列收合時 innerHeight 不一定同步更新,
+  // 舞台會停在舊比例,上下就露出沒被填滿的帶狀區(裝成 App 與否差一個搜尋列的高度)。
+  const vw = visualViewport ? visualViewport.width : innerWidth;
+  const vh = visualViewport ? visualViewport.height : innerHeight;
+  const s = Math.min(vw / 1280, vh / 720);
   stage.style.transform = `scale(${s})`;
 }
 addEventListener('resize', fit);
 addEventListener('orientationchange', () => setTimeout(fit, 200));
+// 瀏覽器列收合/展開只會發 visualViewport 的事件,window resize 不一定跟著發
+if (typeof visualViewport !== 'undefined' && visualViewport) {
+  visualViewport.addEventListener('resize', fit);
+  visualViewport.addEventListener('scroll', fit);
+}
 
 // ---------- 存檔 ----------
 const SAVE_KEY = 'gewu_save_v1';

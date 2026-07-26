@@ -232,6 +232,30 @@ ok('斷網後大音檔真的能解碼播放(1.1MB,Range→206)', bigTrack.starts
   await mctx.close();
 }
 
+{ // 手機橫向:瀏覽器搜尋列收合/展開時,可見高度會變(裝成 App 與否就差這一條)。
+  // height:100% 解到含 chrome 的大視窗 → 上下露出沒填滿的帶狀區。這裡擋 100dvh 被改回去。
+  const vctx = await browser.newContext({ viewport: { width: 844, height: 340 }, isMobile: true, hasTouch: true });
+  const vp = await vctx.newPage();
+  await vp.goto(BASE, { waitUntil: 'load' });
+  await vp.waitForTimeout(1800);
+  const probe = () => vp.evaluate(() => {
+    const rc = document.getElementById('stage').getBoundingClientRect();
+    return { gap: Math.max(Math.round(rc.top), Math.round(innerHeight - rc.bottom)),
+             wrap: document.getElementById('wrap').offsetHeight,
+             amb: document.getElementById('ambient').offsetHeight, vh: innerHeight };
+  });
+  const heights = [];
+  for (const h of [340, 390, 340]) {                 // 展開 → 收合 → 再展開
+    await vp.setViewportSize({ width: 844, height: h });
+    await vp.waitForTimeout(350);
+    heights.push(await probe());
+  }
+  const filled = heights.every(r => r.wrap === r.vh && r.amb === r.vh && r.gap <= 1);
+  ok('手機橫向:瀏覽器列收合/展開後仍滿版(無上下留白)', filled,
+     heights.map(r => `${r.vh}→wrap${r.wrap}/amb${r.amb}/留${r.gap}`).join(' '));
+  await vctx.close();
+}
+
 const dp = await ctx.newPage();   // 缺 ignoreSearch 的話,這頁斷網會開成遊戲
 await dp.goto(BASE + 'design.html?utm_source=fb', { waitUntil: 'domcontentloaded' }).catch(() => {});
 ok('斷網開 design.html?utm_source=fb 不會開成遊戲', (await dp.title()).includes('設計與公式站'));

@@ -176,6 +176,25 @@ letterbox、印章全部關掉都沒差)。而且不是幾道的問題,是有沒
 `bash tools/test.sh` 的第 2 關(`tools/sw-deploy.mjs`)就是在擋這件事回歸 —— 它會實際模擬一次部署,
 斷言資產快取存活、音檔 31/31 沒被清掉。這個 bug 壞掉時功能完全正常,只是偷抓 28MB,一般 E2E 測不出來。
 
+## 手機滿版:用 100dvh,不要用 height:100%
+
+手機瀏覽器的「搜尋列」會隨捲動收合/展開,可見高度跟著變。`height:100%` 解到的是
+**含 chrome 的大視窗**,所以列展開時頁面比可見區高一截 → 舞台上下露出沒被填滿的帶狀區
+(症狀就是「裝成 App 正常、用瀏覽器開有白條」,差的正好是一條搜尋列的高度)。
+
+三個地方要一起改,少一個就還是漏:
+
+- `html,body` / `#wrap` / `#ambient` 都寫 `height:100dvh`(前面留一行 `height:100%` 當舊瀏覽器 fallback)。
+- `html,body` 加 `overscroll-behavior:none`,擋橡皮筋回彈時露出瀏覽器底色。
+- `fit()` 量的是 `visualViewport.width/height`,不是 `innerWidth/innerHeight` ——
+  瀏覽器列收合時 `innerHeight` 不保證同步更新,舞台會停在舊比例。
+  同理事件要掛 `visualViewport` 的 `resize`/`scroll`,只掛 window 的 `resize` 收不到這種變化。
+
+擋板:e2e「手機橫向:瀏覽器列收合/展開後仍滿版」——把視窗高在 340/390 之間來回改,
+每次都驗 `#wrap`、`#ambient` 的 `offsetHeight` 等於 `innerHeight` 且舞台上下留白 ≤1px。
+注意 `#ambient` 有 `scale(1.18)` 做模糊溢出,量它只能用 `offsetHeight`,
+`getBoundingClientRect()` 會把 transform 算進去(401 ≠ 340)。
+
 ## 已知取捨(ponytail ceiling)
 - **配樂**取原作標示的 CC0 原始來源重編(非反解 PCK),見 `provenance/AUDIO.md`;**音效 SFX** 則以自寫 remuxer
   從原作 PCK 的 Godot 匯入串流(OggPacketSequence)抽出、8 個全接並進 precache。
