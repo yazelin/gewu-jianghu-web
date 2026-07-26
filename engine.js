@@ -1696,7 +1696,7 @@ function battleCleared(c) {
 function failScreen(background, title, reason, retry, retryLabel) {
   clear();
   const lay = el(`<div class="layer fade"></div>`);
-  lay.appendChild(el(`<div class="bg" style="background-image:url('${background}');--bgb:.3;--bgs:.5"></div>`));
+  lay.appendChild(el(`<div class="bg drab" style="background-image:url('${background}');--bgb:.3"></div>`));
   lay.appendChild(el(`<div class="scrim"></div>`));
   const box = el(`<div class="choicebox" style="text-align:center">
     <div class="gsub" style="color:var(--danger);font-size:1.3rem;margin-bottom:1rem">${esc(title)}</div>
