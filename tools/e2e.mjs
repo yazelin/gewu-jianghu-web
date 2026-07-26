@@ -313,6 +313,30 @@ ok('斷網後大音檔真的能解碼播放(1.1MB,Range→206)', bigTrack.starts
   ok('戰後劇情帶入破局的路線分歧', !!r2.routeLine, r2.routeLine.slice(0, 22));
   ok('天理分頁串上里程碑脈絡', r2.tianli.includes(r2.ms2.slice(0, 12)), r2.ms2.slice(0, 18));
   ok('通關畫面列出本章破局脈絡', r2.clear.includes('本章脈絡') && r2.clear.includes(r2.beatThread.slice(0, 10)));
+
+  // 第 9、11 章的 afterChapter 是 setTimeout(700) 才換畫面,那段空窗按鈕還在。
+  // 連點就把好感重複套用 → 結局是由好感算出來的,等於玩家點兩下就換一個結局。
+  const dbl = await page.evaluate(async () => {
+    const out = {};
+    for (const ch of [9, 11]) {
+      for (const clicks of [1, 3]) {
+        clear(); S = newState(); S.chapter = ch; S.evidence = {}; S._battleCorrect = 0;
+        finalChoice(G.chapters[ch - 1]);
+        await new Promise(r => setTimeout(r, 120));
+        for (let i = 0; i < clicks; i++) {                       // 每次重查 DOM = 真人只點得到還在畫面上的
+          const live = [...document.querySelectorAll('.choicebox .choice')].filter(x => x.offsetParent !== null);
+          if (live.length) live[0].click();
+          await new Promise(r => setTimeout(r, 40));
+        }
+        out[`${ch}x${clicks}`] = JSON.stringify(S.affinity);
+        await new Promise(r => setTimeout(r, 1500));             // 排空 setTimeout(700)
+      }
+    }
+    clear(); go('title');
+    return out;
+  });
+  ok('第9章章末抉擇連點不會重複結算好感', dbl['9x1'] === dbl['9x3'], `1下 ${dbl['9x1']} / 3下 ${dbl['9x3']}`);
+  ok('第11章章末抉擇連點不會重複結算好感', dbl['11x1'] === dbl['11x3'], `1下 ${dbl['11x1']} / 3下 ${dbl['11x3']}`);
 }
 
 const dp = await ctx.newPage();   // 缺 ignoreSearch 的話,這頁斷網會開成遊戲

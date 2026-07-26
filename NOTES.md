@@ -233,6 +233,25 @@ game.json 是從原作反編來的,欄位比我們演的多。**壞掉時畫面�
 - 畫面右下 `#ver` 版本號與 `SHELL_CACHE` 同號,sw-deploy 有擋板盯著別走鐘——
   版本號騙人比沒有版本號更糟。
 
+## 結局與成就是「算」出來的:條件寫錯不會壞畫面,只會讓它拿不到
+
+判定散在好感、旗標、封印、歷史、跨週目收藏庫五處。任一處錯了,遊戲照跑、畫面正常,
+只有某個結局或成就永遠掛在譜上。一般 e2e 完全測不出來,所以要有 `tools/endings.mjs`
+(八結局各實跑一次)與 `tools/achievements.mjs`(連續十週目收 30 成就),
+用 `bash tools/test.sh --full` 一起跑。**改結局判定、好感、旗標、封印、獎勵、成就條件時必跑。**
+
+已抓到兩個:
+
+- **`masterless_road` 寫成「兩個選項之外的 fallback」→ 永遠走不到**。`finalChoice` 必定先寫入
+  `S.choices.final11`,`finaleEndings` 才跑,所以那個 `return` 是死碼。連帶 `ending_all_complete`
+  (集滿 4 個完整版結局)也拿不到。**教訓:fallback 分支要問「什麼情況會落到這裡」,
+  答不出來就是死碼。**
+- **第 9、11 章章末抉擇連點會重複結算好感**。這兩章的 `afterChapter` 是 `setTimeout(700)` 才換畫面,
+  空窗期按鈕還在。其餘章節 `chapterClearScreen` 同步 `clear()` 所以碰不到。
+  **教訓:凡是「點了之後非同步才換畫面」的按鈕,一律按下即鎖住整組**;
+  另外寫這種測試時**每次點擊前要重新查 DOM**——抓下來的參考即使已被移除仍能觸發 click,
+  會測出假的 bug(我第一次就這樣誤判第 1 章也有問題)。
+
 ## 已知取捨(ponytail ceiling)
 - **配樂**取原作標示的 CC0 原始來源重編(非反解 PCK),見 `provenance/AUDIO.md`;**音效 SFX** 則以自寫 remuxer
   從原作 PCK 的 Godot 匯入串流(OggPacketSequence)抽出、8 個全接並進 precache。

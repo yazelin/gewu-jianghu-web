@@ -1781,6 +1781,11 @@ function finalChoice(c) {
     if (!fc[k]) return;
     const b = el(`<button class="choice"><b>${esc(fc[k].title)}</b><small>${esc(fc[k].detail)}</small></button>`);
     b.onclick = () => {
+      // 第 9、11 章的 afterChapter 是 setTimeout(700) 才換畫面,那段時間按鈕還在、還能點,
+      // 連點就把好感與旗標重複套用一次——而這兩章的結局正是由好感算出來的。
+      // 其餘章節 chapterClearScreen 同步 clear() 所以碰不到,但一律鎖住比較保險。
+      if (b.disabled) return;
+      box.querySelectorAll('.choice').forEach(x => { x.disabled = true; });
       S.choices['final' + c.id] = fc[k].id;
       const e = eff[k] || {};
       Object.entries(e.flags || {}).forEach(([f, v]) => { S.flags[f] = v; });   // 旗標(含 false)
@@ -1987,6 +1992,8 @@ function romanceSelect(phase, next) {
       <small>${esc(phase === 'final' ? c.near : c.mid)}</small></button>`);
     // 選定之後對方會回一句(candidates[].after)——原作有,不接的話許心意等於沒有回應
     b.onclick = () => {
+      if (b.disabled) return;                                     // 同 finalChoice:連點會重複結算
+      box.querySelectorAll('.choice').forEach(x => { x.disabled = true; });
       S.romance = n; save(); reconcile();
       if (c.after) playDialogue(G.title_keyart, [{ speaker: n, text: c.after }], null, next);
       else next();
@@ -1994,7 +2001,11 @@ function romanceSelect(phase, next) {
     box.appendChild(b);
   });
   const solo = el(`<button class="choice"><b>此刻不許諾｜仍以同道相守</b><small>獨行亦非孤身，師友與同道仍在。</small></button>`);
-  solo.onclick = () => { if (phase !== 'final') S.romance = ''; save(); next(); };
+  solo.onclick = () => {
+    if (solo.disabled) return;
+    box.querySelectorAll('.choice').forEach(x => { x.disabled = true; });
+    if (phase !== 'final') S.romance = ''; save(); next();
+  };
   box.appendChild(solo);
   lay.appendChild(box);
   stage.appendChild(lay);
@@ -2041,12 +2052,20 @@ function trueEndingUnlocked(sealCount) {
     && deep >= 3 && (rel['裴無咎'] || 0) >= 1;
 }
 // 完整版結局:依真結局解鎖 + 第11章章末抉擇「算」出(忠實還原 suggested_ending),非自由選
+//
+// 無主長路(masterless_road)原本寫成「兩個選項之外的 fallback」,那條永遠走不到——
+// finalChoice 必定先寫入 S.choices.final11,finaleEndings 才跑,所以 fc 不可能是空字串。
+// 後果不只少一個結局:ending_all_complete 成就要 seen_finale 集滿 4 個,等於永遠拿不到。
+//
+// 改判準的依據是結局文本本身:無主長路是「拆成九段…沒有全城共用的唯一標準」,
+// 也就是拆分了天衡權限(open_shared_standard)卻沒有同盟互校撐住共同基準。
+// allies_crosschecked_final 正是 trueEndingUnlocked 條件鏈裡的那一項,拿它當分水嶺:
+//   拆分 + 有互校 → 公議新尺;拆分 + 無互校 → 無主長路;不拆分 → 四鑰守衡。
+// (原作判定在編譯後的 bytecode 裡,資料檔沒有,這條是推的——見 NOTES.md)
 function finaleEndingId(sealCount) {
   if (trueEndingUnlocked(sealCount)) return 'heaven_earth_shared';
-  const fc = S.choices['final11'] || '';
-  if (fc === 'open_shared_standard') return 'common_measure';
-  if (fc === 'seal_four_key_standard') return 'four_keys';
-  return 'masterless_road';
+  if (S.choices['final11'] === 'seal_four_key_standard') return 'four_keys';
+  return S.flags.allies_crosschecked_final ? 'common_measure' : 'masterless_road';
 }
 function finaleEndings(c) {
   const id = finaleEndingId(sealSnapshot().count);

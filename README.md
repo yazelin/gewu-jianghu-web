@@ -35,9 +35,10 @@ index.html / engine.js / sw.js / manifest.json   網頁版程式(MIT)
 design.html                                       設計與公式站(攻略)
 data/game.json                                    還原的完整遊戲資料
 assets/img · assets/cells · assets/audio          圖(WebP)· 證物切格 · 配樂(CC0)
-tools/                                            還原腳本 + 邏輯還原紀錄(LOGIC.md)
+tools/                                            還原腳本 + 邏輯還原紀錄(LOGIC.md)+ 自動化測試
 provenance/                                        原作授權告知 · SHA-256 · 音檔來源
 SOURCE.md / LICENSE / NOTES.md                     來源溯源 / 授權 / 開發紀錄
+VERIFICATION.md                                   通關與功能驗證報告(八結局 · 三十成就實跑)
 ```
 
 ## 授權
@@ -51,6 +52,20 @@ SOURCE.md / LICENSE / NOTES.md                     來源溯源 / 授權 / 開�
 ```bash
 python3 -m http.server 8099   # 於 repo 根目錄,開 http://localhost:8099
 ```
+
+## 自動化測試
+
+```bash
+bash tools/test.sh          # 常規四關(對照 / 部署存活 / 進度收藏 / 完整 E2E),約 3 分鐘
+bash tools/test.sh --live   # 改測線上 GitHub Pages
+bash tools/test.sh --full   # 再加「八結局實跑」與「三十成就實跑」,約 12 分鐘
+```
+
+`--full` 那兩支是**真的把遊戲玩完**(操作真實 DOM,不是塞狀態):
+八個結局各通關一次、連續十週目收齊 30 個成就。
+結局與成就都是由好感/旗標/封印算出來的,條件寫錯時畫面完全正常,
+只有某個結局或成就變成永遠拿不到——**改那些判定時務必跑 `--full`**。
+最近一次結果見 [VERIFICATION.md](VERIFICATION.md)。
 
 ---
 
