@@ -539,6 +539,19 @@ function confirmModal(title, body, note, okLabel, onOk) {
   sheet.appendChild(row);
   stage.appendChild(m);
 }
+// 設定:題名頁也要能關特效。原本這個開關只在遊戲中選單裡,
+// 而選單鈕在題名頁是隱藏的,等於最需要它的人(機器慢、一進來就卡)碰不到。
+function settingsModal() {
+  const { m, sheet } = modalShell('設定', '', 420);
+  const list = el(`<div class="mlist"></div>`);
+  const row = modalRow('動態效果', () => {
+    localStorage.setItem('gewu_reduced', isReduced() ? '0' : '1'); syncReduced();
+    row.querySelector('.mr-v').textContent = isReduced() ? '關' : '開';
+  }, { value: isReduced() ? '關' : '開' });
+  list.appendChild(row);
+  sheet.append(list, el(`<div class="msub" style="margin-top:1rem;text-align:left">關閉後會停掉雨幕、推鏡與呼吸光暈。畫面會安靜一點，在較慢的機器上也順一點。</div>`));
+  stage.appendChild(m);
+}
 // 選章重走:回到該章入口快照。好感/旗標/證據都回到當時,結局判定才算得對
 // (第 9 章結局是第 1~9 章好感的總和,拿預設值跳章會算出亂七八糟的結果)。
 function chapterSelect() {
@@ -737,10 +750,13 @@ function sTitle() {
     mlink('江湖成就譜', () => withSave(achievementCodex), true),
     mlink('結局圖鑑', () => withSave(endingGallery), true),
     mlink('配樂鑑賞', () => withSave(musicGallery), true),
+    mlink('人物好感', () => withSave(affinityBoard), true),
+    mlink('行囊', () => withSave(() => inventoryModal()), true),
     mlink('格物先賢譜', () => scientistAtlas()),
     mlink('劇情前導', () => replayIntro()),
     mlink('分享', () => shareContent('武俠懸疑・物理解謎 RPG——《格物江湖錄:天理殘卷》，可離線遊玩。', G.title_keyart)),
     mlink('殺青片尾', () => creditsPanel()),      // 併入同一排(分享右邊),不再孤立於角落
+    mlink('設定', () => settingsModal()),
   ];
   items.forEach((it, i) => { if (i) menu.appendChild(el(`<span class="sep">·</span>`)); menu.appendChild(it); });
   bg.appendChild(menu);
@@ -1281,21 +1297,54 @@ function evidenceModal(key, clues) {
   sfx('paper', 1.05, 0.55);
   const { board, close } = boardOverlay(120, 60, 1040, 600, 90);
   const title = key === 'prologue' ? '序章・鐘樓墜案' : ((chById(S.chapter) || {}).title || '鐘樓墜案');
+  const order = S.evidence[key] || [];
+  const gotOrdered = order.map(id => clues.find(c => c.id === id)).filter(Boolean);   // 依取得順序,不是宣告順序
+  const hasThread = clues.some(c => c.thread);                                        // 序章熱點沒有 thread
   board.append(
     pLbl('格物卷｜' + esc(title), 35, 25, 760, 28, 'var(--br)', { bold: true }),
     pLbl('點擊空白處收卷', 770, 33, 220, 14, 'var(--pa2)', { align: 'right' }),
     pRule(35, 80, 970));
-  const got = clues.filter(c => (S.evidence[key] || []).includes(c.id));
-  if (!got.length) {
-    board.appendChild(pLbl('尚未收錄證據。回到現場，先看現象，再選模型。', 60, 140, 920, 19, 'var(--pa)', { align: 'center' }));
-  } else got.forEach((c, i) => {
-    const x = 45 + (i % 2) * 492, y = 105 + Math.floor(i / 2) * 135;
-    const cd = pCard(x, y, 465, 115, 'var(--jade)');
-    cd.append(
-      pLbl('◆　' + esc(c.evidence), 18, 12, 425, 18, 'var(--br)', { bold: true }),
-      pLbl(esc(c.note || c.concept || ''), 18, 45, 425, 14, 'var(--pa)', { wrap: true }));
-    board.appendChild(cd);
-  });
+
+  const body = el(`<div style="position:absolute;left:0;right:0;top:${hasThread ? 138 : 100}px;bottom:20px;overflow:auto"></div>`);
+  // 格物=物證與原理,天理=把物證串起來的案情脈絡。thread 這批文字一直在資料裡,先前沒有地方顯示。
+  const renderGewu = () => {
+    body.innerHTML = '';
+    if (!gotOrdered.length) { body.appendChild(pLbl('尚未收錄證據。回到現場,先看現象,再選模型。', 60, 40, 920, 19, 'var(--pa)', { align: 'center' })); return; }
+    gotOrdered.forEach((c, i) => {
+      const x = 45 + (i % 2) * 492, y = 6 + Math.floor(i / 2) * 135;
+      const cd = pCard(x, y, 465, 115, 'var(--jade)');
+      cd.append(
+        pLbl('◆　' + esc(c.evidence), 18, 12, 425, 18, 'var(--br)', { bold: true }),
+        pLbl(esc(c.note || c.concept || ''), 18, 45, 425, 14, 'var(--pa)', { wrap: true }));
+      body.appendChild(cd);
+    });
+  };
+  const NUM = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十'];
+  const renderTianli = () => {
+    body.innerHTML = '';
+    const threads = gotOrdered.filter(c => c.thread);
+    if (!threads.length) { body.appendChild(pLbl('尚無脈絡。每收錄一條證據,案情就多一句可以連起來的話。', 60, 40, 920, 19, 'var(--pa)', { align: 'center' })); return; }
+    threads.forEach((c, i) => {
+      const y = 4 + i * 62;
+      body.append(
+        pLbl(NUM[i] || String(i + 1), 48, y + 6, 40, 22, 'var(--br)', { bold: true }),
+        pLbl(esc(c.thread), 96, y + 4, 860, 17, 'var(--pa)', { wrap: true }),
+        el(`<div style="position:absolute;left:48px;top:${y + 50}px;width:908px;height:1px;background:rgba(46,40,32,.55)"></div>`));
+    });
+    const left = clues.filter(c => c.thread).length - threads.length;
+    if (left > 0) body.appendChild(pLbl(`還有 ${left} 條線索未串上`, 96, 4 + threads.length * 62 + 8, 860, 14, 'var(--pa2)'));
+  };
+
+  if (hasThread) {
+    const tabs = el(`<div class="ach-tabs" style="position:absolute;left:35px;top:92px;margin:0"></div>`);
+    const mk = (label, fn) => { const b = el(`<button class="ach-tab">${label}</button>`); b.onclick = () => { tabs.querySelectorAll('.ach-tab').forEach(t => t.classList.remove('on')); b.classList.add('on'); sfx('paper', 1.1, 0.3); fn(); }; tabs.appendChild(b); return b; };
+    const t1 = mk('格物', renderGewu);
+    mk('天理', renderTianli);
+    board.appendChild(tabs);
+    t1.classList.add('on');
+  }
+  board.appendChild(body);
+  renderGewu();
   // 關閉改用右上角 X(仍可點空白處收卷)
 }
 
