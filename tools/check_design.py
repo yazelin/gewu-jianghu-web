@@ -140,6 +140,18 @@ check('成就解法齊備(30 條)', DOC.count('<td class="sol">') == len(ach_tit
 # 11) 原作者出處與贊助連結在(公式站保留原作者致謝)
 check('保留原作者致謝/贊助連結', 'changyi123456' in DOC and 'aiphysicsteacher' in DOC)
 
+# ---- 完整版結局的判定規則:攻略站的敘述要跟 engine.js 的實際分支一致 ----
+# 這條走鐘過:masterless_road 本來寫成「兩個選項之外的 fallback」(永遠走不到的死碼),
+# 程式改用 allies_crosschecked_final 分流之後,攻略站仍寫著舊的「其餘→無主長路」,
+# 等於在教一條不存在的解法。攻略站是生成的,規則敘述卻是手寫散文,不盯就會漂。
+ENG = open(os.path.join(R, 'engine.js'), encoding='utf-8').read()
+_fin = re.search(r'function finaleEndingId\(.*?\n\}', ENG, re.S).group(0)
+_uses_allies = 'allies_crosschecked_final' in _fin
+check('完整版結局判定規則:攻略站敘述與 engine.js 一致',
+      _uses_allies == ('覆核' in DOC and '無主長路' in DOC) and '其餘→無主長路' not in DOC,
+      'engine 用 allies_crosschecked_final 分流' if _uses_allies else 'engine 未用 allies 分流')
+
 print(f'\n=== {len(questions)+6-len(fails) if False else ""}對照完成:{"全部一致" if not fails else str(len(fails))+" 項落差"} ===')
 if fails:
     print('落差:', '、'.join(fails)); sys.exit(1)
+

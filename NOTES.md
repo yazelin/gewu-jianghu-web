@@ -345,6 +345,19 @@ e2e 現在有「攻略站沒有破圖」擋著。同時發現生成器把 OG 檔
 Service Worker,那是另一個 target,頁面層的節流管不到。要在**測試用的 http server 端**
 分塊延遲送出才準。1.5 Mbps 實測:12s 序章+第1章完整、**24s 全十二章可玩**、60s 全部完整。
 
+## 攻略站是生成的,但「規則敘述」是手寫散文——會跟程式漂開
+
+`design.html` 的題目與答案由 `game.json` 生成,`check_design.py` 逐題對照,那部分不會錯。
+但**判定規則的說明文字是 `gen_design.py` 裡的手寫散文**,程式改了它不會跟著改。
+
+實際踩到:`finaleEndingId` 修掉死碼 fallback、改用 `allies_crosschecked_final` 分流之後,
+攻略站仍寫著舊的「其餘→無主長路」——那條路早就不存在,等於在教一條做不到的解法。
+而且它出現在兩個地方(結局章節說明 + 成就解法表),改一處還會漏。
+
+守門加在 `check_design.py`:比對 `engine.js` 的 `finaleEndingId` 有沒有用
+`allies_crosschecked_final`,與 design.html 的敘述關鍵字是否一致。
+**規則改了兩邊都要動,測試會擋。**
+
 ## 已知取捨(ponytail ceiling)
 - **配樂**取原作標示的 CC0 原始來源重編(非反解 PCK),見 `provenance/AUDIO.md`;**音效 SFX** 則以自寫 remuxer
   從原作 PCK 的 Godot 匯入串流(OggPacketSequence)抽出、8 個全接並進 precache。
