@@ -566,14 +566,21 @@ function offlineModal() {
   sheet.append(body);
   stage.appendChild(m);
 
-  const ask = (msg) => new Promise(res => {
-    const sw = navigator.serviceWorker && navigator.serviceWorker.controller;
-    if (!sw) return res(null);
-    const ch = new MessageChannel();
-    ch.port1.onmessage = ev => res(ev.data);
-    sw.postMessage(msg, [ch.port2]);
-    setTimeout(() => res(null), 4000);
-  });
+  // 用 registration.active 而不是 controller:硬重整(Ctrl+Shift+R)會讓那一次頁面
+  // 完全不受 SW 控制,controller 是 null —— 但 registration 與快取都還在,
+  // 直接對 active worker postMessage 一樣問得到。只看 controller 會白白顯示「尚未接管」。
+  const ask = async (msg) => {
+    if (!navigator.serviceWorker) return null;
+    const reg = await navigator.serviceWorker.getRegistration().catch(() => null);
+    const sw = (reg && (reg.active || reg.waiting)) || navigator.serviceWorker.controller;
+    if (!sw) return null;
+    return new Promise(res => {
+      const ch = new MessageChannel();
+      ch.port1.onmessage = ev => res(ev.data);
+      sw.postMessage(msg, [ch.port2]);
+      setTimeout(() => res(null), 4000);
+    });
+  };
   const audioOf = (n) => `assets/audio/${n}.ogg`;
   const chapterVis = (c) => [c.background, ...c.clues.map(x => x.cell)].filter(Boolean);
   const chapterAll = (c) => chapterVis(c).concat(
@@ -584,7 +591,12 @@ function offlineModal() {
   async function draw() {
     if (!document.contains(m)) return;                       // 視窗關了就停止輪詢
     const st = await ask({ type: 'offline-status' });
-    if (!st) { body.innerHTML = '<div class="msub">Service Worker 尚未接管，重新整理後再看。</div>'; return; }
+    if (!st) {
+      body.innerHTML = '<div class="msub" style="text-align:left">'
+        + '離線功能尚未就緒。第一次造訪請稍候幾秒；若仍是這樣，可能是瀏覽器停用了 Service Worker'
+        + '（無痕視窗常見）。</div>';
+      return;
+    }
     const miss = new Set(st.missing || []);
     const has = (list) => list.every(u => !miss.has(u));
     const pct = Math.round(st.done / st.total * 100);
@@ -608,6 +620,9 @@ function offlineModal() {
         <span><b style="color:var(--pa2)">■</b> 尚未備妥</span></div>
       <div class="msub" style="text-align:left;margin-top:.9rem;font-size:.78rem">
         配樂缺檔只會靜音，畫面缺了才玩不下去，所以背景下載先鋪滿各章畫面再回頭補配樂。<br>
+        ${navigator.serviceWorker.controller ? '' :
+          '<span style="color:var(--gold)">這次是硬重整（Ctrl+Shift+R）進來的，本頁不受 Service Worker 控制，'
+          + '背景下載暫停中；一般重新整理即可繼續。</span><br>'}
         版本 ${esc(String(st.ver || '').replace('gewu-shell-', ''))}</div>`;
     if (st.done < st.total) setTimeout(draw, 1500);          // 還在下載 → 持續更新
   }
@@ -1086,7 +1101,9 @@ function chapterAssets(c) {
 // 只提醒不阻擋:線上的話缺的檔會自己抓(一章約 0.2 MB)。
 async function warnIfChapterNotCached(c) {
   if (navigator.onLine) return;
-  const sw = navigator.serviceWorker && navigator.serviceWorker.controller;
+  if (!navigator.serviceWorker) return;
+  const reg = await navigator.serviceWorker.getRegistration().catch(() => null);
+  const sw = (reg && reg.active) || navigator.serviceWorker.controller;   // 硬重整時 controller 是 null
   if (!sw) return;
   const missing = await new Promise(res => {
     const ch = new MessageChannel();

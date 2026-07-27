@@ -431,6 +431,7 @@ ok('斷網後大音檔真的能解碼播放(1.1MB,Range→206)', bigTrack.starts
     return [...document.querySelectorAll('.mrow .mr-n')].some(x => x.textContent.includes('離線包'));
   }));
   await page.evaluate(() => closeAllWindows());
+
 }
 
 const dp = await ctx.newPage();   // 缺 ignoreSearch 的話,這頁斷網會開成遊戲
@@ -438,6 +439,30 @@ await dp.goto(BASE + 'design.html?utm_source=fb', { waitUntil: 'domcontentloaded
 ok('斷網開 design.html?utm_source=fb 不會開成遊戲', (await dp.title()).includes('設計與公式站'));
 await dp.close();
 await ctx.setOffline(false);
+
+{ // 硬重整測試必須在恢復連線之後:斷網時硬重整會繞過 SW 直接失敗,
+  // 載入的是瀏覽器錯誤頁,連 navigator.serviceWorker 都不存在(踩過)。
+  // 硬重整(Ctrl+Shift+R)那一次頁面完全不受 SW 控制,controller 是 null。
+  // 但 registration 與快取都還在 —— 面板若只看 controller 就會白白顯示「尚未接管」。
+  const cdp = await ctx.newCDPSession(page);
+  await cdp.send('Page.enable');
+  await cdp.send('Page.reload', { ignoreCache: true });
+  await page.waitForTimeout(2500);
+  const hard = await page.evaluate(async () => ({
+    ctrl: !!navigator.serviceWorker.controller,
+    active: !!(await navigator.serviceWorker.getRegistration())?.active,
+  }));
+  await page.evaluate(() => { S = loadSave() || newState(); offlineModal(); });
+  await page.waitForTimeout(1800);
+  const hardTxt = await page.evaluate(() => document.querySelector('.modal .sheet')?.textContent || '');
+  ok('硬重整後頁面確實不受 SW 控制(前提成立)', hard.ctrl === false && hard.active === true,
+    `controller=${hard.ctrl} active=${hard.active}`);
+  ok('硬重整後離線包面板仍讀得到狀態', /\d+ \/ \d+/.test(hardTxt) && !hardTxt.includes('尚未就緒'),
+    hardTxt.replace(/\s+/g, ' ').slice(0, 60));
+  await page.evaluate(() => closeAllWindows());
+  await page.reload({ waitUntil: 'load' });    // 還原受控狀態,別影響後面的測試
+  await page.waitForTimeout(1200);
+}
 
 // ---- 收尾 ----
 ok('全程 console 零錯誤', errors.length === 0, errors.slice(0, 6).join(' | '));
