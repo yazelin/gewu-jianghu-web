@@ -11,7 +11,11 @@ try { ({ chromium } = await import('playwright')); }
 catch { ({ chromium } = (await import('/home/ct/.nvm/versions/node/v22.17.1/lib/node_modules/playwright/index.js')).default); }
 
 const LIVE = process.argv.includes('--live');
-const BASE = LIVE ? 'https://yazelin.github.io/gewu-jianghu-web/' : 'http://localhost:8099/';
+// 埠不寫死:8099 曾被別的專案殘留的 http.server 佔住,test.sh 的 server 綁不上,
+// 測試就一路測到別人的頁面(症狀是 newState is not defined —— 因為那根本不是這個遊戲)。
+// 由 test.sh 用 GEWU_PORT 指定實際挑到的空閒埠。
+const PORT = process.env.GEWU_PORT || '8099';
+const BASE = LIVE ? 'https://yazelin.github.io/gewu-jianghu-web/' : `http://localhost:${PORT}/`;
 const HERE = new URL('.', import.meta.url).pathname;
 const G = JSON.parse(readFileSync(HERE + '../data/game.json', 'utf8'));
 const SW_SRC = readFileSync(HERE + '../sw.js', 'utf8');
@@ -94,8 +98,21 @@ console.log(`\n=== 格物江湖錄 E2E — ${LIVE ? '線上 Pages' : '本機'} (
 await page.goto(BASE, { waitUntil: 'networkidle', timeout: 30000 });
 
 // ---- 1) A 線全破(新局 → 選難度 → 序 → 第一~九章普通結局)----
-await page.evaluate(() => localStorage.clear());
+// 連同 SW 與快取一起清掉再重載:留著舊 SW 的話,測試跑到一半會偵測到新版,
+// 而「回題名即套用更新」會在那一刻 location.reload(),把測試的 page context 抽掉
+// (症狀是 newState is not defined)。清乾淨 = 這一輪是乾淨的首次造訪,不會有待套用的更新。
+await page.evaluate(async () => {
+  localStorage.clear();
+  for (const r of await navigator.serviceWorker.getRegistrations()) await r.unregister();
+  for (const k of await caches.keys()) await caches.delete(k);
+});
 await page.reload({ waitUntil: 'networkidle' });
+// 用 evaluate 輪詢而不是 waitForFunction:後者的輪詢跑在隔離世界,
+// 看不到 engine.js 在主世界宣告的頂層 const(newState 就是),會永遠等不到。
+for (let i = 0; i < 60; i++) {
+  if (await page.evaluate(() => typeof newState !== 'undefined').catch(() => false)) break;
+  await page.waitForTimeout(400);
+}
 await page.waitForTimeout(1200);
 ok('題名載入(毛筆題字圖已解碼)', await page.evaluate(() => { const i = document.querySelector('.tlockup'); return !!i && i.complete && i.naturalWidth > 0; }));
 const aline = await AUTOPLAY(page);
@@ -314,7 +331,8 @@ ok('斷網後大音檔真的能解碼播放(1.1MB,Range→206)', bigTrack.starts
       beat.panel.includes('取得證據') && !beat.panel.includes('護鐘線'), beat.panel.replace(/\s+/g, ' ').slice(0, 40));
     ok('角色台詞有立繪、旁白沒有', beat.said.some(x => x.spk && x.port) && beat.said.some(x => !x.spk && !x.port),
       spks.join('/'));
-    ok('路線名會出現在對白裡(A 線=護鐘線)', spks.includes('護鐘線'), spks.join('/'));
+    ok('路線名會出現在對白裡且標成「路線・」(A 線=護鐘線)',
+      spks.includes('路線・護鐘線'), spks.join('/'));
     ok('里程碑也演成對白(第 2 項證據觸發)', spks.includes('沈硯'), spks.join('/'));
     ok('對白播放中鎖住熱點、播完解鎖', beat.said.every(x => x.locked) && beat.unlocked);
     const beatB = await page.evaluate(async (route) => {
@@ -342,7 +360,8 @@ ok('斷網後大音檔真的能解碼播放(1.1MB,Range→206)', bigTrack.starts
       closeAllWindows(); go('title');
       return out;
     }, 'B');
-    ok('B 線走出不同對白(循印線)', beatB.includes('循印線') && !beatB.includes('護鐘線'), beatB.join('/'));
+    ok('B 線走出不同對白(循印線)',
+      beatB.includes('路線・循印線') && !beatB.includes('路線・護鐘線'), beatB.join('/'));
   }
   await page.waitForTimeout(600);
 

@@ -1111,8 +1111,10 @@ function sceneDialogue(lines, done) {
     const src = l.speaker && G.portraits[l.speaker];
     if (src) { if (l.speaker !== cur) port.src = src; port.classList.add('show'); cur = l.speaker; }
     else port.classList.remove('show');
-    const box = el(`<div class="dbox${src ? ' has-portrait' : ''}">
-      ${l.speaker ? `<div class="spk">${esc(l.speaker)}</div>` : ''}
+    // 路線敘述不是角色台詞:加 .route 換一組樣式,並冠上「路線・」前綴,
+    // 否則「密圖登舟」這種路線名出現在說話者欄位會被當成人名(被問過)。
+    const box = el(`<div class="dbox${src ? ' has-portrait' : ''}${l.route ? ' route' : ''}">
+      ${l.speaker ? `<div class="spk">${l.route ? '路線・' : ''}${esc(l.speaker)}</div>` : ''}
       <div class="txt">${esc(l.text)}</div>
       <div class="next">點擊繼續 ▾</div></div>`);
     box.onclick = step;
@@ -1129,11 +1131,11 @@ function clueBeats(cl, c, ms) {
   if (cl.reveal) out.push({ speaker: '', text: cl.reveal });
   if (cl.response) out.push({ speaker: cl.reveal_speaker || '', text: cl.response });
   const rt = cl.route_text && cl.route_text[S.route];
-  if (rt) out.push({ speaker: routeName(c), text: rt });
+  if (rt) out.push({ speaker: routeName(c), text: rt, route: true });
   if (ms) {
     if (ms.text) out.push({ speaker: ms.speaker || '', text: ms.text });
     const mrt = ms.route_text && ms.route_text[S.route];
-    if (mrt) out.push({ speaker: routeName(c), text: mrt });
+    if (mrt) out.push({ speaker: routeName(c), text: mrt, route: true });
   }
   return out;
 }
@@ -1298,6 +1300,10 @@ function investigate({ key, background, title, clues, min, onDone, failable, onF
     // 已作答 → 只讀回顧,不再重答
     if (secured(cl) || lostCl(cl)) {
       body.appendChild(el(resultHTML(cl, secured(cl))));
+      // 把選項列出來並標出正解:答錯的人最需要的就是「那到底哪個對」,
+      // 只給觀念不給答案等於沒得學。
+      body.appendChild(el(`<ul class="opts-ro">${cl.options.map((o, i) =>
+        `<li class="${i === cl.correct ? 'ok' : ''}">${esc(o)}</li>`).join('')}</ul>`));
       const cont = el(`<button class="btn sm" style="margin-top:14px">收起</button>`);
       cont.onclick = () => closePanel(wrap);
       body.appendChild(cont);
@@ -1345,6 +1351,7 @@ function investigate({ key, background, title, clues, min, onDone, failable, onF
     }
     const lossText = cl.loss || (G.failure_texts[cl.id]) || '此證物已滅失，無法在本章重驗。';
     return `<div class="result bad">證物滅失｜${esc(lossText)}
+      <div class="concept" style="color:var(--br)">此證物之後仍可再點開回顧正解。</div>
       ${cl.note ? `<div class="concept">正解觀念｜${esc(cl.concept)}</div><div>${esc(cl.note)}</div>` : ''}</div>`;
   }
 
@@ -2206,15 +2213,17 @@ function trueEndingUnlocked(sealCount) {
 // finalChoice 必定先寫入 S.choices.final11,finaleEndings 才跑,所以 fc 不可能是空字串。
 // 後果不只少一個結局:ending_all_complete 成就要 seen_finale 集滿 4 個,等於永遠拿不到。
 //
-// 改判準的依據是結局文本本身:無主長路是「拆成九段…沒有全城共用的唯一標準」,
-// 也就是拆分了天衡權限(open_shared_standard)卻沒有同盟互校撐住共同基準。
-// allies_crosschecked_final 正是 trueEndingUnlocked 條件鏈裡的那一項,拿它當分水嶺:
-//   拆分 + 有互校 → 公議新尺;拆分 + 無互校 → 無主長路;不拆分 → 四鑰守衡。
-// (原作判定在編譯後的 bytecode 裡,資料檔沒有,這條是推的——見 NOTES.md)
+// 原作判定在編譯後的 bytecode 裡,反編資料與作者設計文件都沒寫。分水嶺是從**結局正文**
+// 反推的,兩篇各自只出現對方沒有的關鍵詞,而那正好是第十章對話選擇的兩個分支:
+//   第十章「交給蘇檀與各地量測者盲驗」(veto_blind_tested)
+//     → 公議新尺:「四城…每季交換操作者盲測」
+//   第十章「與裴無咎逐筆比對十代改值」(tenth_line_traced)
+//     → 無主長路:「沈硯與裴無咎沿路修鐘、驗尺」
+// 對得起成就提示「把終章所有治理方式都走過一次」:四種治理=共衡/公議/四鑰/無主。
 function finaleEndingId(sealCount) {
   if (trueEndingUnlocked(sealCount)) return 'heaven_earth_shared';
   if (S.choices['final11'] === 'seal_four_key_standard') return 'four_keys';
-  return S.flags.allies_crosschecked_final ? 'common_measure' : 'masterless_road';
+  return S.flags.tenth_line_traced ? 'masterless_road' : 'common_measure';
 }
 function finaleEndings(c) {
   const id = finaleEndingId(sealSnapshot().count);

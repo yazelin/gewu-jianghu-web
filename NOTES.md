@@ -383,6 +383,34 @@ port 原本把 `reveal` 也冠上 `reveal_speaker`,那是誤讀。
 - **對白播放中要鎖熱點**(`#stage.in-beat .hotspot{pointer-events:none;opacity:.45}`),
   否則對白還沒講完就能開下一個證物。
 
+## 測試用的埠不能寫死 —— 會測到別人的網站
+
+2026-07-28 踩到:`tools/test.sh` 固定用 8099,而那個埠被**別的專案殘留的 `http.server`** 佔住。
+`python3 -m http.server 8099` 綁不上直接失敗退出,但測試照樣連得上那個埠 ——
+**於是整輪 e2e 測的是另一個網站**,還一路報看不懂的錯(`newState is not defined`,
+因為那個頁面根本不是這個遊戲)。我一開始還以為是自己剛改的更新機制害的,查了兩輪才發現。
+
+兩道防線:
+
+- **埠動態挑**(`socket.bind(('127.0.0.1',0))` 讓 OS 給空閒埠),由 `GEWU_PORT` 傳給 e2e。
+- **起完 server 先驗證連到的真的是這個 repo**(`curl -sf .../data/game.json`),不是就直接 exit 1。
+
+判準:**「連得上」不等於「連對了」**。任何固定埠的本機測試都要驗一下對面是不是自己。
+(順帶:機器上常有其他 session 留下的 server,那些不是我的,不要去砍。)
+
+## waitForFunction 看不到頁面的頂層 const
+
+`page.waitForFunction` 的輪詢跑在**隔離世界**,看不到 `engine.js` 在主世界宣告的
+頂層 `const`/`let`(`newState`、`S`、`G` 都是)。要等這種東西就用 `page.evaluate` 迴圈輪詢。
+同一個坑的另一面:index.html 也不能讀 `window.S` —— 頂層 `let S` 不會變成 window 的屬性
+(延後更新那次踩過,判斷「是不是在題名」恆真)。
+
+## 多行 CSS 規則:同一區塊裡後面的 z-index 贏
+
+`.portrait` / `.hotspot` 的規則都是多行的,而**區塊後段本來就各有一個 `z-index`**(14 / 15)。
+我把新值加在區塊「開頭」,被後面那個蓋掉,等於沒改 —— 立繪照樣被證物點壓在下面。
+改多行規則的既有屬性時,要先確認**整個區塊裡只有一處**,不要憑開頭那行就下手。
+
 ## 已知取捨(ponytail ceiling)
 - **配樂**取原作標示的 CC0 原始來源重編(非反解 PCK),見 `provenance/AUDIO.md`;**音效 SFX** 則以自寫 remuxer
   從原作 PCK 的 Godot 匯入串流(OggPacketSequence)抽出、8 個全接並進 precache。

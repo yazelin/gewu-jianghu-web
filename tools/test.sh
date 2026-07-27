@@ -29,12 +29,19 @@ echo "########## 4/4 遊戲完整 E2E ##########"
 if [[ "${1:-}" == "--live" ]]; then
   node tools/e2e.mjs --live
 else
-  # 起臨時本機 server,結束時收掉(不影響已在跑的其他 server)
-  python3 -m http.server 8099 >/dev/null 2>&1 &
+  # 起臨時本機 server,結束時收掉(不影響已在跑的其他 server)。
+  # 埠要動態挑:8099 被別的專案殘留的 http.server 佔過,綁不上時 python 直接失敗退出,
+  # 而測試照樣連得上那個埠 —— 於是整輪測到別人的網站,還一路報看不懂的錯
+  # (症狀是 newState is not defined,因為那根本不是這個遊戲)。
+  PORT=$(python3 -c "import socket;s=socket.socket();s.bind(('127.0.0.1',0));print(s.getsockname()[1]);s.close()")
+  python3 -m http.server "$PORT" --bind 127.0.0.1 >/dev/null 2>&1 &
   SRV=$!
   trap 'kill $SRV 2>/dev/null || true' EXIT
   sleep 2
-  node tools/e2e.mjs
+  # 確認連到的真的是這個 repo,不是別人佔埠的服務
+  curl -sf "http://127.0.0.1:$PORT/data/game.json" -o /dev/null \
+    || { echo "本機 server 起不來或埠被佔(埠 $PORT)"; exit 1; }
+  GEWU_PORT="$PORT" node tools/e2e.mjs
 fi
 
 if [[ "${1:-}" == "--full" ]]; then

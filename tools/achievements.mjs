@@ -106,6 +106,9 @@ const PLAY = async (page, run, maxSteps = 14000) => page.evaluate(async ({ clueC
     if (closeClue && document.querySelector('.cluewrap')) { click(closeClue); continue; }
     // 熱點要排在「進入破局」之前:證據一到最低門檻按鈕就出現,先按就永遠收不滿 6 證,
     // 六證成卷/格物無漏/十一卷無漏/誤差亦須署名 四個成就都會拿不到。
+    // 場景內對白要先點完:對白播放中熱點雖然還在畫面上,但被 pointer-events:none 鎖住,
+    // 先點熱點會一直點不動而空轉(踩過:整輪卡在第一章)。
+    if (document.querySelector('.dbox')) { click(document.querySelector('.dbox')); continue; }
     const hs = [...document.querySelectorAll('.hotspot')].filter(e => vis(e) && !e.classList.contains('done') && !e.classList.contains('lost'));
     if (hs.length && !document.querySelector('.cluewrap')) { click(hs[0]); continue; }
     if (byText('.util', '進入')) { click(byText('.util', '進入')); continue; }

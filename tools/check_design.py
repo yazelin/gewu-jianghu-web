@@ -146,10 +146,10 @@ check('保留原作者致謝/贊助連結', 'changyi123456' in DOC and 'aiphysic
 # 等於在教一條不存在的解法。攻略站是生成的,規則敘述卻是手寫散文,不盯就會漂。
 ENG = open(os.path.join(R, 'engine.js'), encoding='utf-8').read()
 _fin = re.search(r'function finaleEndingId\(.*?\n\}', ENG, re.S).group(0)
-_uses_allies = 'allies_crosschecked_final' in _fin
+_uses_tenth = 'tenth_line_traced' in _fin
 check('完整版結局判定規則:攻略站敘述與 engine.js 一致',
-      _uses_allies == ('覆核' in DOC and '無主長路' in DOC) and '其餘→無主長路' not in DOC,
-      'engine 用 allies_crosschecked_final 分流' if _uses_allies else 'engine 未用 allies 分流')
+      _uses_tenth == ('逐筆比對' in DOC and '無主長路' in DOC) and '其餘→無主長路' not in DOC,
+      'engine 用 tenth_line_traced 分流' if _uses_tenth else 'engine 未用 tenth_line_traced 分流')
 
 print(f'\n=== {len(questions)+6-len(fails) if False else ""}對照完成:{"全部一致" if not fails else str(len(fails))+" 項落差"} ===')
 if fails:

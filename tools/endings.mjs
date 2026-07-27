@@ -47,7 +47,7 @@ const ROUTES = [
   { id: 'heaven_earth_shared', badge: '完整版結局', fin: 'aaaaaaabaaa', dlg: 'aaaaaaaabba' },
   { id: 'common_measure',      badge: '完整版結局', fin: 'aaaaaaaaaaa', dlg: 'aaaaaaaaaaa' },
   { id: 'four_keys',           badge: '完整版結局', fin: 'aaaaaaaaaab', dlg: 'aaaaaaaaaaa' },
-  { id: 'masterless_road',     badge: '完整版結局', fin: 'aaaaaaaaaaa', dlg: 'aaaaaaaaaab' },
+  { id: 'masterless_road',     badge: '完整版結局', fin: 'aaaaaaaaaaa', dlg: 'aaaaaaaaaba' },
 ];
 
 const only = process.argv.includes('--only') ? process.argv[process.argv.indexOf('--only') + 1] : null;
@@ -104,6 +104,9 @@ const PLAY = async (page, route, maxSteps = 6000) => page.evaluate(async ({ clue
     const closeClue = document.querySelector('.cluebody .btn') || byText('.pclose', '');
     if (closeClue && document.querySelector('.cluewrap')) { click(closeClue); continue; }
     if (byText('.util', '進入')) { click(byText('.util', '進入')); continue; }
+    // 場景內對白要先點完:對白播放中熱點雖然還在畫面上,但被 pointer-events:none 鎖住,
+    // 先點熱點會一直點不動而空轉(踩過:整輪卡在第一章)。
+    if (document.querySelector('.dbox')) { click(document.querySelector('.dbox')); continue; }
     const hs = [...document.querySelectorAll('.hotspot')].filter(e => vis(e) && !e.classList.contains('done') && !e.classList.contains('lost'));
     if (hs.length && !document.querySelector('.cluewrap')) { click(hs[0]); continue; }
     const sl = document.querySelector('.pslider');
