@@ -183,8 +183,17 @@ manifest 另加 `display_override: ["fullscreen","standalone"]` 走真全螢幕�
 
 **容量完全不是問題**,離限制還有 20 倍。這次加的 27 張縮圖只佔 584 KB。
 
-要留意的是**頻寬**:攻略站整頁 5.07 MB,100 GB／月大約等於 2 萬次「整頁看完」。
-超過是軟限制(GitHub 會來信,不會直接斷),真的爆了再考慮把重資產搬 jsDelivr。
+要留意的是**頻寬**。官方原句是「GitHub Pages sites have a **soft** bandwidth limit of 100 GB per month」,
+**是每個站而非帳號共用**——但 GitHub 兩份文件都沒寫出「per site」這幾個字,
+判斷依據是同一清單裡「Published GitHub Pages sites may be no larger than 1 GB」的同句型
+(那條不可能是全帳號加總)。有法律效力的 Additional Product Terms 只說 Pages
+「有特定的頻寬與使用限制,可能不適合高頻寬用途」,沒有另外定義單位。
+
+單站 100 GB／月約等於 2 萬次「整頁看完」(整頁 5.07 MB),而且多數人不會把 113 張圖全滑完。
+soft 的意思是 GitHub 寄信找你談、不是直接斷線;真的爆了再把重資產搬 jsDelivr。
+
+**同一份條款裡另一條更硬**:Pages 不得作為免費空間來跑線上生意、電商,或以促成商業交易為主的網站。
+但它明文允許 donation buttons 與 crowdfunding links —— 推廣 footer 的 Buy Me a Coffee 屬於允許的那類。
 順帶一提 `output/imagegen/` 有 10.7 MB 產圖來源被追蹤著、網站用不到,
 要瘦身第一個拿它開刀(但那是你的素材,我沒動)。
 
