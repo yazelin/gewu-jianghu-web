@@ -574,6 +574,17 @@ body.reduced .cine-nav{transition:none;opacity:1}
 .mrow .mr-x{color:var(--br);opacity:.55;transition:.14s;font-size:1.3rem;line-height:1;width:1em;text-align:right}
 .mrow:hover{background:rgba(168,50,42,.13);color:#fff;padding-left:16px}
 .mrow:hover .mr-x{opacity:1;color:var(--cin)}
+/* 離線包狀態:一條總進度 + 逐章齊備格。做這個是為了「看得見」——
+   暖快取照遊玩順序鋪,沒有畫面就只能猜它到底有沒有照順序走。 */
+.obar{height:6px;border-radius:3px;background:rgba(138,107,58,.22);overflow:hidden;margin:.5rem 0 .2rem}
+.obar>i{display:block;height:100%;background:linear-gradient(90deg,var(--br),var(--gold));transition:width .4s ease}
+.ogrid{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-top:.7rem}
+.ocell{padding:.45rem 0;text-align:center;font-size:.76rem;letter-spacing:.04em;border-radius:4px;
+  border:1px solid rgba(138,107,58,.34);color:var(--pa2);background:rgba(20,16,10,.5)}
+.ocell.ok{border-color:rgba(95,163,131,.6);color:#9fd4bb;background:rgba(95,163,131,.12)}
+.ocell.part{border-color:rgba(200,162,74,.55);color:var(--gold);background:rgba(200,162,74,.10)}
+.okey{display:flex;gap:1.1rem;justify-content:center;margin-top:.8rem;font-size:.74rem;color:var(--pa2)}
+.okey b{font-weight:600}
 .mrow:focus-visible{outline:2px solid var(--gold);outline-offset:-2px}
 .mrow.danger:hover{background:rgba(168,50,42,.2)}
 @keyframes sheetIn{from{opacity:0;transform:scale(.95) translateY(10px)}to{opacity:1;transform:none}}
@@ -635,7 +646,7 @@ body.reduced #loadbar::before{animation:none;left:0;width:100%;opacity:.5}
 </div>
 <div id="ambient"></div>
 <div id="wrap"><div id="stage">
-  <div id="ver">v117</div>
+  <div id="ver">v118</div>
   <div id="lamp"></div>
   <div id="book"></div>
   <canvas id="rain" width="1280" height="720"></canvas>

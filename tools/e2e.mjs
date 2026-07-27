@@ -412,6 +412,25 @@ ok('斷網後大音檔真的能解碼播放(1.1MB,Range→206)', bigTrack.starts
     prog.chLast.every((v, i) => i === 0 || v > prog.chLast[i - 1]), prog.chLast.join(','));
   ok('SW have 查詢答得出「缺哪些」', prog.haveMissing.length === 1 && prog.haveMissing[0].includes('__不存在__'),
     JSON.stringify(prog.haveMissing));
+
+  // 離線包面板:沒有這個畫面就只能猜暖快取到底有沒有照順序鋪
+  await page.evaluate(() => { closeAllWindows(); S = loadSave() || newState(); offlineModal(); });
+  await page.waitForTimeout(1600);
+  const pan = await page.evaluate(() => {
+    const cells = [...document.querySelectorAll('.ocell')];
+    return { n: cells.length, labels: cells.map(c => c.textContent).join(','),
+      ok: cells.filter(c => c.classList.contains('ok')).length,
+      bar: document.querySelector('.obar > i')?.style.width || '',
+      txt: document.querySelector('.modal .sheet')?.textContent || '' };
+  });
+  ok('離線包面板列出序章 + 十一章', pan.n === 12 && pan.labels === '序,1,2,3,4,5,6,7,8,9,10,11', pan.labels);
+  ok('離線包面板顯示整體進度與逐章狀態', /100%/.test(pan.txt) && pan.bar === '100%' && pan.ok === 12,
+    `進度條 ${pan.bar}、完整 ${pan.ok}/12`);
+  ok('離線包面板從設定進得去', await page.evaluate(() => {
+    closeAllWindows(); settingsModal();
+    return [...document.querySelectorAll('.mrow .mr-n')].some(x => x.textContent.includes('離線包'));
+  }));
+  await page.evaluate(() => closeAllWindows());
 }
 
 const dp = await ctx.newPage();   // 缺 ignoreSearch 的話,這頁斷網會開成遊戲

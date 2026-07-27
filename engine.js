@@ -556,6 +556,65 @@ function confirmModal(title, body, note, okLabel, onOk) {
 }
 // 設定:題名頁也要能關特效。原本這個開關只在遊戲中選單裡,
 // 而選單鈕在題名頁是隱藏的,等於最需要它的人(機器慢、一進來就卡)碰不到。
+// 離線包狀態面板 —— 讓「暖快取有沒有照遊玩順序鋪」看得見。
+// 沒有這個畫面就只能猜:徽章一閃就消失,而 CORE 的順序錯了不會有任何錯誤訊息。
+// 逐章顯示「畫面齊(可玩)」與「含配樂(完整)」兩種狀態,因為音樂缺檔只會靜音、
+// 畫面缺了才真的玩不下去 —— 兩者門檻差很多(全十一章 8.0 MB vs 19.7 MB)。
+function offlineModal() {
+  const { m, sheet } = modalShell('離線包', '背景下載照遊玩順序進行，玩到哪一章就先備妥哪一章', 520);
+  const body = el(`<div style="text-align:left"></div>`);
+  sheet.append(body);
+  stage.appendChild(m);
+
+  const ask = (msg) => new Promise(res => {
+    const sw = navigator.serviceWorker && navigator.serviceWorker.controller;
+    if (!sw) return res(null);
+    const ch = new MessageChannel();
+    ch.port1.onmessage = ev => res(ev.data);
+    sw.postMessage(msg, [ch.port2]);
+    setTimeout(() => res(null), 4000);
+  });
+  const audioOf = (n) => `assets/audio/${n}.ogg`;
+  const chapterVis = (c) => [c.background, ...c.clues.map(x => x.cell)].filter(Boolean);
+  const chapterAll = (c) => chapterVis(c).concat(
+    [MUSIC.investigation[c.id], MUSIC.battle[c.id]].filter(Boolean).map(audioOf));
+  const proVis = [G.prologue.background, ...G.prologue.hotspots.map(h => h.cell)].filter(Boolean);
+  const proAll = proVis.concat([MUSIC.ambient, MUSIC.prologue].map(audioOf));
+
+  async function draw() {
+    if (!document.contains(m)) return;                       // 視窗關了就停止輪詢
+    const st = await ask({ type: 'offline-status' });
+    if (!st) { body.innerHTML = '<div class="msub">Service Worker 尚未接管，重新整理後再看。</div>'; return; }
+    const miss = new Set(st.missing || []);
+    const has = (list) => list.every(u => !miss.has(u));
+    const pct = Math.round(st.done / st.total * 100);
+    const rows = [{ n: '序', vis: proVis, all: proAll }]
+      .concat(G.chapters.map(c => ({ n: String(c.id), vis: chapterVis(c), all: chapterAll(c) })));
+    const cells = rows.map(r => {
+      const ok = has(r.all), part = !ok && has(r.vis);
+      return `<div class="ocell${ok ? ' ok' : part ? ' part' : ''}" title="${ok ? '完整' : part ? '畫面齊，配樂待補' : '尚未備妥'}">${r.n}</div>`;
+    }).join('');
+    const playable = rows.filter(r => has(r.vis)).length;
+    body.innerHTML = `
+      <div class="mrow" style="pointer-events:none;padding-left:0"><span class="mr-n">整體進度</span>
+        <span class="mr-v">${st.done} / ${st.total}　${pct}%</span></div>
+      <div class="obar"><i style="width:${pct}%"></i></div>
+      <div class="msub" style="text-align:left;margin-top:.6rem">
+        可離線遊玩：<b style="color:var(--jade)">${playable} / ${rows.length}</b> 章
+        ${st.audioMissing ? `　·　配樂尚缺 ${st.audioMissing} 首` : ''}</div>
+      <div class="ogrid">${cells}</div>
+      <div class="okey"><span><b style="color:#9fd4bb">■</b> 完整</span>
+        <span><b style="color:var(--gold)">■</b> 畫面齊·配樂待補</span>
+        <span><b style="color:var(--pa2)">■</b> 尚未備妥</span></div>
+      <div class="msub" style="text-align:left;margin-top:.9rem;font-size:.78rem">
+        配樂缺檔只會靜音，畫面缺了才玩不下去，所以背景下載先鋪滿各章畫面再回頭補配樂。<br>
+        版本 ${esc(String(st.ver || '').replace('gewu-shell-', ''))}</div>`;
+    if (st.done < st.total) setTimeout(draw, 1500);          // 還在下載 → 持續更新
+  }
+  body.innerHTML = '<div class="msub">讀取中…</div>';
+  draw();
+}
+
 function settingsModal() {
   const { m, sheet } = modalShell('設定', '', 420);
   const list = el(`<div class="mlist"></div>`);
@@ -564,6 +623,7 @@ function settingsModal() {
     row.querySelector('.mr-v').textContent = isReduced() ? '關' : '開';
   }, { value: isReduced() ? '關' : '開' });
   list.appendChild(row);
+  list.appendChild(modalRow('離線包狀態', () => { m.remove(); offlineModal(); }));
   sheet.append(list, el(`<div class="msub" style="margin-top:1rem;text-align:left">關閉後會停掉雨幕、推鏡與呼吸光暈。畫面會安靜一點，在較慢的機器上也順一點。</div>`));
   stage.appendChild(m);
 }
