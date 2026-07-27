@@ -520,6 +520,12 @@ function shareBtn(label, text, imageUrl) {
 // ---------- 場景路由 ----------
 // 題名為暫時畫面,不寫入存檔的 scene(否則「繼續」會停在題名);其餘場景照存
 function go(scene) {
+  // 明確發佈目前場景給 index.html 的 SW 更新邏輯用。
+  // 不能讓那邊讀 window.S —— 頂層的 `let S` 建立的是全域宣告式綁定,不會變成 window 的屬性,
+  // window.S 永遠是 undefined,「是不是在題名」的判斷會恆真(踩過:玩到一半照樣被重整)。
+  window.__scene = scene;
+  // 回到題名是套用新版的唯一時機:玩到一半重整會把當下那章的演出整個斷掉(存檔還在,但人被丟回首頁)。
+  if (scene === 'title' && window.__applyPendingUpdate) window.__applyPendingUpdate();
   S.scene = scene; if (scene !== 'title') save();
   const f = document.getElementById('fade');
   if (!f || isReduced()) return render();               // dip-to-black 場景轉場(電影感)

@@ -635,7 +635,7 @@ body.reduced #loadbar::before{animation:none;left:0;width:100%;opacity:.5}
 </div>
 <div id="ambient"></div>
 <div id="wrap"><div id="stage">
-  <div id="ver">v115</div>
+  <div id="ver">v116</div>
   <div id="lamp"></div>
   <div id="book"></div>
   <canvas id="rain" width="1280" height="720"></canvas>
@@ -665,6 +665,12 @@ if ('serviceWorker' in navigator) {
       return;
     }
     b.classList.add('show'); b.classList.remove('gone', 'ready');
+    if (state === 'pending') {      // 有新版但玩家正在玩:不打斷,只說一聲
+      t.textContent = '已有新版，回題名後套用';
+      setTimeout(() => b.classList.add('gone'), 4500);
+      setTimeout(() => b.classList.remove('show', 'gone'), 5300);
+      return;
+    }
     if (state === 'incomplete') {   // 補不齊就別謊報完成——寧可讓人知道還缺幾個
       t.textContent = `離線包 ${done}/${total}(下次連線再補)`;
       setTimeout(() => b.classList.add('gone'), 5000);
@@ -718,12 +724,31 @@ if ('serviceWorker' in navigator) {
     (window.requestIdleCallback || (f => setTimeout(f, 1200)))(warmOffline, { timeout: 4000 });   // 等瀏覽器閒下來,別跟首屏搶頻寬
   }
   navigator.serviceWorker.ready.then(tryWarm);
+  // 新版接管後要重整才吃得到新的 HTML/JS,但**不能在玩到一半時重整**——
+  // 玩家會被丟回題名(存檔還在,可是當下那一章的演出全斷掉)。所以只在題名畫面重整;
+  // 正在玩就先記著,等回到題名再套用(engine.js 的 go('title') 會呼叫 applyUpdate)。
+  function applyUpdate() {
+    if (!updated || refreshing) return false;
+    refreshing = true; location.reload(); return true;
+  }
+  window.__applyPendingUpdate = () => { if (updated && !refreshing) applyUpdate(); };
+  window.__hasPendingUpdate = () => updated && !refreshing;
   navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (updated && !refreshing) { refreshing = true; location.reload(); return; }   // 新 SW 真正接管才重載 → 拿到新快取的新圖
+    if (updated && !refreshing) {
+      // 讀 engine.js 明確發佈的 __scene:不能讀 window.S(頂層 let 不會掛到 window)。
+      // 還沒開局時是 undefined,那時重整無害。
+      const atTitle = !window.__scene || window.__scene === 'title';
+      if (atTitle) { applyUpdate(); return; }
+      showOffline(0, 1, 'pending');   // 玩到一半 → 只提示,回題名再套用
+      return;
+    }
     tryWarm();   // 首次接管(非更新)→ 開始背景暖快取
   });
   navigator.serviceWorker.register('sw.js').then(reg => {
-    reg.addEventListener('updatefound', () => { if (navigator.serviceWorker.controller) { updated = true; document.getElementById('loadbar')?.classList.remove('done'); } });   // 有新版 → 重新顯示載入條,直到重整(把更新重整包進「載入中」)
+    // 有新版只記旗標,**不要把載入條叫回來**:那條是無限掃描動畫、不帶任何進度,
+    // 而新 SW 要 precache 一整包才會 activate,結果就是「一直播、載很久」看起來像當掉。
+    // 更新是背景行為,遊戲全程可玩,不該用「載入中」暗示要等。
+    reg.addEventListener('updatefound', () => { if (navigator.serviceWorker.controller) updated = true; });
     setInterval(() => reg.update(), 60 * 60 * 1000);            // 每小時主動檢查新版
   }).catch(() => {});
 }
