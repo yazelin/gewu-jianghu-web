@@ -383,6 +383,37 @@ ok('斷網後大音檔真的能解碼播放(1.1MB,Range→206)', bigTrack.starts
   await gp.close();
 }
 
+{ // 漸進載入:CORE 是照遊玩順序抓的,序章與前幾章要排在最前面。
+  // 順序錯了不會有錯誤訊息,只是「下載到一半斷線」的人玩不到後面的章 —— 要有擋板。
+  const prog = await page.evaluate(async () => {
+    const sw = navigator.serviceWorker.controller;
+    const list = await new Promise(r => {
+      const ch = new MessageChannel(); ch.port1.onmessage = e => r(e.data.list);
+      sw.postMessage({ type: 'offline-list' }, [ch.port2]);
+    });
+    const pos = u => list.indexOf(u);
+    const pro = [G.prologue.background, ...G.prologue.hotspots.map(h => h.cell)].filter(Boolean);
+    const chVis = G.chapters.map(c => [c.background, ...c.clues.map(x => x.cell)].filter(Boolean));
+    // have 查詢:問 SW「這批在不在快取」,進章前的離線判斷靠它
+    const have = await new Promise(r => {
+      const ch = new MessageChannel(); ch.port1.onmessage = e => r(e.data.missing);
+      sw.postMessage({ type: 'have', list: pro.concat(['assets/img/__不存在__.webp']) }, [ch.port2]);
+    });
+    return { total: list.length,
+      proLast: Math.max(...pro.map(pos)),
+      chLast: chVis.map(a => Math.max(...a.map(pos))),
+      galleryFirst: list.findIndex(u => u.includes('chapter9_ending')),
+      haveMissing: have };
+  });
+  ok('序章素材排在暖快取最前段', prog.proLast < prog.total * 0.25, `第 ${prog.proLast + 1}/${prog.total} 項`);
+  ok('十一章畫面都排在配樂鑑賞之前', Math.max(...prog.chLast) < prog.galleryFirst,
+    `章節畫面到第 ${Math.max(...prog.chLast) + 1} 項,鑑賞曲從第 ${prog.galleryFirst + 1} 項起`);
+  ok('各章畫面依章序遞增(不會第 9 章比第 2 章早)',
+    prog.chLast.every((v, i) => i === 0 || v > prog.chLast[i - 1]), prog.chLast.join(','));
+  ok('SW have 查詢答得出「缺哪些」', prog.haveMissing.length === 1 && prog.haveMissing[0].includes('__不存在__'),
+    JSON.stringify(prog.haveMissing));
+}
+
 const dp = await ctx.newPage();   // 缺 ignoreSearch 的話,這頁斷網會開成遊戲
 await dp.goto(BASE + 'design.html?utm_source=fb', { waitUntil: 'domcontentloaded' }).catch(() => {});
 ok('斷網開 design.html?utm_source=fb 不會開成遊戲', (await dp.title()).includes('設計與公式站'));

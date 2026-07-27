@@ -10,8 +10,11 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-echo "########## 1/4 design.html 對照 game.json ##########"
+echo "########## 1/4 design.html 對照 game.json + 暖快取順序 ##########"
 python3 tools/check_design.py
+# CORE 的順序決定「下載到一半就斷線」的人能玩到哪一章。順序錯了不會有任何錯誤訊息,
+# 所以要有守門:改過資產清單就重跑 python3 tools/gen_core.py。
+python3 tools/gen_core.py --check
 
 echo
 echo "########## 2/4 SW 部署存活(資產快取不被改版清掉)##########"

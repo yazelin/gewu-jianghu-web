@@ -62,6 +62,16 @@ python3 tools/gen_thumbs.py    # 產 design.html 用的縮圖(assets/thumb/),務
 
 第二支不能省:攻略站把立繪與結局圖縮成小圖顯示,直接用全解析度原圖整頁要載 9.3 MB。
 
+## 重新產生離線包順序
+
+```bash
+python3 tools/gen_core.py          # 依遊玩順序重排 sw.js 的 CORE(並瘦身 SHELL)
+python3 tools/gen_core.py --check  # 只檢查(test.sh 會跑)
+```
+
+CORE 是背景暖快取的**下載順序**。排錯不會有錯誤訊息,但「下載到一半就斷線」的人
+能玩到哪一章完全由它決定。改過資產清單就要重跑。
+
 ## 自動化測試
 
 ```bash

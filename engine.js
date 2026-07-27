@@ -1016,9 +1016,31 @@ function prologueEnding(ending, lizheng, insight) {
 }
 
 // ================= 章節 =================
+// 這一章離線玩得下去需要哪些檔。音樂不算:缺檔只會靜音(playMusic 播不出來就靜默),
+// 畫面缺了才是真的玩不下去,所以只看背景與證物切格。
+function chapterAssets(c) {
+  return [c.background, ...c.clues.map(cl => cl.cell)].filter(Boolean);
+}
+// 背景暖快取是照遊玩順序抓的(見 tools/gen_core.py),正常情況輪到你玩時早就備齊。
+// 但慢速連線 + 提早斷線還是可能沒抓到 —— 這時要說一聲,不要讓人玩到一半才發現圖開不出來。
+// 只提醒不阻擋:線上的話缺的檔會自己抓(一章約 0.2 MB)。
+async function warnIfChapterNotCached(c) {
+  if (navigator.onLine) return;
+  const sw = navigator.serviceWorker && navigator.serviceWorker.controller;
+  if (!sw) return;
+  const missing = await new Promise(res => {
+    const ch = new MessageChannel();
+    ch.port1.onmessage = ev => res((ev.data && ev.data.missing) || []);
+    sw.postMessage({ type: 'have', list: chapterAssets(c) }, [ch.port2]);
+    setTimeout(() => res([]), 3000);
+  });
+  if (missing.length) toast(`目前離線，本章有 ${missing.length} 項素材尚未下載，畫面可能不完整。`);
+}
+
 function sChapter() {
   const c = chById(S.chapter);
   if (!c) return endGameStub();
+  warnIfChapterNotCached(c);
   S.route = routeFor(S.chapter);       // 依 world_flags 決定本章 A/B 線
   const imgs = [c.background, ...c.clues.map(cl => cl.cell)];
   stage.appendChild(el(`<div class="loading">載入 ${esc(c.title)}…</div>`));
