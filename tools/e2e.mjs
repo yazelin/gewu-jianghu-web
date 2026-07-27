@@ -271,6 +271,81 @@ ok('斷網後大音檔真的能解碼播放(1.1MB,Range→206)', bigTrack.starts
       rA: routeName(c1, 'A'), rB: routeName(c1, 'B'), rNone: routeName(null, 'A'),
       paired, pairedF, solo, soloF };
   });
+  { // 收證據後的劇情改用立繪對話框演(不是印在證據視窗裡)。
+    // A/B 線與里程碑都要走這條路徑,壞掉時證據照拿、只是劇情整段消失 —— 要有擋板。
+    const beat = await page.evaluate(async (route) => {
+      closeAllWindows();
+      S = newState(); S.chapter = 1; S.cleared = [0]; S.intro_seen = true; S.route = route;
+      const c = G.chapters[0];
+      investigate({ key: 'ch1', background: c.background, title: c.title, clues: c.clues,
+        min: c.min_evidence, failable: false, onDone: () => {} });
+      await new Promise(r => setTimeout(r, 500));
+      const said = [];
+      for (let k = 0; k < 2; k++) {                      // 第 2 項會觸發里程碑
+        document.querySelectorAll('.hotspot:not(.done)')[0].click();
+        await new Promise(r => setTimeout(r, 380));
+        const q = document.querySelector('.cluebody h3')?.textContent?.trim();
+        const cl = c.clues.find(x => x.name === q);
+        [...document.querySelectorAll('.cluebody .opt')][cl.correct].click();
+        await new Promise(r => setTimeout(r, 320));
+        const panel = document.querySelector('.result.ok')?.textContent || '';
+        if (k === 0) said.panel = panel;
+        [...document.querySelectorAll('.cluebody .btn')].find(x => x.textContent.includes('收起'))?.click();
+        await new Promise(r => setTimeout(r, 600));
+        for (let i = 0; i < 8; i++) {
+          const box = document.querySelector('.dbox');
+          if (!box) break;
+          said.push({ spk: box.querySelector('.spk')?.textContent || '',
+            txt: box.querySelector('.txt')?.textContent || '',
+            port: !!document.querySelector('.portrait.show'),
+            locked: document.getElementById('stage').classList.contains('in-beat') });
+          box.click();
+          await new Promise(r => setTimeout(r, 300));
+        }
+      }
+      return { said: said.map(x => x), panel: said.panel || '',
+        stillScene: !!document.querySelector('.hotspot'),
+        unlocked: !document.getElementById('stage').classList.contains('in-beat') };
+    }, 'A');
+    const spks = beat.said.map(x => x.spk);
+    ok('收證據後用立繪對話框演劇情(不是印在視窗裡)', beat.said.length >= 6 && beat.stillScene,
+      `${beat.said.length} 句,場景保留=${beat.stillScene}`);
+    ok('證據視窗只留格物內容(劇情已移出)',
+      beat.panel.includes('取得證據') && !beat.panel.includes('護鐘線'), beat.panel.replace(/\s+/g, ' ').slice(0, 40));
+    ok('角色台詞有立繪、旁白沒有', beat.said.some(x => x.spk && x.port) && beat.said.some(x => !x.spk && !x.port),
+      spks.join('/'));
+    ok('路線名會出現在對白裡(A 線=護鐘線)', spks.includes('護鐘線'), spks.join('/'));
+    ok('里程碑也演成對白(第 2 項證據觸發)', spks.includes('沈硯'), spks.join('/'));
+    ok('對白播放中鎖住熱點、播完解鎖', beat.said.every(x => x.locked) && beat.unlocked);
+    const beatB = await page.evaluate(async (route) => {
+      closeAllWindows();
+      S = newState(); S.chapter = 1; S.cleared = [0]; S.intro_seen = true; S.route = route;
+      const c = G.chapters[0];
+      investigate({ key: 'ch1', background: c.background, title: c.title, clues: c.clues,
+        min: c.min_evidence, failable: false, onDone: () => {} });
+      await new Promise(r => setTimeout(r, 500));
+      document.querySelectorAll('.hotspot:not(.done)')[0].click();
+      await new Promise(r => setTimeout(r, 380));
+      const q = document.querySelector('.cluebody h3')?.textContent?.trim();
+      const cl = c.clues.find(x => x.name === q);
+      [...document.querySelectorAll('.cluebody .opt')][cl.correct].click();
+      await new Promise(r => setTimeout(r, 320));
+      [...document.querySelectorAll('.cluebody .btn')].find(x => x.textContent.includes('收起'))?.click();
+      await new Promise(r => setTimeout(r, 600));
+      const out = [];
+      for (let i = 0; i < 6; i++) {
+        const box = document.querySelector('.dbox');
+        if (!box) break;
+        out.push(box.querySelector('.spk')?.textContent || '');
+        box.click(); await new Promise(r => setTimeout(r, 300));
+      }
+      closeAllWindows(); go('title');
+      return out;
+    }, 'B');
+    ok('B 線走出不同對白(循印線)', beatB.includes('循印線') && !beatB.includes('護鐘線'), beatB.join('/'));
+  }
+  await page.waitForTimeout(600);
+
   ok('破局答對:現場結果與算式並列', r.okH.includes('現場結果') && r.okH.includes(r.action.slice(0, 12)));
   ok('破局答錯:劇情代價與算式並列', r.badH.includes('劇情代價') && r.badH.includes(r.failure.slice(0, 12)));
   ok('沒有 beats 的章節不出空欄', !r.noBeat.includes('rescols'));

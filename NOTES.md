@@ -358,6 +358,31 @@ Service Worker,那是另一個 target,頁面層的節流管不到。要在**測�
 `allies_crosschecked_final`,與 design.html 的敘述關鍵字是否一致。
 **規則改了兩邊都要動,測試會擋。**
 
+## 劇情用立繪對話框演,不要印在功能視窗裡
+
+原作把收證據後的劇情(`reveal` / `response` / `route_text`)放在哪,bytecode 沒有答案。
+但資料本身有訊號:`campaign_story_progression` 裡**每一則都自帶 `speaker`**,
+而且形狀跟破局的 `battle_beats` 一模一樣:
+
+| | 旁白 | 說話者 | 台詞 |
+|---|---|---|---|
+| clues | `reveal` | `speaker` | `response` |
+| battle | `action` | `speaker` | `response` |
+
+所以 `reveal` 是旁白(**不掛角色名**)、`response` 才是該角色講的話。
+port 原本把 `reveal` 也冠上 `reveal_speaker`,那是誤讀。
+
+**做法(刻意做得比原作生動,不是還原)**:證據視窗只留「格物」——取得什麼證據、正解觀念;
+收起面板後,劇情用立繪對話框演。A/B 路線分歧與里程碑都走同一條路。
+
+- **不能用 `playDialogue`**:它會 `clear()` 整個場景。一章要收六項證據,清六次太重也太跳。
+  另寫 `sceneDialogue()`:共用同一套 `.dbox`/`.portrait` 視覺,但疊在調查場景上,講完自己收掉。
+- **z-index 要明寫**。`.dbox`/`.portrait`/`.hotspot` 原本都沒設,只靠 DOM 順序,
+  結果熱點會穿透到對話文字上面(實測見過)。而且 `stage.querySelector('.layer')` 取的是
+  **第一個** layer,要取最後一個才會疊在最上面。
+- **對白播放中要鎖熱點**(`#stage.in-beat .hotspot{pointer-events:none;opacity:.45}`),
+  否則對白還沒講完就能開下一個證物。
+
 ## 已知取捨(ponytail ceiling)
 - **配樂**取原作標示的 CC0 原始來源重編(非反解 PCK),見 `provenance/AUDIO.md`;**音效 SFX** 則以自寫 remuxer
   從原作 PCK 的 Godot 匯入串流(OggPacketSequence)抽出、8 個全接並進 precache。

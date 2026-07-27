@@ -104,7 +104,9 @@ body.reduced #rain{display:none}
 body.reduced .tstorm.flash{animation:none}
 
 /* dialogue */
-.dbox{position:absolute;left:60px;right:60px;bottom:48px;background:rgba(20,17,14,.92);
+/* 對話框與立繪要壓過調查場景的熱點:三者原本都沒設 z-index,只靠 DOM 順序,
+   場景內對白疊上去時熱點會穿透到文字上面(實測見過)。 */
+.dbox{z-index:30;position:absolute;left:60px;right:60px;bottom:48px;background:rgba(20,17,14,.92);
   border:1px solid var(--line);border-left:5px solid var(--cin);border-radius:10px;
   padding:22px 28px;min-height:150px;backdrop-filter:blur(2px);animation:dboxIn .3s ease}
 @keyframes dboxIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
@@ -114,7 +116,7 @@ body.reduced .tstorm.flash{animation:none}
 .dbox .txt{font-size:1.3rem;line-height:2;color:#f0e6d2}
 .dbox .next{position:absolute;right:22px;bottom:14px;color:var(--br);font-size:.9rem;animation:blink 1.2s infinite}
 /* 對話立繪卡(忠實還原原版 _portrait_card):發話者為角色時左側顯示大立繪,對話框右移讓位 */
-.portrait{position:absolute;left:64px;bottom:40px;width:300px;height:440px;object-fit:cover;object-position:top center;
+.portrait{z-index:29;position:absolute;left:64px;bottom:40px;width:300px;height:440px;object-fit:cover;object-position:top center;
   border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,.6);border:1px solid rgba(138,107,58,.45);
   opacity:0;transform:translateY(16px) scale(.985);transition:opacity .45s ease,transform .45s ease;z-index:14;pointer-events:none}
 .portrait.show{opacity:1;transform:none}
@@ -462,7 +464,9 @@ body.reduced .cine-nav{transition:none;opacity:1}
 .util.go{border-color:var(--jade);color:#bfe6d2}
 .util.go:hover{border-color:var(--jade);color:#fff}
 /* 證據點:狀態符號 + 證據名稱按鈕(忠實還原原版,非純圓點),左上角對齊 data 座標 */
-.hotspot{position:absolute;min-width:150px;height:38px;padding:0 15px;display:inline-flex;align-items:center;gap:8px;
+/* 場景內對白播放中:熱點降到底層且不可點,免得對白還沒講完就開下一個證物 */
+#stage.in-beat .hotspot{pointer-events:none;opacity:.45}
+.hotspot{z-index:5;position:absolute;min-width:150px;height:38px;padding:0 15px;display:inline-flex;align-items:center;gap:8px;
   border:1px solid var(--pa);border-radius:19px;background:rgba(20,17,14,.72);color:var(--pa);
   font:600 15px/1 "Noto Sans TC",system-ui,sans-serif;cursor:pointer;z-index:15;white-space:nowrap;
   box-shadow:0 2px 10px rgba(0,0,0,.4);animation:hspin 2.4s ease-in-out infinite;transition:border-color .15s,background .15s}
@@ -646,7 +650,7 @@ body.reduced #loadbar::before{animation:none;left:0;width:100%;opacity:.5}
 </div>
 <div id="ambient"></div>
 <div id="wrap"><div id="stage">
-  <div id="ver">v120</div>
+  <div id="ver">v121</div>
   <div id="lamp"></div>
   <div id="book"></div>
   <canvas id="rain" width="1280" height="720"></canvas>

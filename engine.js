@@ -1090,6 +1090,54 @@ function prologueEnding(ending, lizheng, insight) {
   row.appendChild(cont); lay.appendChild(row); stage.appendChild(lay);
 }
 
+// 場景內對白:不清場,把對話框與立繪疊在現有畫面上。
+// playDialogue 會 clear() 整個場景 —— 調查中一章要收六項證據,清六次太重也太跳。
+// 這個輕量版共用同一套 .dbox / .portrait 視覺,講完自己收掉,調查畫面原封不動。
+function sceneDialogue(lines, done) {
+  lines = (lines || []).filter(l => l && l.text);
+  if (!lines.length) return done && done();
+  // 要疊在「最上面那層」:querySelector 取到的是第一個 .layer,熱點可能在後面那層,
+  // 對話框就會被蓋住(或熱點穿透上來)。
+  const layers = stage.querySelectorAll('.layer');
+  const host = layers.length ? layers[layers.length - 1] : stage;
+  stage.classList.add('in-beat');                 // 對白播放中鎖住熱點
+  const port = el(`<img class="portrait" alt="">`);
+  host.appendChild(port);
+  let i = 0, cur = '';
+  const step = () => {
+    host.querySelectorAll('.dbox').forEach(n => n.remove());
+    if (i >= lines.length) { port.remove(); stage.classList.remove('in-beat'); return done && done(); }
+    const l = lines[i++];
+    const src = l.speaker && G.portraits[l.speaker];
+    if (src) { if (l.speaker !== cur) port.src = src; port.classList.add('show'); cur = l.speaker; }
+    else port.classList.remove('show');
+    const box = el(`<div class="dbox${src ? ' has-portrait' : ''}">
+      ${l.speaker ? `<div class="spk">${esc(l.speaker)}</div>` : ''}
+      <div class="txt">${esc(l.text)}</div>
+      <div class="next">點擊繼續 ▾</div></div>`);
+    box.onclick = step;
+    host.appendChild(box);
+  };
+  step();
+}
+
+// 收下一項證據後要演的劇情:旁白 → 角色台詞 → 路線分歧 →(收滿 2/4 項時)里程碑。
+// 欄位形狀跟破局的 battle_beats 一模一樣(旁白 + speaker + response),所以照同一套讀:
+// reveal 是旁白(不掛角色名),response 才是 speaker 講的話。
+function clueBeats(cl, c, ms) {
+  const out = [];
+  if (cl.reveal) out.push({ speaker: '', text: cl.reveal });
+  if (cl.response) out.push({ speaker: cl.reveal_speaker || '', text: cl.response });
+  const rt = cl.route_text && cl.route_text[S.route];
+  if (rt) out.push({ speaker: routeName(c), text: rt });
+  if (ms) {
+    if (ms.text) out.push({ speaker: ms.speaker || '', text: ms.text });
+    const mrt = ms.route_text && ms.route_text[S.route];
+    if (mrt) out.push({ speaker: routeName(c), text: mrt });
+  }
+  return out;
+}
+
 // ================= 章節 =================
 // 這一章離線玩得下去需要哪些檔。音樂不算:缺檔只會靜音(playMusic 播不出來就靜默),
 // 畫面缺了才是真的玩不下去,所以只看背景與證物切格。
@@ -1290,12 +1338,10 @@ function investigate({ key, background, title, clues, min, onDone, failable, onF
 
   function resultHTML(cl, ok) {
     if (ok) {
-      const rt = cl.route_text && cl.route_text[S.route];
+      // 這裡只留「格物」:拿到什麼證據、正解觀念是什麼。
+      // 劇情(旁白/角色台詞/路線分歧/里程碑)收起面板後改用立繪對話框演,見 clueBeats。
       return `<div class="result ok">取得證據｜${esc(cl.evidence)}
-        ${cl.note ? `<div class="concept">${esc(cl.concept)}</div><div>${esc(cl.note)}</div>` : ''}
-        ${cl.reveal ? `<div class="reveal"><span class="spk">${esc(cl.reveal_speaker)}</span>　${esc(cl.reveal)}</div>` : ''}
-        ${cl.response ? `<div class="reveal">${esc(cl.response)}</div>` : ''}
-        ${rt ? `<div class="reveal"><span class="spk">${esc(routeName(chById(S.chapter)))}</span>　${esc(rt)}</div>` : ''}</div>`;
+        ${cl.note ? `<div class="concept">${esc(cl.concept)}</div><div>${esc(cl.note)}</div>` : ''}</div>`;
     }
     const lossText = cl.loss || (G.failure_texts[cl.id]) || '此證物已滅失，無法在本章重驗。';
     return `<div class="result bad">證物滅失｜${esc(lossText)}
@@ -1303,6 +1349,7 @@ function investigate({ key, background, title, clues, min, onDone, failable, onF
   }
 
   function answer(cl, idx, content, wrap, optsWrap) {
+    let beats = [];                        // 答對時要接著演的劇情對白(旁白/角色/路線/里程碑)
     const buttons = [...optsWrap.querySelectorAll('.opt')];
     buttons.forEach(b => b.disabled = true);
     const ok = idx === cl.correct;
@@ -1318,19 +1365,16 @@ function investigate({ key, background, title, clues, min, onDone, failable, onF
       toast('取得證據：' + cl.evidence);
       const c = chById(S.chapter);
       const ms = c && c.milestones && c.milestones[String(S.evidence[key].length)];
-      if (ms) {
-        const mrt = ms.route_text && ms.route_text[S.route];
-        content.appendChild(el(`<div class="reveal" style="border-top:1px solid var(--br);margin-top:.6rem;padding-top:.6rem">
-          <span class="spk">${esc(ms.speaker || '推進')}</span>　${esc(ms.text)}
-          ${mrt ? `<div style="margin-top:.3rem"><span class="spk">${esc(routeName(c))}</span>　${esc(mrt)}</div>` : ''}</div>`));
-      }
+      beats = clueBeats(cl, c, ms);       // 劇情改用立繪對話框演,收起面板後接著播
     } else {
       S.lost[key].push(cl.id);
       spot.classList.add('lost'); spot.querySelector('.hs-mark').textContent = '✕'; spot.title = hotspotTip(cl);
       content.appendChild(el(resultHTML(cl, false)));
     }
     const cont = el(`<button class="btn sm" style="margin-top:14px">收起</button>`);
-    cont.onclick = () => closePanel(wrap);
+    // 先收面板,再演劇情 —— 對話框要蓋在調查場景上,不能被面板擋住。
+    // 等 280ms 是讓面板的退場動畫走完,否則兩個東西會疊在一起閃一下。
+    cont.onclick = () => { closePanel(wrap); if (beats.length) setTimeout(() => sceneDialogue(beats), 280); };
     content.appendChild(cont);
     scrollDown(content);          // 捲右欄到底,讓說明與收起可見
     save(); updateCount();
