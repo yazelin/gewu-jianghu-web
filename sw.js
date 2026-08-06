@@ -80,7 +80,10 @@ async function prune(){
 self.addEventListener("activate",e=>{e.waitUntil((async()=>{
   const keys=await caches.keys();
   await adopt(keys);
-  await Promise.all(keys.filter(k=>!KEEP.includes(k)).map(k=>caches.delete(k)));
+  // 只清自己的 gewu-*:CacheStorage 是 per-origin,yazelin.github.io 所有專案共用同一份
+  // (scope 只管 fetch,管不到快取)。無差別刪會把 neko、token-unlimited 等別站的離線包
+  // 整包清掉,而且功能完全正常、毫無徵兆——反過來他們也在刪本站這 33MB。
+  await Promise.all(keys.filter(k=>k.startsWith("gewu-")&&!KEEP.includes(k)).map(k=>caches.delete(k)));
   await prune();
   await self.clients.claim();
 })());});
