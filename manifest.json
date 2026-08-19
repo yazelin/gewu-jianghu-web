@@ -2,6 +2,7 @@
   "name": "格物江湖錄:天理殘卷",
   "short_name": "格物江湖錄",
   "description": "武俠懸疑包裝的物理解題 RPG,可離線遊玩。",
+  "id": "./",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
@@ -30,5 +31,9 @@
       "type": "image/png",
       "purpose": "maskable"
     }
+  ],
+  "screenshots": [
+    { "src": "images/screenshot-narrow.webp", "sizes": "1624x750", "type": "image/webp", "form_factor": "narrow", "label": "天理殘卷 標題畫面" },
+    { "src": "images/screenshot-wide.webp", "sizes": "1280x800", "type": "image/webp", "form_factor": "wide", "label": "天理殘卷 標題畫面" }
   ]
 }
